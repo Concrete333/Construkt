@@ -253,6 +253,7 @@ Vault token account:
 
 - mint = `work_package.mint`
 - authority = vault authority PDA
+- address = associated token account for `(mint, vault authority PDA)`
 
 Escrow flow:
 
@@ -284,7 +285,7 @@ Events:
 
 Signer: `project.authority`.
 
-Creates `WorkPackageAccount`, vault authority PDA, and vault token account.
+Creates `WorkPackageAccount`, vault authority PDA, and vault associated token account.
 
 Checks:
 
@@ -310,7 +311,9 @@ Events:
 
 Signer: `project.authority`.
 
-Creates or updates `RoleAssignmentAccount`.
+Creates `RoleAssignmentAccount`.
+
+Role activation/deactivation should be handled by a later explicit instruction, such as `set_role_active(active: bool)`, instead of overloading `assign_role`.
 
 Checks:
 
@@ -521,6 +524,7 @@ Add explicit program errors, including:
 - `WrongMint`
 - `WrongTokenOwner`
 - `ArithmeticOverflow`
+- `InvalidAmount`
 
 ## Test Plan
 
