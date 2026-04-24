@@ -89,6 +89,8 @@ Known status:
 - Native WSL Node works at `/usr/bin/node`.
 - Devnet wallet has SOL available.
 - Localnet scaffold test has passed.
+- `scripts/wsl-anchor-test.sh` now runs `anchor test --provider.cluster localnet` without `--skip-build`, so the default local test path rebuilds current Rust/IDL artifacts.
+- `npm run lint` / `npm run lint:fix` format the TypeScript test and migration files without unmatched glob failures.
 
 ## Constants
 
@@ -338,7 +340,7 @@ Checks:
 - amount > 0
 - token mint matches work package mint
 - Finance source token account mint matches work package mint
-- vault token account mint matches work package mint
+- vault token account address is pinned to `work_package.vault`; that vault is created as the associated token account for `(work_package.mint, vault authority PDA)` during `create_work_package`
 - use `checked_add` for `funded_amount += amount`
 - funding does not exceed package cap
 
@@ -563,6 +565,10 @@ Required test cases:
 | Request exceeds remaining cap by 1 | fails |
 | Request above cap | fails |
 | Finance funds with wrong mint | fails |
+| Finance funds with amount zero | fails |
+| Non-finance funds escrow | fails |
+| Funding exactly to package cap | succeeds |
+| Multiple escrow fundings accumulate | succeeds |
 | Release to token account not owned by contractor | fails |
 | Release to token account with wrong mint | fails |
 | Finance releases after both approvals | success and token balances update |
@@ -581,7 +587,7 @@ Done:
 
 ### Milestone B1: Account Creation
 
-Done when:
+Done:
 
 - `initialize_project` works.
 - `create_work_package` works.
@@ -591,13 +597,14 @@ Done when:
 
 ### Milestone B2: Escrow Funding
 
-Done when:
+Done:
 
 - Mock USDC mint is created in tests.
 - Finance funds package vault.
 - Vault balance is readable.
-- Wrong mint and over-cap funding tests pass.
-- Frontend receives PDA derivation details for project, package, vault authority, and vault token account.
+- Wrong mint, wrong token owner, zero amount, non-finance funding, over-cap, exact-cap, and multi-fund accumulation tests pass.
+- `EscrowFunded` is emitted with `amount` and running `funded_amount`.
+- PDA derivation details for project, package, vault authority, vault token account, and role assignments are present in tests and should be promoted into frontend helpers or seed output before frontend integration.
 
 ### Milestone B3: Payment Request and Approvals
 

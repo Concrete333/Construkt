@@ -214,8 +214,8 @@ Keep UI state derived from chain where possible. Local UI state is acceptable fo
 
 The frontend depends on backend outputs:
 
-- Program ID for localnet/devnet.
-- Generated IDL.
+- Program ID for localnet/devnet: `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`.
+- Generated IDL from `anchor build`.
 - PDA seed specs or helper functions.
 - Account type definitions.
 - Instruction argument specs.
@@ -224,6 +224,15 @@ The frontend depends on backend outputs:
 - Event names and event fields when available.
 
 Until the Anchor program stabilizes, build against a typed mock adapter that mirrors the planned client API. Keep the adapter boundary thin so switching to Anchor calls does not rewrite the UI.
+
+Current backend status:
+
+- Backend milestones B0-B2 are implemented and covered by Anchor tests.
+- Available on-chain instructions today: `initialize_project`, `create_work_package`, `assign_role`, and `fund_escrow`.
+- `create_work_package` creates the vault associated token account for `(work_package.mint, vault authority PDA)`.
+- `fund_escrow` account inputs are: `authority`, `project`, `work_package`, `mint`, `finance_token_account`, `vault`, and `token_program`.
+- `EscrowFunded` is emitted with `project`, `work_package`, `authority`, `mint`, `vault`, `amount`, and running `funded_amount`.
+- Tests currently derive project, work package, vault authority, vault token account, and role assignment PDAs; these derivations should become frontend `pda.ts` helpers or seed-script output before F2/F3 integration.
 
 Example adapter shape:
 
@@ -304,6 +313,11 @@ Done when:
 - Wallet/local demo signer can submit transactions.
 - PDA helpers derive project, package, role assignment, payment request, approval, vault authority, and vault addresses.
 - Account fetches replace mocked truth.
+
+Backend-ready now:
+
+- Project, work package, role assignment, vault authority, and vault token account derivations can be implemented against the current B0-B2 contract.
+- Payment request and approval derivations should stay mocked until backend B3 lands.
 
 ### Milestone F3: Setup and Escrow
 

@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
 declare_id!("34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL");
 
@@ -91,6 +91,65 @@ pub mod construkt {
             mint: work_package.mint,
             vault: work_package.vault,
             cap_amount,
+        });
+
+        Ok(())
+    }
+
+    pub fn fund_escrow(ctx: Context<FundEscrow>, amount: u64) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            ctx.accounts.project.authority,
+            ConstruktError::Unauthorized
+        );
+        require!(amount > 0, ConstruktError::InvalidAmount);
+        require_keys_eq!(
+            ctx.accounts.work_package.project,
+            ctx.accounts.project.key(),
+            ConstruktError::InvalidAccountRelationship
+        );
+        require_keys_eq!(
+            ctx.accounts.finance_token_account.mint,
+            ctx.accounts.work_package.mint,
+            ConstruktError::WrongMint
+        );
+        require_keys_eq!(
+            ctx.accounts.finance_token_account.owner,
+            ctx.accounts.authority.key(),
+            ConstruktError::WrongTokenOwner
+        );
+
+        let remaining_capacity = ctx.accounts.work_package.remaining_funding_capacity()?;
+        require!(
+            amount <= remaining_capacity,
+            ConstruktError::InsufficientRemainingCap
+        );
+        let next_funded_amount = ctx
+            .accounts
+            .work_package
+            .funded_amount
+            .checked_add(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.finance_token_account.to_account_info(),
+            to: ctx.accounts.vault.to_account_info(),
+            authority: ctx.accounts.authority.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new(ctx.accounts.token_program.to_account_info(), cpi_accounts);
+        token::transfer(cpi_ctx, amount)?;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.funded_amount = next_funded_amount;
+
+        emit!(EscrowFunded {
+            project: work_package.project,
+            work_package: work_package.key(),
+            authority: ctx.accounts.authority.key(),
+            mint: work_package.mint,
+            vault: work_package.vault,
+            amount,
+            funded_amount: work_package.funded_amount,
         });
 
         Ok(())
@@ -189,7 +248,26 @@ pub struct CreateWorkPackage<'info> {
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
-    pub rent: Sysvar<'info, Rent>,
+}
+
+#[derive(Accounts)]
+pub struct FundEscrow<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(address = work_package.mint @ ConstruktError::WrongMint)]
+    pub mint: Account<'info, Mint>,
+    #[account(mut)]
+    pub finance_token_account: Account<'info, TokenAccount>,
+    #[account(mut, address = work_package.vault @ ConstruktError::InvalidAccountRelationship)]
+    pub vault: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -253,6 +331,12 @@ pub struct WorkPackageAccount {
 impl WorkPackageAccount {
     pub const SPACE: usize =
         8 + 32 + 8 + 8 + 8 + 8 + 32 + 32 + 32 + 1 + 1 + string_space(MAX_REF_LEN) + 8 + 1 + 32 + 1;
+
+    pub fn remaining_funding_capacity(&self) -> Result<u64> {
+        self.cap_amount
+            .checked_sub(self.funded_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
 }
 
 #[account]
@@ -382,6 +466,17 @@ pub struct WorkPackageCreated {
     pub mint: Pubkey,
     pub vault: Pubkey,
     pub cap_amount: u64,
+}
+
+#[event]
+pub struct EscrowFunded {
+    pub project: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub mint: Pubkey,
+    pub vault: Pubkey,
+    pub amount: u64,
+    pub funded_amount: u64,
 }
 
 #[event]

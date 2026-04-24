@@ -5,8 +5,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "anchor:test": "anchor test",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
-    "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w"
+    "lint": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" --check",
+    "lint:fix": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" -w"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

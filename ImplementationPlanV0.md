@@ -124,6 +124,9 @@ Current known status:
 - Native WSL Node works at `/usr/bin/node`.
 - Devnet wallet has SOL available.
 - Localnet scaffold test has passed.
+- Backend milestones 0-2 are implemented in the Anchor program and tests.
+- `scripts/wsl-anchor-test.sh` rebuilds before running localnet tests.
+- TypeScript lint/format scripts now target the current migration and test files cleanly.
 
 ## 6. Constants
 
@@ -370,7 +373,7 @@ Checks:
 - amount > 0
 - token mint matches work package mint
 - Finance source token account mint matches work package mint
-- vault token account mint matches work package mint
+- vault token account address is pinned to `work_package.vault`; the vault is created as the associated token account for `(work_package.mint, vault authority PDA)`
 - use `checked_add` for `funded_amount += amount`
 - funding does not exceed package cap
 
@@ -594,6 +597,10 @@ Required test cases:
 | Request exceeds remaining cap by 1 | fails |
 | Request above cap | fails |
 | Finance funds with wrong mint | fails |
+| Finance funds with amount zero | fails |
+| Non-finance funds escrow | fails |
+| Funding exactly to package cap | succeeds |
+| Multiple escrow fundings accumulate | succeeds |
 | Release to token account not owned by contractor | fails |
 | Release to token account with wrong mint | fails |
 | Finance releases after both approvals | success and token balances update |
@@ -702,7 +709,7 @@ Done:
 
 ### Milestone 1: Account Creation
 
-Done when:
+Done:
 
 - `initialize_project` works.
 - `create_work_package` works.
@@ -711,12 +718,13 @@ Done when:
 
 ### Milestone 2: Escrow Funding
 
-Done when:
+Done:
 
 - Mock USDC mint is created in tests.
 - Finance funds package vault.
 - Vault balance is readable.
-- Wrong mint and over-cap funding tests pass.
+- Wrong mint, wrong token owner, zero amount, non-finance funding, over-cap, exact-cap, and multi-fund accumulation tests pass.
+- `EscrowFunded` event exists for the audit trail.
 
 ### Milestone 3: Payment Request and Approvals
 
@@ -786,4 +794,3 @@ V0 is done when a user can demonstrate this live:
 - Confidential/private execution.
 - AI assistant features.
 - Full historical indexing.
-
