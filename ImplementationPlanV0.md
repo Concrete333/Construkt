@@ -393,6 +393,7 @@ Checks:
 - signer equals `work_package.contractor`
 - work package status is `Active`
 - `work_package.has_active_request == false`
+- `request_id == work_package.request_counter + 1`
 - amount > 0
 - document reference is present and length `<= MAX_REF_LEN`
 - use checked arithmetic for remaining cap
@@ -438,7 +439,7 @@ Checks:
 - request is not rejected or released
 - signer is not the contractor
 - signer has active role assignment for required next approval role
-- duplicate approval PDA for role does not already exist
+- approval PDA for role does not already exist
 - role must be `LowApprover` when status is `Submitted`
 - role must be `HighApprover` when status is `LowApproved`
 
@@ -546,7 +547,7 @@ Add explicit program errors, including:
 - `InvalidAccountRelationship`
 - `InvalidStatus`
 - `InvalidApprovalOrder`
-- `DuplicateApproval`
+- `InvalidRequestId`
 - `ContractorCannotApprove`
 - `ActiveRequestExists`
 - `MissingDocumentReference`

@@ -206,18 +206,24 @@ pub mod construkt {
 
     pub fn submit_payment_request(
         ctx: Context<SubmitPaymentRequest>,
-        _request_id: u64,
+        request_id: u64,
         amount: u64,
         document_ref: String,
     ) -> Result<()> {
         require!(amount > 0, ConstruktError::InvalidAmount);
-        require!(!document_ref.is_empty(), ConstruktError::MissingDocumentReference);
-        require!(document_ref.len() <= MAX_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            !document_ref.is_empty(),
+            ConstruktError::MissingDocumentReference
+        );
+        require!(
+            document_ref.len() <= MAX_REF_LEN,
+            ConstruktError::StringTooLong
+        );
 
         let work_package_key = ctx.accounts.work_package.key();
         let contractor_key = ctx.accounts.contractor.key();
 
-        {
+        let expected_request_id = {
             let wp = &ctx.accounts.work_package;
             require!(
                 wp.status == WorkPackageStatus::Active,
@@ -225,13 +231,22 @@ pub mod construkt {
             );
             require!(!wp.has_active_request, ConstruktError::ActiveRequestExists);
             require_keys_eq!(contractor_key, wp.contractor, ConstruktError::Unauthorized);
+            let next_request_id = wp.next_request_id()?;
+            require!(
+                request_id == next_request_id,
+                ConstruktError::InvalidRequestId
+            );
 
             let remaining_cap = wp
                 .cap_amount
                 .checked_sub(wp.released_amount)
                 .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
-            require!(amount <= remaining_cap, ConstruktError::InsufficientRemainingCap);
-        }
+            require!(
+                amount <= remaining_cap,
+                ConstruktError::InsufficientRemainingCap
+            );
+            next_request_id
+        };
 
         require!(
             amount <= ctx.accounts.vault.amount,
@@ -243,9 +258,7 @@ pub mod construkt {
 
         let payment_request = &mut ctx.accounts.payment_request;
         payment_request.work_package = work_package_key;
-        payment_request.request_id = ctx.accounts.work_package.request_counter
-            .checked_add(1)
-            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        payment_request.request_id = expected_request_id;
         payment_request.contractor = contractor_key;
         payment_request.amount = amount;
         payment_request.document_ref = document_ref.clone();
@@ -259,11 +272,8 @@ pub mod construkt {
         payment_request.bump = ctx.bumps.payment_request;
 
         let work_package = &mut ctx.accounts.work_package;
-        work_package.request_counter = work_package.request_counter
-            .checked_add(1)
-            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
-        work_package.has_active_request = true;
-        work_package.active_request = payment_request_key;
+        work_package.request_counter = expected_request_id;
+        work_package.mark_active_request(payment_request_key);
 
         emit!(PaymentRequestSubmitted {
             work_package: work_package_key,
@@ -281,16 +291,18 @@ pub mod construkt {
         ctx: Context<AddDocumentReference>,
         document_ref: String,
     ) -> Result<()> {
-        require!(!document_ref.is_empty(), ConstruktError::MissingDocumentReference);
-        require!(document_ref.len() <= MAX_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            !document_ref.is_empty(),
+            ConstruktError::MissingDocumentReference
+        );
+        require!(
+            document_ref.len() <= MAX_REF_LEN,
+            ConstruktError::StringTooLong
+        );
 
         {
             let pr = &ctx.accounts.payment_request;
-            require!(
-                pr.status != PaymentRequestStatus::Rejected
-                    && pr.status != PaymentRequestStatus::Released,
-                ConstruktError::InvalidStatus
-            );
+            require!(!pr.is_terminal(), ConstruktError::InvalidStatus);
             require_keys_eq!(
                 ctx.accounts.contractor.key(),
                 pr.contractor,
@@ -321,7 +333,10 @@ pub mod construkt {
         role: Role,
         note_ref: String,
     ) -> Result<()> {
-        require!(note_ref.len() <= MAX_NOTE_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            note_ref.len() <= MAX_NOTE_REF_LEN,
+            ConstruktError::StringTooLong
+        );
         require!(
             role == Role::LowApprover || role == Role::HighApprover,
             ConstruktError::InvalidRole
@@ -338,8 +353,7 @@ pub mod construkt {
             ConstruktError::RequestOnHold
         );
         require!(
-            payment_request_status != PaymentRequestStatus::Rejected
-                && payment_request_status != PaymentRequestStatus::Released,
+            !ctx.accounts.payment_request.is_terminal(),
             ConstruktError::InvalidStatus
         );
 
@@ -389,12 +403,11 @@ pub mod construkt {
         Ok(())
     }
 
-    pub fn reject_request(
-        ctx: Context<RejectRequest>,
-        role: Role,
-        note_ref: String,
-    ) -> Result<()> {
-        require!(note_ref.len() <= MAX_NOTE_REF_LEN, ConstruktError::StringTooLong);
+    pub fn reject_request(ctx: Context<RejectRequest>, role: Role, note_ref: String) -> Result<()> {
+        require!(
+            note_ref.len() <= MAX_NOTE_REF_LEN,
+            ConstruktError::StringTooLong
+        );
         require!(
             role == Role::LowApprover || role == Role::HighApprover,
             ConstruktError::InvalidRole
@@ -405,10 +418,8 @@ pub mod construkt {
             ConstruktError::ContractorCannotApprove
         );
 
-        let payment_request_status = ctx.accounts.payment_request.status;
         require!(
-            payment_request_status != PaymentRequestStatus::Released
-                && payment_request_status != PaymentRequestStatus::Rejected,
+            !ctx.accounts.payment_request.is_terminal(),
             ConstruktError::InvalidStatus
         );
 
@@ -431,8 +442,7 @@ pub mod construkt {
         payment_request.updated_at = clock.unix_timestamp;
 
         let work_package = &mut ctx.accounts.work_package;
-        work_package.has_active_request = false;
-        work_package.active_request = Pubkey::default();
+        work_package.clear_active_request();
 
         emit!(PaymentRequestRejected {
             payment_request: payment_request_key,
@@ -446,7 +456,7 @@ pub mod construkt {
     }
 }
 
-// ── Account Contexts ──────────────────────────────────────────────────────────
+// Account contexts
 
 #[derive(Accounts)]
 #[instruction(project_id: u64)]
@@ -677,7 +687,7 @@ pub struct RejectRequest<'info> {
     pub system_program: Program<'info, System>,
 }
 
-// ── Account Structs ───────────────────────────────────────────────────────────
+// Account structs
 
 #[account]
 pub struct ProjectAccount {
@@ -722,6 +732,22 @@ impl WorkPackageAccount {
         self.cap_amount
             .checked_sub(self.funded_amount)
             .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn next_request_id(&self) -> Result<u64> {
+        self.request_counter
+            .checked_add(1)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn mark_active_request(&mut self, request: Pubkey) {
+        self.has_active_request = true;
+        self.active_request = request;
+    }
+
+    pub fn clear_active_request(&mut self) {
+        self.has_active_request = false;
+        self.active_request = Pubkey::default();
     }
 }
 
@@ -772,6 +798,11 @@ impl PaymentRequestAccount {
         + 32
         + string_space(MAX_REF_LEN)
         + 1;
+
+    pub fn is_terminal(&self) -> bool {
+        self.status == PaymentRequestStatus::Rejected
+            || self.status == PaymentRequestStatus::Released
+    }
 }
 
 #[account]
@@ -789,7 +820,7 @@ impl ApprovalRecord {
     pub const SPACE: usize = 8 + 32 + 32 + 1 + 1 + string_space(MAX_NOTE_REF_LEN) + 8 + 1;
 }
 
-// ── Enums ─────────────────────────────────────────────────────────────────────
+// Enums
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectStatus {
@@ -837,7 +868,7 @@ pub enum Decision {
     Rejected,
 }
 
-// ── Events ────────────────────────────────────────────────────────────────────
+// Events
 
 #[event]
 pub struct ProjectInitialized {
@@ -914,7 +945,7 @@ pub struct PaymentRequestRejected {
     pub created_at: i64,
 }
 
-// ── Errors ────────────────────────────────────────────────────────────────────
+// Errors
 
 #[error_code]
 pub enum ConstruktError {
@@ -930,10 +961,10 @@ pub enum ConstruktError {
     InvalidStatus,
     #[msg("Approval order is invalid")]
     InvalidApprovalOrder,
-    #[msg("Approval already exists for this role")]
-    DuplicateApproval,
     #[msg("Contractor cannot approve their own request")]
     ContractorCannotApprove,
+    #[msg("Payment request id does not match the next request counter")]
+    InvalidRequestId,
     #[msg("An active request already exists for this work package")]
     ActiveRequestExists,
     #[msg("Document reference is required")]
