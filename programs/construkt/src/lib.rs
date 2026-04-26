@@ -198,7 +198,255 @@ pub mod construkt {
 
         Ok(())
     }
+
+    pub fn set_role_active(ctx: Context<SetRoleActive>, active: bool) -> Result<()> {
+        ctx.accounts.role_assignment.active = active;
+        Ok(())
+    }
+
+    pub fn submit_payment_request(
+        ctx: Context<SubmitPaymentRequest>,
+        _request_id: u64,
+        amount: u64,
+        document_ref: String,
+    ) -> Result<()> {
+        require!(amount > 0, ConstruktError::InvalidAmount);
+        require!(!document_ref.is_empty(), ConstruktError::MissingDocumentReference);
+        require!(document_ref.len() <= MAX_REF_LEN, ConstruktError::StringTooLong);
+
+        let work_package_key = ctx.accounts.work_package.key();
+        let contractor_key = ctx.accounts.contractor.key();
+
+        {
+            let wp = &ctx.accounts.work_package;
+            require!(
+                wp.status == WorkPackageStatus::Active,
+                ConstruktError::InvalidStatus
+            );
+            require!(!wp.has_active_request, ConstruktError::ActiveRequestExists);
+            require_keys_eq!(contractor_key, wp.contractor, ConstruktError::Unauthorized);
+
+            let remaining_cap = wp
+                .cap_amount
+                .checked_sub(wp.released_amount)
+                .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+            require!(amount <= remaining_cap, ConstruktError::InsufficientRemainingCap);
+        }
+
+        require!(
+            amount <= ctx.accounts.vault.amount,
+            ConstruktError::InsufficientVaultBalance
+        );
+
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let clock = Clock::get()?;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.work_package = work_package_key;
+        payment_request.request_id = ctx.accounts.work_package.request_counter
+            .checked_add(1)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        payment_request.contractor = contractor_key;
+        payment_request.amount = amount;
+        payment_request.document_ref = document_ref.clone();
+        payment_request.status = PaymentRequestStatus::Submitted;
+        payment_request.submitted_at = clock.unix_timestamp;
+        payment_request.updated_at = clock.unix_timestamp;
+        payment_request.released_amount = 0;
+        payment_request.hold_active = false;
+        payment_request.hold_by = Pubkey::default();
+        payment_request.hold_ref = String::new();
+        payment_request.bump = ctx.bumps.payment_request;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.request_counter = work_package.request_counter
+            .checked_add(1)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        work_package.has_active_request = true;
+        work_package.active_request = payment_request_key;
+
+        emit!(PaymentRequestSubmitted {
+            work_package: work_package_key,
+            payment_request: payment_request_key,
+            contractor: contractor_key,
+            amount,
+            document_ref,
+            submitted_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn add_document_reference(
+        ctx: Context<AddDocumentReference>,
+        document_ref: String,
+    ) -> Result<()> {
+        require!(!document_ref.is_empty(), ConstruktError::MissingDocumentReference);
+        require!(document_ref.len() <= MAX_REF_LEN, ConstruktError::StringTooLong);
+
+        {
+            let pr = &ctx.accounts.payment_request;
+            require!(
+                pr.status != PaymentRequestStatus::Rejected
+                    && pr.status != PaymentRequestStatus::Released,
+                ConstruktError::InvalidStatus
+            );
+            require_keys_eq!(
+                ctx.accounts.contractor.key(),
+                pr.contractor,
+                ConstruktError::Unauthorized
+            );
+        }
+
+        let contractor_key = ctx.accounts.contractor.key();
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let clock = Clock::get()?;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.document_ref = document_ref.clone();
+        payment_request.updated_at = clock.unix_timestamp;
+
+        emit!(DocumentReferenceUpdated {
+            payment_request: payment_request_key,
+            contractor: contractor_key,
+            document_ref,
+            updated_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn approve_request(
+        ctx: Context<ApproveRequest>,
+        role: Role,
+        note_ref: String,
+    ) -> Result<()> {
+        require!(note_ref.len() <= MAX_NOTE_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            role == Role::LowApprover || role == Role::HighApprover,
+            ConstruktError::InvalidRole
+        );
+        require_keys_neq!(
+            ctx.accounts.approver.key(),
+            ctx.accounts.payment_request.contractor,
+            ConstruktError::ContractorCannotApprove
+        );
+
+        let payment_request_status = ctx.accounts.payment_request.status;
+        require!(
+            !ctx.accounts.payment_request.hold_active,
+            ConstruktError::RequestOnHold
+        );
+        require!(
+            payment_request_status != PaymentRequestStatus::Rejected
+                && payment_request_status != PaymentRequestStatus::Released,
+            ConstruktError::InvalidStatus
+        );
+
+        match role {
+            Role::LowApprover => require!(
+                payment_request_status == PaymentRequestStatus::Submitted,
+                ConstruktError::InvalidApprovalOrder
+            ),
+            Role::HighApprover => require!(
+                payment_request_status == PaymentRequestStatus::LowApproved,
+                ConstruktError::InvalidApprovalOrder
+            ),
+            _ => return err!(ConstruktError::InvalidRole),
+        }
+
+        let new_status = match role {
+            Role::LowApprover => PaymentRequestStatus::LowApproved,
+            Role::HighApprover => PaymentRequestStatus::HighApproved,
+            _ => return err!(ConstruktError::InvalidRole),
+        };
+
+        let approver_key = ctx.accounts.approver.key();
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let clock = Clock::get()?;
+
+        let approval_record = &mut ctx.accounts.approval_record;
+        approval_record.payment_request = payment_request_key;
+        approval_record.approver = approver_key;
+        approval_record.role = role;
+        approval_record.decision = Decision::Approved;
+        approval_record.note_ref = note_ref;
+        approval_record.created_at = clock.unix_timestamp;
+        approval_record.bump = ctx.bumps.approval_record;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.status = new_status;
+        payment_request.updated_at = clock.unix_timestamp;
+
+        emit!(PaymentRequestApproved {
+            payment_request: payment_request_key,
+            approver: approver_key,
+            role,
+            new_status,
+            created_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn reject_request(
+        ctx: Context<RejectRequest>,
+        role: Role,
+        note_ref: String,
+    ) -> Result<()> {
+        require!(note_ref.len() <= MAX_NOTE_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            role == Role::LowApprover || role == Role::HighApprover,
+            ConstruktError::InvalidRole
+        );
+        require_keys_neq!(
+            ctx.accounts.approver.key(),
+            ctx.accounts.payment_request.contractor,
+            ConstruktError::ContractorCannotApprove
+        );
+
+        let payment_request_status = ctx.accounts.payment_request.status;
+        require!(
+            payment_request_status != PaymentRequestStatus::Released
+                && payment_request_status != PaymentRequestStatus::Rejected,
+            ConstruktError::InvalidStatus
+        );
+
+        let approver_key = ctx.accounts.approver.key();
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let work_package_key = ctx.accounts.work_package.key();
+        let clock = Clock::get()?;
+
+        let approval_record = &mut ctx.accounts.approval_record;
+        approval_record.payment_request = payment_request_key;
+        approval_record.approver = approver_key;
+        approval_record.role = role;
+        approval_record.decision = Decision::Rejected;
+        approval_record.note_ref = note_ref;
+        approval_record.created_at = clock.unix_timestamp;
+        approval_record.bump = ctx.bumps.approval_record;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.status = PaymentRequestStatus::Rejected;
+        payment_request.updated_at = clock.unix_timestamp;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.has_active_request = false;
+        work_package.active_request = Pubkey::default();
+
+        emit!(PaymentRequestRejected {
+            payment_request: payment_request_key,
+            work_package: work_package_key,
+            approver: approver_key,
+            role,
+            created_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
 }
+
+// ── Account Contexts ──────────────────────────────────────────────────────────
 
 #[derive(Accounts)]
 #[instruction(project_id: u64)]
@@ -292,6 +540,144 @@ pub struct AssignRole<'info> {
     pub role_assignment: Account<'info, RoleAssignmentAccount>,
     pub system_program: Program<'info, System>,
 }
+
+#[derive(Accounts)]
+pub struct SetRoleActive<'info> {
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = role_assignment.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub role_assignment: Account<'info, RoleAssignmentAccount>,
+}
+
+#[derive(Accounts)]
+#[instruction(request_id: u64)]
+pub struct SubmitPaymentRequest<'info> {
+    #[account(mut)]
+    pub contractor: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        seeds = [b"role", work_package.key().as_ref(), &[Role::Contractor.to_u8()], contractor.key().as_ref()],
+        bump = contractor_role_assignment.bump,
+        constraint = contractor_role_assignment.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = contractor_role_assignment.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub contractor_role_assignment: Account<'info, RoleAssignmentAccount>,
+    #[account(
+        init,
+        payer = contractor,
+        space = PaymentRequestAccount::SPACE,
+        seeds = [b"payment_request", work_package.key().as_ref(), &request_id.to_le_bytes()],
+        bump
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+    #[account(address = work_package.vault @ ConstruktError::InvalidAccountRelationship)]
+    pub vault: Account<'info, TokenAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct AddDocumentReference<'info> {
+    pub contractor: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+    #[account(
+        seeds = [b"role", work_package.key().as_ref(), &[Role::Contractor.to_u8()], contractor.key().as_ref()],
+        bump = contractor_role_assignment.bump,
+        constraint = contractor_role_assignment.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = contractor_role_assignment.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub contractor_role_assignment: Account<'info, RoleAssignmentAccount>,
+}
+
+#[derive(Accounts)]
+#[instruction(role: Role)]
+pub struct ApproveRequest<'info> {
+    #[account(mut)]
+    pub approver: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+    #[account(
+        seeds = [b"role", work_package.key().as_ref(), &[role.to_u8()], approver.key().as_ref()],
+        bump = approver_role_assignment.bump,
+        constraint = approver_role_assignment.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = approver_role_assignment.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub approver_role_assignment: Account<'info, RoleAssignmentAccount>,
+    #[account(
+        init,
+        payer = approver,
+        space = ApprovalRecord::SPACE,
+        seeds = [b"approval", payment_request.key().as_ref(), &[role.to_u8()]],
+        bump
+    )]
+    pub approval_record: Account<'info, ApprovalRecord>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(role: Role)]
+pub struct RejectRequest<'info> {
+    #[account(mut)]
+    pub approver: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+    #[account(
+        seeds = [b"role", work_package.key().as_ref(), &[role.to_u8()], approver.key().as_ref()],
+        bump = approver_role_assignment.bump,
+        constraint = approver_role_assignment.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = approver_role_assignment.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub approver_role_assignment: Account<'info, RoleAssignmentAccount>,
+    #[account(
+        init,
+        payer = approver,
+        space = ApprovalRecord::SPACE,
+        seeds = [b"approval", payment_request.key().as_ref(), &[role.to_u8()]],
+        bump
+    )]
+    pub approval_record: Account<'info, ApprovalRecord>,
+    pub system_program: Program<'info, System>,
+}
+
+// ── Account Structs ───────────────────────────────────────────────────────────
 
 #[account]
 pub struct ProjectAccount {
@@ -403,6 +789,8 @@ impl ApprovalRecord {
     pub const SPACE: usize = 8 + 32 + 32 + 1 + 1 + string_space(MAX_NOTE_REF_LEN) + 8 + 1;
 }
 
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum ProjectStatus {
     Active,
@@ -449,6 +837,8 @@ pub enum Decision {
     Rejected,
 }
 
+// ── Events ────────────────────────────────────────────────────────────────────
+
 #[event]
 pub struct ProjectInitialized {
     pub project: Pubkey,
@@ -487,6 +877,44 @@ pub struct RoleAssigned {
     pub assigned_by: Pubkey,
     pub assigned_at: i64,
 }
+
+#[event]
+pub struct PaymentRequestSubmitted {
+    pub work_package: Pubkey,
+    pub payment_request: Pubkey,
+    pub contractor: Pubkey,
+    pub amount: u64,
+    pub document_ref: String,
+    pub submitted_at: i64,
+}
+
+#[event]
+pub struct DocumentReferenceUpdated {
+    pub payment_request: Pubkey,
+    pub contractor: Pubkey,
+    pub document_ref: String,
+    pub updated_at: i64,
+}
+
+#[event]
+pub struct PaymentRequestApproved {
+    pub payment_request: Pubkey,
+    pub approver: Pubkey,
+    pub role: Role,
+    pub new_status: PaymentRequestStatus,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct PaymentRequestRejected {
+    pub payment_request: Pubkey,
+    pub work_package: Pubkey,
+    pub approver: Pubkey,
+    pub role: Role,
+    pub created_at: i64,
+}
+
+// ── Errors ────────────────────────────────────────────────────────────────────
 
 #[error_code]
 pub enum ConstruktError {
