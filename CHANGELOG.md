@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased - Backend M4 Holds and Release
+
+### Added
+
+- Implemented Backend Milestone 4 hold and payment release flow:
+  `place_hold`, `remove_hold`, and `release_payment`.
+- Added request hold and payment release events: `HoldPlaced`, `HoldRemoved`,
+  and `PaymentReleased`.
+- Added B4 integration tests for hold lifecycle, hold-blocked release, status gating,
+  authority gating, token transfer, cap completion, re-release blocking, wrong owner,
+  and wrong mint.
+
+### Verified
+
+- `anchor build`
+- `npx.cmd tsc --noEmit`
+- `npm.cmd run lint`
+- `sh scripts/wsl-anchor-test.sh`
+- Result: 31 passing tests.
+
 ## Unreleased - Backend M3 Test Promotion
 
 ### Added

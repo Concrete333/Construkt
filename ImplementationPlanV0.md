@@ -739,12 +739,14 @@ Done when:
 
 ### Milestone 4: Holds and Release
 
-Done when:
+Done:
 
 - Finance can place/remove request hold.
 - Hold blocks release.
 - Finance release transfers tokens to contractor.
 - Re-release is blocked.
+- Release before high approval, non-finance release, wrong token owner, and wrong token mint tests pass.
+- Full backend suite passes with 31 tests.
 
 ### Milestone 5: Frontend Vertical Slice
 

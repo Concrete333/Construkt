@@ -454,6 +454,170 @@ pub mod construkt {
 
         Ok(())
     }
+
+    pub fn place_hold(ctx: Context<PlaceHold>, hold_ref: String) -> Result<()> {
+        require!(hold_ref.len() <= MAX_REF_LEN, ConstruktError::StringTooLong);
+        require!(
+            ctx.accounts.payment_request.status != PaymentRequestStatus::Released,
+            ConstruktError::RequestAlreadyReleased
+        );
+
+        let authority_key = ctx.accounts.authority.key();
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let work_package_key = ctx.accounts.work_package.key();
+        let clock = Clock::get()?;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.hold_active = true;
+        payment_request.hold_by = authority_key;
+        payment_request.hold_ref = hold_ref.clone();
+        payment_request.updated_at = clock.unix_timestamp;
+
+        emit!(HoldPlaced {
+            payment_request: payment_request_key,
+            work_package: work_package_key,
+            authority: authority_key,
+            hold_ref,
+            created_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn remove_hold(ctx: Context<RemoveHold>) -> Result<()> {
+        require!(
+            ctx.accounts.payment_request.hold_active,
+            ConstruktError::HoldNotActive
+        );
+
+        let authority_key = ctx.accounts.authority.key();
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let work_package_key = ctx.accounts.work_package.key();
+        let clock = Clock::get()?;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.hold_active = false;
+        payment_request.hold_by = Pubkey::default();
+        payment_request.hold_ref = String::new();
+        payment_request.updated_at = clock.unix_timestamp;
+
+        emit!(HoldRemoved {
+            payment_request: payment_request_key,
+            work_package: work_package_key,
+            authority: authority_key,
+            created_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn release_payment(ctx: Context<ReleasePayment>) -> Result<()> {
+        require!(
+            ctx.accounts.payment_request.status != PaymentRequestStatus::Released,
+            ConstruktError::RequestAlreadyReleased
+        );
+        require!(
+            ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
+            ConstruktError::InvalidStatus
+        );
+        require!(
+            !ctx.accounts.payment_request.hold_active,
+            ConstruktError::RequestOnHold
+        );
+        require_keys_eq!(
+            ctx.accounts.contractor_token_account.owner,
+            ctx.accounts.payment_request.contractor,
+            ConstruktError::WrongTokenOwner
+        );
+        require_keys_eq!(
+            ctx.accounts.contractor_token_account.mint,
+            ctx.accounts.work_package.mint,
+            ConstruktError::WrongMint
+        );
+        require_keys_eq!(
+            ctx.accounts.vault.mint,
+            ctx.accounts.work_package.mint,
+            ConstruktError::WrongMint
+        );
+        require_keys_eq!(
+            ctx.accounts.vault.owner,
+            ctx.accounts.vault_authority.key(),
+            ConstruktError::InvalidAccountRelationship
+        );
+
+        let amount = ctx.accounts.payment_request.amount;
+        let remaining_cap = ctx
+            .accounts
+            .work_package
+            .cap_amount
+            .checked_sub(ctx.accounts.work_package.released_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        require!(
+            amount <= remaining_cap,
+            ConstruktError::InsufficientRemainingCap
+        );
+        require!(
+            amount <= ctx.accounts.vault.amount,
+            ConstruktError::InsufficientVaultBalance
+        );
+
+        let work_package_key = ctx.accounts.work_package.key();
+        let signer_seeds: &[&[&[u8]]] = &[&[
+            b"vault_authority",
+            work_package_key.as_ref(),
+            &[ctx.accounts.work_package.vault_authority_bump],
+        ]];
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.vault.to_account_info(),
+            to: ctx.accounts.contractor_token_account.to_account_info(),
+            authority: ctx.accounts.vault_authority.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            cpi_accounts,
+            signer_seeds,
+        );
+        token::transfer(cpi_ctx, amount)?;
+
+        let released_amount = ctx
+            .accounts
+            .work_package
+            .released_amount
+            .checked_add(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        let authority_key = ctx.accounts.authority.key();
+        let contractor_key = ctx.accounts.payment_request.contractor;
+        let payment_request_key = ctx.accounts.payment_request.key();
+        let vault_key = ctx.accounts.vault.key();
+        let contractor_token_account_key = ctx.accounts.contractor_token_account.key();
+        let clock = Clock::get()?;
+
+        let payment_request = &mut ctx.accounts.payment_request;
+        payment_request.status = PaymentRequestStatus::Released;
+        payment_request.released_amount = amount;
+        payment_request.updated_at = clock.unix_timestamp;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.released_amount = released_amount;
+        work_package.clear_active_request();
+        if work_package.released_amount == work_package.cap_amount {
+            work_package.status = WorkPackageStatus::Completed;
+        }
+
+        emit!(PaymentReleased {
+            payment_request: payment_request_key,
+            work_package: work_package_key,
+            authority: authority_key,
+            contractor: contractor_key,
+            vault: vault_key,
+            contractor_token_account: contractor_token_account_key,
+            amount,
+            released_amount: work_package.released_amount,
+            created_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
 }
 
 // Account contexts
@@ -685,6 +849,69 @@ pub struct RejectRequest<'info> {
     )]
     pub approval_record: Account<'info, ApprovalRecord>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct PlaceHold<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+}
+
+#[derive(Accounts)]
+pub struct RemoveHold<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+}
+
+#[derive(Accounts)]
+pub struct ReleasePayment<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        mut,
+        constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub payment_request: Account<'info, PaymentRequestAccount>,
+    /// CHECK: PDA authority for the work package vault. The seeds constraint verifies it.
+    #[account(
+        seeds = [b"vault_authority", work_package.key().as_ref()],
+        bump = work_package.vault_authority_bump
+    )]
+    pub vault_authority: UncheckedAccount<'info>,
+    #[account(mut, address = work_package.vault @ ConstruktError::InvalidAccountRelationship)]
+    pub vault: Account<'info, TokenAccount>,
+    #[account(mut)]
+    pub contractor_token_account: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }
 
 // Account structs
@@ -942,6 +1169,36 @@ pub struct PaymentRequestRejected {
     pub work_package: Pubkey,
     pub approver: Pubkey,
     pub role: Role,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct HoldPlaced {
+    pub payment_request: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub hold_ref: String,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct HoldRemoved {
+    pub payment_request: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub created_at: i64,
+}
+
+#[event]
+pub struct PaymentReleased {
+    pub payment_request: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub contractor: Pubkey,
+    pub vault: Pubkey,
+    pub contractor_token_account: Pubkey,
+    pub amount: u64,
+    pub released_amount: u64,
     pub created_at: i64,
 }
 
