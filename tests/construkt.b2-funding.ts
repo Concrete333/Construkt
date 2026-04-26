@@ -78,7 +78,7 @@ describe("construkt b2 funding", () => {
     await expectError(
       fx.program.methods
         .fundEscrow(new anchor.BN(1))
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -109,7 +109,7 @@ describe("construkt b2 funding", () => {
     await expectError(
       fx.program.methods
         .fundEscrow(new anchor.BN(1))
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -125,7 +125,7 @@ describe("construkt b2 funding", () => {
     await expectError(
       fx.program.methods
         .fundEscrow(new anchor.BN(400_001))
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -143,7 +143,7 @@ describe("construkt b2 funding", () => {
     await expectError(
       fx.program.methods
         .fundEscrow(new anchor.BN(0))
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -175,7 +175,7 @@ describe("construkt b2 funding", () => {
     await expectError(
       fx.program.methods
         .fundEscrow(new anchor.BN(1))
-        .accounts({
+        .accountsStrict({
           authority: nonFinance.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,

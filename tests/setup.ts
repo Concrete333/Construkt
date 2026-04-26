@@ -169,7 +169,7 @@ export const createFixture = () => {
   ) => {
     await program.methods
       .initializeProject(new anchor.BN(projectId), name, metadataRef)
-      .accounts({
+      .accountsStrict({
         authority: finance.publicKey,
         project,
         systemProgram: anchor.web3.SystemProgram.programId,
@@ -192,7 +192,7 @@ export const createFixture = () => {
         packageContractor,
         scopeRef
       )
-      .accounts({
+      .accountsStrict({
         authority: finance.publicKey,
         project,
         workPackage: addresses.workPackage,
@@ -217,7 +217,7 @@ export const createFixture = () => {
   ) => {
     await program.methods
       .fundEscrow(amount)
-      .accounts({
+      .accountsStrict({
         authority: finance.publicKey,
         project,
         workPackage: packageAddresses.workPackage,
@@ -243,7 +243,7 @@ export const createFixture = () => {
 
     await program.methods
       .assignRole(role, wallet)
-      .accounts({
+      .accountsStrict({
         authority: finance.publicKey,
         project,
         workPackage: packageAddresses.workPackage,

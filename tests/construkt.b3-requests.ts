@@ -35,7 +35,7 @@ describe("construkt b3 payment requests and approvals", () => {
     await expectError(
       fx.program.methods
         .submitPaymentRequest(new anchor.BN(1), new anchor.BN(100_000), "")
-        .accounts({
+        .accountsStrict({
           contractor: fx.contractor.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -63,7 +63,7 @@ describe("construkt b3 payment requests and approvals", () => {
           new anchor.BN(100_000),
           "ipfs://wrong-id"
         )
-        .accounts({
+        .accountsStrict({
           contractor: fx.contractor.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -90,7 +90,7 @@ describe("construkt b3 payment requests and approvals", () => {
         new anchor.BN(100_000),
         "ipfs://invoice-001"
       )
-      .accounts({
+      .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: packageAddresses.workPackage,
@@ -139,7 +139,7 @@ describe("construkt b3 payment requests and approvals", () => {
           new anchor.BN(100_000),
           "ipfs://fake"
         )
-        .accounts({
+        .accountsStrict({
           contractor: fx.unrelatedUser.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -167,7 +167,7 @@ describe("construkt b3 payment requests and approvals", () => {
           new anchor.BN(50_000),
           "ipfs://invoice-002"
         )
-        .accounts({
+        .accountsStrict({
           contractor: fx.contractor.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -185,7 +185,7 @@ describe("construkt b3 payment requests and approvals", () => {
   it("contractor can update document reference", async () => {
     await fx.program.methods
       .addDocumentReference("ipfs://invoice-001-v2")
-      .accounts({
+      .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: packageAddresses.workPackage,
@@ -227,7 +227,7 @@ describe("construkt b3 payment requests and approvals", () => {
         new anchor.BN(50_000),
         "ipfs://self-test"
       )
-      .accounts({
+      .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: selfApprovalPackage.workPackage,
@@ -242,7 +242,7 @@ describe("construkt b3 payment requests and approvals", () => {
     await expectError(
       fx.program.methods
         .approveRequest({ lowApprover: {} }, "")
-        .accounts({
+        .accountsStrict({
           approver: fx.contractor.publicKey,
           project: fx.project,
           workPackage: selfApprovalPackage.workPackage,
@@ -264,7 +264,7 @@ describe("construkt b3 payment requests and approvals", () => {
     await expectError(
       fx.program.methods
         .approveRequest({ highApprover: {} }, "")
-        .accounts({
+        .accountsStrict({
           approver: fx.director.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -308,7 +308,7 @@ describe("construkt b3 payment requests and approvals", () => {
         new anchor.BN(50_000),
         "ipfs://inactive-test"
       )
-      .accounts({
+      .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: inactiveTestPackage.workPackage,
@@ -322,7 +322,7 @@ describe("construkt b3 payment requests and approvals", () => {
 
     await fx.program.methods
       .setRoleActive(false)
-      .accounts({
+      .accountsStrict({
         authority: fx.finance.publicKey,
         project: fx.project,
         workPackage: inactiveTestPackage.workPackage,
@@ -333,7 +333,7 @@ describe("construkt b3 payment requests and approvals", () => {
     await expectError(
       fx.program.methods
         .approveRequest({ lowApprover: {} }, "")
-        .accounts({
+        .accountsStrict({
           approver: fx.pm2.publicKey,
           project: fx.project,
           workPackage: inactiveTestPackage.workPackage,
@@ -359,7 +359,7 @@ describe("construkt b3 payment requests and approvals", () => {
 
     await fx.program.methods
       .approveRequest({ lowApprover: {} }, "ipfs://pm-note")
-      .accounts({
+      .accountsStrict({
         approver: fx.pm.publicKey,
         project: fx.project,
         workPackage: packageAddresses.workPackage,
@@ -388,7 +388,7 @@ describe("construkt b3 payment requests and approvals", () => {
     await expectError(
       fx.program.methods
         .approveRequest({ lowApprover: {} }, "")
-        .accounts({
+        .accountsStrict({
           approver: fx.pm.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
@@ -414,7 +414,7 @@ describe("construkt b3 payment requests and approvals", () => {
 
     await fx.program.methods
       .approveRequest({ highApprover: {} }, "ipfs://director-note")
-      .accounts({
+      .accountsStrict({
         approver: fx.director.publicKey,
         project: fx.project,
         workPackage: packageAddresses.workPackage,
@@ -465,7 +465,7 @@ describe("construkt b3 payment requests and approvals", () => {
         new anchor.BN(50_000),
         "ipfs://reject-test"
       )
-      .accounts({
+      .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: rejectTestPackage.workPackage,
@@ -484,7 +484,7 @@ describe("construkt b3 payment requests and approvals", () => {
 
     await fx.program.methods
       .rejectRequest({ lowApprover: {} }, "ipfs://rejection-note")
-      .accounts({
+      .accountsStrict({
         approver: fx.pm.publicKey,
         project: fx.project,
         workPackage: rejectTestPackage.workPackage,

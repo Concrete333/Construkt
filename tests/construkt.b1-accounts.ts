@@ -45,7 +45,7 @@ describe("construkt b1 accounts and roles", () => {
         fx.contractor.publicKey,
         "ipfs://scope-ref"
       )
-      .accounts({
+      .accountsStrict({
         authority: fx.finance.publicKey,
         project: fx.project,
         workPackage,
@@ -120,7 +120,7 @@ describe("construkt b1 accounts and roles", () => {
           fx.contractor.publicKey,
           "ipfs://unauthorized-scope"
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.unrelatedUser.publicKey,
           project: fx.project,
           workPackage: unauthorized.workPackage,
@@ -149,7 +149,7 @@ describe("construkt b1 accounts and roles", () => {
           "x".repeat(65),
           "ipfs://ok"
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: longNameProject,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -169,7 +169,7 @@ describe("construkt b1 accounts and roles", () => {
           "Valid Name",
           "x".repeat(129)
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: longMetadataProject,
           systemProgram: anchor.web3.SystemProgram.programId,
@@ -186,7 +186,7 @@ describe("construkt b1 accounts and roles", () => {
           fx.contractor.publicKey,
           "ipfs://scope-ref"
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: fx.deriveWorkPackageAddresses(3).workPackage,
@@ -210,7 +210,7 @@ describe("construkt b1 accounts and roles", () => {
           defaultPubkey,
           "ipfs://scope-ref"
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: defaultContractor.workPackage,
@@ -234,7 +234,7 @@ describe("construkt b1 accounts and roles", () => {
           fx.contractor.publicKey,
           "x".repeat(129)
         )
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage: longScope.workPackage,
@@ -261,7 +261,7 @@ describe("construkt b1 accounts and roles", () => {
     await expectError(
       fx.program.methods
         .assignRole({ lowApprover: {} }, wallet)
-        .accounts({
+        .accountsStrict({
           authority: fx.unrelatedUser.publicKey,
           project: fx.project,
           workPackage,
@@ -285,7 +285,7 @@ describe("construkt b1 accounts and roles", () => {
     await expectError(
       fx.program.methods
         .assignRole({ contractor: {} }, wrongContractorWallet)
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage,
@@ -305,7 +305,7 @@ describe("construkt b1 accounts and roles", () => {
     await expectError(
       fx.program.methods
         .assignRole({ lowApprover: {} }, defaultPubkey)
-        .accounts({
+        .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
           workPackage,
