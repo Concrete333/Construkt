@@ -230,6 +230,7 @@ const store = {
       dashboard: { layout: 'app', page: 'dashboard' },
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
+      'upload-task': { layout: 'app', page: 'upload-task', nav: 'dashboard2' },
       projects: { layout: 'app', page: 'projects' },
       'project-detail': { layout: 'app', page: 'project-detail', nav: 'projects' },
       'work-package-detail': { layout: 'app', page: 'work-package-detail', nav: 'projects' },
@@ -1284,13 +1285,34 @@ const store = {
               <span class="outstanding-task-title">${task.title}</span>
               <span class="outstanding-task-meta">${metaText}</span>
             </div>
-            <button class="${buttonClass}" type="button">${task.action}</button>
+            <button class="${buttonClass}" data-task-type="${task.type}" data-task-title="${task.title}" type="button">${task.action}</button>
           </li>
         `;
       }).join('') || '<li class="outstanding-task-item"><div class="outstanding-task-content"><span class="outstanding-task-title">No outstanding tasks</span></div></li>';
 
       const events = store.projects.flatMap((project) => project.auditLog.map((item) => ({ ...item, project: project.name }))).sort((a, b) => new Date(b.date) - new Date(a.date));
       activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.project} · ${formatDateTime(item.date)}</span></div></li>`).join('');
+
+      // Setup task button click handlers
+      tasksList.querySelectorAll('button[data-task-type]').forEach(btn => {
+        btn.onclick = () => {
+          const taskType = btn.dataset.taskType;
+          const taskTitle = btn.dataset.taskTitle;
+
+          // For now, only upload tasks navigate to the upload task page
+          if (taskType === 'submit_doc') {
+            // Store task info in sessionStorage for the upload page to use
+            sessionStorage.setItem('currentTask', JSON.stringify({
+              type: taskType,
+              title: taskTitle
+            }));
+            window.location.hash = 'upload-task';
+          } else {
+            // TODO: Add pages for review and response tasks
+            alert(`${taskType} task page coming soon!`);
+          }
+        };
+      });
 
       // Setup chart expand button
       const expandBtn = document.getElementById('chart-expand-btn');
@@ -1460,6 +1482,162 @@ const store = {
           </div>
         `;
       }).join('');
+    }
+
+    function renderUploadTask() {
+      const backBtn = document.getElementById('task-back-btn');
+      const cancelBtn = document.getElementById('task-cancel-btn');
+      const dropzone = document.getElementById('upload-dropzone');
+      const fileInput = document.getElementById('upload-file-input');
+      const browseBtn = document.getElementById('upload-browse-btn');
+      const filesList = document.getElementById('uploaded-files-list');
+      const submitBtn = document.getElementById('task-submit-btn');
+      const titleElement = document.getElementById('upload-task-title');
+
+      if (!dropzone || !fileInput) return;
+
+      // Load task info from sessionStorage
+      const taskData = sessionStorage.getItem('currentTask');
+      if (taskData && titleElement) {
+        const task = JSON.parse(taskData);
+        titleElement.textContent = task.title;
+      }
+
+      let uploadedFiles = [];
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Cancel button
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Browse button
+      if (browseBtn) {
+        browseBtn.onclick = () => {
+          fileInput.click();
+        };
+      }
+
+      // Dropzone click
+      dropzone.onclick = (e) => {
+        if (e.target === dropzone || e.target.closest('.upload-icon, .upload-text, .upload-subtext')) {
+          fileInput.click();
+        }
+      };
+
+      // File input change
+      fileInput.onchange = (e) => {
+        handleFiles(e.target.files);
+      };
+
+      // Drag and drop
+      dropzone.ondragover = (e) => {
+        e.preventDefault();
+        dropzone.classList.add('drag-over');
+      };
+
+      dropzone.ondragleave = () => {
+        dropzone.classList.remove('drag-over');
+      };
+
+      dropzone.ondrop = (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        handleFiles(e.dataTransfer.files);
+      };
+
+      function handleFiles(files) {
+        Array.from(files).forEach(file => {
+          // Check file size (10MB limit)
+          if (file.size > 10 * 1024 * 1024) {
+            alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+            return;
+          }
+
+          // Check file type
+          const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+          if (!validTypes.includes(file.type)) {
+            alert(`File ${file.name} has an invalid format. Please upload PDF, JPG, or PNG files.`);
+            return;
+          }
+
+          uploadedFiles.push(file);
+        });
+
+        renderFilesList();
+        updateSubmitButton();
+      }
+
+      function renderFilesList() {
+        if (uploadedFiles.length === 0) {
+          filesList.innerHTML = '';
+          return;
+        }
+
+        filesList.innerHTML = uploadedFiles.map((file, index) => {
+          const ext = file.name.split('.').pop().toUpperCase();
+          const size = formatFileSize(file.size);
+
+          return `
+            <div class="uploaded-file-item">
+              <div class="uploaded-file-info">
+                <div class="file-icon">${ext}</div>
+                <div class="file-details">
+                  <div class="file-name">${file.name}</div>
+                  <div class="file-size">${size}</div>
+                </div>
+              </div>
+              <button class="file-remove-btn" data-file-index="${index}" type="button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Add event listeners to remove buttons
+        filesList.querySelectorAll('.file-remove-btn').forEach(btn => {
+          btn.onclick = () => {
+            const index = parseInt(btn.dataset.fileIndex);
+            uploadedFiles.splice(index, 1);
+            renderFilesList();
+            updateSubmitButton();
+          };
+        });
+      }
+
+      function updateSubmitButton() {
+        if (submitBtn) {
+          submitBtn.disabled = uploadedFiles.length === 0;
+        }
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+      }
+
+      // Submit button
+      if (submitBtn) {
+        submitBtn.onclick = () => {
+          if (uploadedFiles.length > 0) {
+            alert(`Successfully submitted ${uploadedFiles.length} file(s)!`);
+            window.location.hash = 'dashboard2';
+          }
+        };
+      }
     }
 
     function renderDocuments(projectId) {
