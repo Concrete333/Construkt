@@ -228,6 +228,8 @@ const store = {
       home: { layout: 'public', page: 'home' },
       signin: { layout: 'public', page: 'signin' },
       dashboard: { layout: 'app', page: 'dashboard' },
+      dashboard2: { layout: 'app', page: 'dashboard2' },
+      'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
       projects: { layout: 'app', page: 'projects' },
       'project-detail': { layout: 'app', page: 'project-detail', nav: 'projects' },
       'work-package-detail': { layout: 'app', page: 'work-package-detail', nav: 'projects' },
@@ -319,6 +321,12 @@ const store = {
       if (name === 'dashboard') {
         renderDashboard();
         maybeAnimateDashboardKpis();
+      }
+      if (name === 'dashboard2') {
+        renderDashboard2();
+      }
+      if (name === 'chart-fullscreen') {
+        renderChartFullscreen();
       }
       if (name === 'projects') {
         renderProjectsList();
@@ -888,6 +896,341 @@ const store = {
       maybeAnimateDashboardKpis();
     }
 
+    function renderDashboard2() {
+      const title = document.getElementById('dashboard2-role-title');
+      const activity = document.getElementById('dashboard2-activity');
+      const tasksList = document.getElementById('outstanding-tasks-list');
+      const tasksCount = document.getElementById('outstanding-tasks-count');
+      const chartContent = document.getElementById('dashboard2-chart-content');
+      if (!activity || !tasksList || !tasksCount || !title || !chartContent) return;
+
+      const roleLabel = roleFullLabel(store.currentRole);
+      title.textContent = roleLabel;
+
+      // Render chart with dummy data (same data as fullscreen)
+      const projects = [
+        { name: 'Civic Library Retrofit', total: 500000,
+          spentPayments: [120000, 95000, 105000],
+          pendingPayments: [40000, 40000],
+          unspent: 100000, daysUntilDue: 3 },
+        { name: 'Demo Hospital Fit-Out', total: 800000,
+          spentPayments: [180000, 140000, 130000],
+          pendingPayments: [75000, 75000],
+          unspent: 200000, daysUntilDue: 12 },
+        { name: 'Station Works', total: 650000,
+          spentPayments: [150000, 125000, 125000],
+          pendingPayments: [60000, 40000],
+          unspent: 150000, daysUntilDue: 7 },
+        { name: 'Office Complex', total: 450000,
+          spentPayments: [80000, 70000, 50000],
+          pendingPayments: [60000, 60000],
+          unspent: 130000, daysUntilDue: 18 },
+        { name: 'Retail Park Development', total: 920000,
+          spentPayments: [250000, 200000, 150000],
+          pendingPayments: [90000, 90000],
+          unspent: 140000, daysUntilDue: 5 },
+        { name: 'School Extension', total: 380000,
+          spentPayments: [120000, 90000, 70000],
+          pendingPayments: [30000, 20000],
+          unspent: 50000, daysUntilDue: 9 },
+        { name: 'Warehouse Conversion', total: 720000,
+          spentPayments: [200000, 180000, 120000],
+          pendingPayments: [70000, 50000],
+          unspent: 100000, daysUntilDue: 14 },
+        { name: 'Community Center', total: 550000,
+          spentPayments: [140000, 120000, 90000],
+          pendingPayments: [50000, 40000],
+          unspent: 110000, daysUntilDue: 4 },
+        { name: 'Shopping Mall Renovation', total: 1200000,
+          spentPayments: [320000, 280000, 200000],
+          pendingPayments: [130000, 120000],
+          unspent: 150000, daysUntilDue: 21 },
+        { name: 'Bridge Repair', total: 680000,
+          spentPayments: [170000, 140000, 110000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 6 },
+        { name: 'Park Infrastructure', total: 290000,
+          spentPayments: [80000, 60000, 40000],
+          pendingPayments: [35000, 25000],
+          unspent: 50000, daysUntilDue: 11 },
+        { name: 'Apartment Complex', total: 950000,
+          spentPayments: [240000, 200000, 160000],
+          pendingPayments: [100000, 100000],
+          unspent: 150000, daysUntilDue: 16 }
+      ];
+
+      // Sort by most pressing (soonest deadline)
+      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+      // Limit to 7 projects on dashboard
+      const displayProjects = projects.slice(0, 7);
+
+      const maxTotal = Math.max(...projects.map(p => p.total));
+
+      chartContent.innerHTML = displayProjects.map(project => {
+        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
+
+        // Create individual segments for each payment
+        const spentSegments = project.spentPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const pendingSegments = project.pendingPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const unspentPercent = (project.unspent / maxTotal) * 100;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+
+        return `
+          <div class="chart-row">
+            <div class="chart-label">${project.name}</div>
+            <div class="chart-bar-container">
+              ${spentSegments}
+              ${pendingSegments}
+              ${unspentSegment}
+            </div>
+            <div class="chart-value">${daysText}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Get assigned projects
+      const assignedProjects = store.currentRole === 'finance_director'
+        ? store.projects
+        : store.projects.filter((project) => project.team.some((member) => member.name === store.currentUser.name));
+      const packages = assignedProjects.flatMap((project) => project.packages.map((pkg) => ({ ...pkg, project })));
+
+      // Get outstanding tasks based on role
+      let tasks = [];
+      if (store.currentRole === 'finance_director') {
+        tasks = packages.flatMap((pkg) =>
+          pkg.requests
+            .filter((request) => request.pmApproved && !request.fdApproved)
+            .map((request) => ({
+              title: `Approve ${pkg.name} payment`,
+              meta: `${pkg.project.name} · ${formatGBP(request.amount)}`,
+              deadline: request.pmApprovedDate,
+              action: 'Release'
+            }))
+        );
+      } else if (store.currentRole === 'project_manager') {
+        tasks = packages.flatMap((pkg) =>
+          pkg.requests
+            .filter((request) => !request.pmApproved && request.status === 'Submitted')
+            .map((request) => ({
+              title: `Review ${pkg.name} invoice`,
+              meta: `${pkg.contractor} · ${formatGBP(request.amount)}`,
+              deadline: request.date,
+              action: 'Review'
+            }))
+        );
+      } else {
+        tasks = packages
+          .filter((pkg) => pkg.contractor === store.currentUser.name && pkg.status === 'Active')
+          .map((pkg) => ({
+            title: `Submit invoice for ${pkg.name}`,
+            meta: `${pkg.project.name} · ${formatGBP(pkg.cap - pkg.released)} remaining`,
+            deadline: new Date().toISOString(),
+            action: 'Submit'
+          }));
+      }
+
+      // Sort by deadline (soonest first)
+      tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
+      // If no tasks, add dummy data for demonstration
+      if (tasks.length === 0) {
+        tasks = [];
+      }
+
+      // Update count
+      tasksCount.textContent = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+
+      // Render all tasks (scrollable)
+      tasksList.innerHTML = tasks.map((task) => {
+        const daysUntil = Math.ceil((new Date(task.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+        const dueText = daysUntil < 0 ? 'Overdue' : daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+        return `
+          <li class="outstanding-task-item">
+            <div class="outstanding-task-content">
+              <span class="outstanding-task-title">${task.title}</span>
+              <span class="outstanding-task-meta">${dueText} · ${task.meta}</span>
+            </div>
+            <button class="btn btn-primary small" type="button">${task.action}</button>
+          </li>
+        `;
+      }).join('') || '<li class="outstanding-task-item"><div class="outstanding-task-content"><span class="outstanding-task-title">No outstanding tasks</span></div></li>';
+
+      const events = store.projects.flatMap((project) => project.auditLog.map((item) => ({ ...item, project: project.name }))).sort((a, b) => new Date(b.date) - new Date(a.date));
+      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.project} · ${formatDateTime(item.date)}</span></div></li>`).join('');
+
+      // Setup chart expand button
+      const expandBtn = document.getElementById('chart-expand-btn');
+      if (expandBtn) {
+        expandBtn.onclick = () => {
+          window.location.hash = 'chart-fullscreen';
+        };
+      }
+    }
+
+    function renderChartFullscreen() {
+      const chartContent = document.getElementById('chart-fullscreen-content');
+      const closeBtn = document.getElementById('chart-close-btn');
+      if (!chartContent) return;
+
+      // Setup close button
+      if (closeBtn) {
+        closeBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Render all projects with individual payment breakdowns
+      const projects = [
+        { name: 'Civic Library Retrofit', total: 500000,
+          spentPayments: [120000, 95000, 105000],
+          pendingPayments: [40000, 40000],
+          unspent: 100000, daysUntilDue: 3 },
+        { name: 'Demo Hospital Fit-Out', total: 800000,
+          spentPayments: [180000, 140000, 130000],
+          pendingPayments: [75000, 75000],
+          unspent: 200000, daysUntilDue: 12 },
+        { name: 'Station Works', total: 650000,
+          spentPayments: [150000, 125000, 125000],
+          pendingPayments: [60000, 40000],
+          unspent: 150000, daysUntilDue: 7 },
+        { name: 'Office Complex', total: 450000,
+          spentPayments: [80000, 70000, 50000],
+          pendingPayments: [60000, 60000],
+          unspent: 130000, daysUntilDue: 18 },
+        { name: 'Retail Park Development', total: 920000,
+          spentPayments: [250000, 200000, 150000],
+          pendingPayments: [90000, 90000],
+          unspent: 140000, daysUntilDue: 5 },
+        { name: 'School Extension', total: 380000,
+          spentPayments: [120000, 90000, 70000],
+          pendingPayments: [30000, 20000],
+          unspent: 50000, daysUntilDue: 9 },
+        { name: 'Warehouse Conversion', total: 720000,
+          spentPayments: [200000, 180000, 120000],
+          pendingPayments: [70000, 50000],
+          unspent: 100000, daysUntilDue: 14 },
+        { name: 'Community Center', total: 550000,
+          spentPayments: [140000, 120000, 90000],
+          pendingPayments: [50000, 40000],
+          unspent: 110000, daysUntilDue: 4 },
+        { name: 'Shopping Mall Renovation', total: 1200000,
+          spentPayments: [320000, 280000, 200000],
+          pendingPayments: [130000, 120000],
+          unspent: 150000, daysUntilDue: 21 },
+        { name: 'Bridge Repair', total: 680000,
+          spentPayments: [170000, 140000, 110000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 6 },
+        { name: 'Park Infrastructure', total: 290000,
+          spentPayments: [80000, 60000, 40000],
+          pendingPayments: [35000, 25000],
+          unspent: 50000, daysUntilDue: 11 },
+        { name: 'Apartment Complex', total: 950000,
+          spentPayments: [240000, 200000, 160000],
+          pendingPayments: [100000, 100000],
+          unspent: 150000, daysUntilDue: 16 },
+        { name: 'Theatre Restoration', total: 620000,
+          spentPayments: [150000, 130000, 100000],
+          pendingPayments: [60000, 50000],
+          unspent: 130000, daysUntilDue: 8 },
+        { name: 'Industrial Estate', total: 1100000,
+          spentPayments: [280000, 240000, 200000],
+          pendingPayments: [110000, 110000],
+          unspent: 160000, daysUntilDue: 22 },
+        { name: 'Sports Complex', total: 780000,
+          spentPayments: [190000, 160000, 130000],
+          pendingPayments: [75000, 65000],
+          unspent: 160000, daysUntilDue: 13 },
+        { name: 'Hotel Expansion', total: 1400000,
+          spentPayments: [380000, 320000, 250000],
+          pendingPayments: [140000, 140000],
+          unspent: 170000, daysUntilDue: 25 },
+        { name: 'Museum Addition', total: 540000,
+          spentPayments: [130000, 110000, 100000],
+          pendingPayments: [50000, 45000],
+          unspent: 105000, daysUntilDue: 10 },
+        { name: 'University Building', total: 890000,
+          spentPayments: [220000, 190000, 150000],
+          pendingPayments: [85000, 85000],
+          unspent: 160000, daysUntilDue: 15 },
+        { name: 'Medical Clinic', total: 420000,
+          spentPayments: [110000, 90000, 70000],
+          pendingPayments: [40000, 35000],
+          unspent: 75000, daysUntilDue: 6 },
+        { name: 'Town Hall Renovation', total: 750000,
+          spentPayments: [190000, 170000, 130000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 17 },
+        { name: 'Data Center', total: 980000,
+          spentPayments: [250000, 220000, 170000],
+          pendingPayments: [95000, 95000],
+          unspent: 150000, daysUntilDue: 19 },
+        { name: 'Fire Station', total: 510000,
+          spentPayments: [130000, 110000, 80000],
+          pendingPayments: [50000, 45000],
+          unspent: 95000, daysUntilDue: 9 },
+        { name: 'Police Headquarters', total: 860000,
+          spentPayments: [220000, 190000, 140000],
+          pendingPayments: [80000, 80000],
+          unspent: 150000, daysUntilDue: 20 },
+        { name: 'Market Square', total: 340000,
+          spentPayments: [85000, 70000, 55000],
+          pendingPayments: [35000, 30000],
+          unspent: 65000, daysUntilDue: 7 },
+        { name: 'Swimming Pool', total: 670000,
+          spentPayments: [170000, 145000, 115000],
+          pendingPayments: [60000, 60000],
+          unspent: 120000, daysUntilDue: 14 },
+        { name: 'Conference Center', total: 1050000,
+          spentPayments: [270000, 230000, 180000],
+          pendingPayments: [100000, 100000],
+          unspent: 170000, daysUntilDue: 23 }
+      ];
+
+      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+      const maxTotal = Math.max(...projects.map(p => p.total));
+
+      chartContent.innerHTML = projects.map(project => {
+        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
+
+        // Create individual segments for each payment
+        const spentSegments = project.spentPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const pendingSegments = project.pendingPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const unspentPercent = (project.unspent / maxTotal) * 100;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+
+        return `
+          <div class="chart-row">
+            <div class="chart-label">${project.name}</div>
+            <div class="chart-bar-container">
+              ${spentSegments}
+              ${pendingSegments}
+              ${unspentSegment}
+            </div>
+            <div class="chart-value">${daysText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function renderDocuments(projectId) {
       const container = document.getElementById('documents-tbody');
       if (!container) return;
@@ -1398,6 +1741,7 @@ const store = {
       });
       applyRoleUI(currentRole);
       renderDashboard();
+      renderDashboard2();
       renderProjectsList();
     }
 

@@ -104,6 +104,15 @@
           </svg>
           <span class="tab-label">Dashboard</span>
         </a>
+        <a class="tab-link" data-route-link="dashboard2" href="#dashboard2" aria-label="Dashboard 2">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span class="tab-label">Dashboard 2</span>
+        </a>
         <a class="tab-link" data-route-link="projects" href="#projects" aria-label="Projects">
           <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>
@@ -332,6 +341,119 @@
               </ul>
             </section>
           </aside>
+        </div>
+      </section>
+
+      <section id="dashboard2-page" data-app-page="dashboard2">
+        <!-- Static Dashboard - No scrolling -->
+        <div class="dashboard2-viewport">
+          <div class="dashboard2-content">
+            <div class="dashboard2-main-section">
+              <h1 class="dashboard2-title" id="dashboard2-role-title">Finance Director</h1>
+              <div class="dashboard2-chart-card" id="dashboard2-chart-card">
+                <div class="dashboard2-chart-header">
+                  <h3 class="dashboard2-chart-title">Project Funding Overview</h3>
+                  <button class="chart-expand-btn" id="chart-expand-btn" type="button" aria-label="Expand chart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="dashboard2-chart-content" id="dashboard2-chart-content">
+                  <!-- Chart will be rendered by JavaScript -->
+                </div>
+              </div>
+            </div>
+            <aside class="dashboard2-sidebar">
+              <div class="outstanding-tasks-card">
+                <div class="outstanding-tasks-header">
+                  <h2 class="outstanding-tasks-title">Outstanding Tasks</h2>
+                  <span id="outstanding-tasks-count" class="outstanding-tasks-count">5 tasks</span>
+                </div>
+                <ul id="outstanding-tasks-list" class="outstanding-tasks-list">
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Foundation Pour invoice</span>
+                      <span class="outstanding-task-meta">Due in 2 days · £92,400</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Approve Electrical First Fix payment</span>
+                      <span class="outstanding-task-meta">Due in 3 days · £118,200</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Steel Frame Section B</span>
+                      <span class="outstanding-task-meta">Due in 5 days · £244,000</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Complete drainage survey review</span>
+                      <span class="outstanding-task-meta">Due in 7 days · £64,300</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Sign off temporary works inspection</span>
+                      <span class="outstanding-task-meta">Due in 10 days · £38,750</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- Recent Activity - Scrolls over dashboard -->
+        <section class="dashboard2-recent-activity">
+          <div class="recent-activity-header">
+            <svg class="recent-activity-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+            <h2 class="recent-activity-heading">Recent Activity</h2>
+          </div>
+          <ul id="dashboard2-activity" class="timeline-list timeline-list-full">
+            <li class="timeline-item">
+              <span class="timeline-dot green"></span>
+              <div><span class="timeline-title">Steel payment released</span><span class="timeline-meta">Civic Library Retrofit · 18m ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot yellow"></span>
+              <div><span class="timeline-title">Foundation invoice pending</span><span class="timeline-meta">Demo Hospital Fit-Out · 2h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">Document reference added</span><span class="timeline-meta">Station Works · 5h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">PM role assigned</span><span class="timeline-meta">Demo Hospital Fit-Out · Yesterday</span></div>
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section id="chart-fullscreen-page" data-app-page="chart-fullscreen">
+        <div class="chart-fullscreen-container">
+          <div class="chart-fullscreen-header">
+            <h1 class="chart-fullscreen-title">Project Funding Overview</h1>
+            <button class="chart-close-btn" id="chart-close-btn" type="button" aria-label="Close">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="chart-fullscreen-content" id="chart-fullscreen-content">
+            <!-- Chart will be rendered by JavaScript -->
+          </div>
         </div>
       </section>
 
