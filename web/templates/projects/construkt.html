@@ -677,57 +677,236 @@
         </div>
       </section>
 
-      <section id="projects-page" data-app-page="projects">
-        <div class="page-head">
-          <div>
-            <p class="eyebrow">Projects</p>
-            <h1>Work package register</h1>
-            <p>Open project packages, request state, and audit access in one view.</p>
+      <section id="response-task-page" data-app-page="response-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="response-task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="response-task-title">Respond to PM query on budget</h1>
           </div>
-          <button class="btn btn-primary" data-visible-to="finance_director project_manager" data-modal-target="new-project" type="button">New project</button>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="response-task-type-value">Response Required</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="response-task-due-value">In 3 days</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="response-project-name-value">Retail Park Development</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="response-project-manager-value">Emma Watson</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="response-project-budget-value">£920,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="response-project-completion-value">52%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="response-project-start-value">Mar 10, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="response-project-end-value">Sep 20, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="response-message-card">
+              <h2 class="response-message-heading">Message</h2>
+              <div class="response-message-details">
+                <div class="response-message-from">
+                  <span class="response-message-label">From:</span>
+                  <span class="response-message-value">Emma Watson (Project Manager)</span>
+                </div>
+                <div class="response-message-date">
+                  <span class="response-message-label">Sent:</span>
+                  <span class="response-message-value">Apr 24, 2026 at 2:35 PM</span>
+                </div>
+                <div class="response-message-body" id="response-message-body">
+                  <p>Hi,</p>
+                  <p>I wanted to reach out regarding the budget allocation for the Retail Park Development project. We're approaching the halfway mark and I'd like to discuss the remaining budget distribution across the final phases.</p>
+                  <p>Specifically, I have some questions about:</p>
+                  <ul>
+                    <li>The contingency fund allocation for potential delays</li>
+                    <li>Whether we can reallocate some funds from the landscaping package to accelerate the parking structure completion</li>
+                    <li>Timeline for the next payment release</li>
+                  </ul>
+                  <p>Could we schedule a brief call this week to go over these points? Alternatively, if you could provide your thoughts via message, that would be helpful too.</p>
+                  <p>Thanks,<br>Emma</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="response-action-card">
+              <h2 class="response-action-heading">Your Response</h2>
+              <div class="response-textarea-section">
+                <label for="response-message-input" class="response-message-label">Message (Optional)</label>
+                <textarea id="response-message-input" class="response-message-input" rows="6" placeholder="Type your response here..."></textarea>
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="response-dismiss-btn" type="button">Dismiss</button>
+              <button class="btn btn-primary" id="response-submit-btn" type="button">Send Response</button>
+            </div>
+          </div>
         </div>
-        <section class="table-card">
-          <table>
-            <thead>
-              <tr>
-                <th>Project</th>
-                <th>Role</th>
-                <th>Contract</th>
-                <th>Open packages</th>
-                <th>Requests</th>
-                <th>Audit</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="projects-tbody">
-              <tr class="clickable-row" data-project-row data-project-name="Demo Hospital Fit-Out" data-project-model="Milestone" data-project-client="Northstar Health Trust" data-project-start="12 Feb 2026">
-                <td><span class="project-name">Demo Hospital Fit-Out</span><br><span class="muted">Groundworks, steel frame, MEP</span></td>
-                <td><span class="status-pill chip-tone-neutral">Finance</span></td>
-                <td><span class="model-badge">Milestone</span></td>
-                <td>3</td>
-                <td>2 pending</td>
-                <td>18 events</td>
-              </tr>
-              <tr class="clickable-row" data-project-row data-project-name="Civic Library Retrofit" data-project-model="Valuation" data-project-client="Borough Civic Trust" data-project-start="3 Mar 2026">
-                <td><span class="project-name">Civic Library Retrofit</span><br><span class="muted">Electrical, facade, interiors</span></td>
-                <td><span class="status-pill chip-tone-neutral">PM</span></td>
-                <td><span class="model-badge">Valuation</span></td>
-                <td>4</td>
-                <td>1 ready</td>
-                <td>26 events</td>
-              </tr>
-              <tr class="clickable-row" data-project-row data-project-name="Station Works" data-project-model="Bespoke" data-project-client="Metro Rail Authority" data-project-start="18 Jan 2026">
-                <td><span class="project-name">Station Works</span><br><span class="muted">Drainage and platforms</span></td>
-                <td><span class="status-pill chip-tone-neutral">Contractor</span></td>
-                <td><span class="model-badge">Bespoke</span></td>
-                <td>1</td>
-                <td>1 held</td>
-                <td>9 events</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-        <p class="faint" data-contractor-project-note hidden>Showing your assigned projects only.</p>
+      </section>
+
+      <section id="projects-page" data-app-page="projects">
+        <div class="projects-simple-container">
+          <h1 class="projects-simple-title">Projects</h1>
+          <div class="projects-simple-list" id="projects-simple-list">
+            <!-- Projects will be rendered by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <section id="work-package-view-page" data-app-page="work-package-view">
+        <div class="work-package-view-container">
+          <div class="work-package-view-header">
+            <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Chart
+            </button>
+            <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+          </div>
+
+          <div class="work-package-view-content">
+            <!-- Package Info Card -->
+            <div class="work-package-info-card">
+              <h2 class="work-package-info-heading">Package Information</h2>
+              <div class="work-package-info-grid">
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Project</span>
+                  <span class="work-package-info-value" id="wp-project-name">Civic Library Retrofit</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Amount</span>
+                  <span class="work-package-info-value" id="wp-amount">£120,000</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Status</span>
+                  <span class="work-package-info-value" id="wp-status">Completed</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Payment Date</span>
+                  <span class="work-package-info-value" id="wp-payment-date">Mar 15, 2026</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Contractor</span>
+                  <span class="work-package-info-value" id="wp-contractor">BuildTech Solutions Ltd</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Package Type</span>
+                  <span class="work-package-info-value" id="wp-type">Spent</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Timeline Card -->
+            <div class="work-package-timeline-card">
+              <h2 class="work-package-timeline-heading">Package Timeline</h2>
+              <ul class="work-package-timeline-list" id="work-package-timeline-list">
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Payment Released</span>
+                    <span class="wp-timeline-meta">Mar 15, 2026 at 10:30 AM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Finance Director Approved</span>
+                    <span class="wp-timeline-meta">Mar 14, 2026 at 3:45 PM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Project Manager Approved</span>
+                    <span class="wp-timeline-meta">Mar 13, 2026 at 11:20 AM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Work Completed</span>
+                    <span class="wp-timeline-meta">Mar 10, 2026 at 4:00 PM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Work Started</span>
+                    <span class="wp-timeline-meta">Feb 20, 2026 at 8:00 AM</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Documents Card -->
+            <div class="work-package-docs-card">
+              <h2 class="work-package-docs-heading">Related Documents</h2>
+              <div class="work-package-docs-list" id="work-package-docs-list">
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">PDF</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Invoice_Foundation_Pour_120000.pdf</div>
+                    <div class="wp-doc-meta">Uploaded Mar 12, 2026 · 245 KB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">PDF</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Completion_Certificate.pdf</div>
+                    <div class="wp-doc-meta">Uploaded Mar 10, 2026 · 189 KB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">JPG</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Site_Photo_Foundation_Complete.jpg</div>
+                    <div class="wp-doc-meta">Uploaded Mar 10, 2026 · 1.2 MB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section id="project-detail-page" data-app-page="project-detail">
