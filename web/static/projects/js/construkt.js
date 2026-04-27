@@ -228,6 +228,10 @@ const store = {
       home: { layout: 'public', page: 'home' },
       signin: { layout: 'public', page: 'signin' },
       dashboard: { layout: 'app', page: 'dashboard' },
+      dashboard2: { layout: 'app', page: 'dashboard2' },
+      'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
+      'upload-task': { layout: 'app', page: 'upload-task', nav: 'dashboard2' },
+      'review-task': { layout: 'app', page: 'review-task', nav: 'dashboard2' },
       projects: { layout: 'app', page: 'projects' },
       'project-detail': { layout: 'app', page: 'project-detail', nav: 'projects' },
       'work-package-detail': { layout: 'app', page: 'work-package-detail', nav: 'projects' },
@@ -319,6 +323,12 @@ const store = {
       if (name === 'dashboard') {
         renderDashboard();
         maybeAnimateDashboardKpis();
+      }
+      if (name === 'dashboard2') {
+        renderDashboard2();
+      }
+      if (name === 'chart-fullscreen') {
+        renderChartFullscreen();
       }
       if (name === 'projects') {
         renderProjectsList();
@@ -888,6 +898,834 @@ const store = {
       maybeAnimateDashboardKpis();
     }
 
+    function renderDashboard2() {
+      const title = document.getElementById('dashboard2-role-title');
+      const activity = document.getElementById('dashboard2-activity');
+      const tasksList = document.getElementById('outstanding-tasks-list');
+      const tasksCount = document.getElementById('outstanding-tasks-count');
+      const chartContent = document.getElementById('dashboard2-chart-content');
+      if (!activity || !tasksList || !tasksCount || !title || !chartContent) return;
+
+      const roleLabel = roleFullLabel(store.currentRole);
+      title.textContent = roleLabel;
+
+      // Check if contractor role - render circular dial instead of bar chart
+      if (store.currentRole === 'contractor') {
+        renderContractorDial(chartContent);
+      } else {
+        renderBarChart(chartContent);
+      }
+
+      // Chart rendering functions
+      function renderBarChart(chartContent) {
+        // Render chart with dummy data (same data as fullscreen)
+        const projects = [
+        { name: 'Civic Library Retrofit', total: 500000,
+          spentPayments: [120000, 95000, 105000],
+          pendingPayments: [40000, 40000],
+          unspent: 100000, daysUntilDue: 3 },
+        { name: 'Demo Hospital Fit-Out', total: 800000,
+          spentPayments: [180000, 140000, 130000],
+          pendingPayments: [75000, 75000],
+          unspent: 200000, daysUntilDue: 12 },
+        { name: 'Station Works', total: 650000,
+          spentPayments: [150000, 125000, 125000],
+          pendingPayments: [60000, 40000],
+          unspent: 150000, daysUntilDue: 7 },
+        { name: 'Office Complex', total: 450000,
+          spentPayments: [80000, 70000, 50000],
+          pendingPayments: [60000, 60000],
+          unspent: 130000, daysUntilDue: 18 },
+        { name: 'Retail Park Development', total: 920000,
+          spentPayments: [250000, 200000, 150000],
+          pendingPayments: [90000, 90000],
+          unspent: 140000, daysUntilDue: 5 },
+        { name: 'School Extension', total: 380000,
+          spentPayments: [120000, 90000, 70000],
+          pendingPayments: [30000, 20000],
+          unspent: 50000, daysUntilDue: 9 },
+        { name: 'Warehouse Conversion', total: 720000,
+          spentPayments: [200000, 180000, 120000],
+          pendingPayments: [70000, 50000],
+          unspent: 100000, daysUntilDue: 14 },
+        { name: 'Community Center', total: 550000,
+          spentPayments: [140000, 120000, 90000],
+          pendingPayments: [50000, 40000],
+          unspent: 110000, daysUntilDue: 4 },
+        { name: 'Shopping Mall Renovation', total: 1200000,
+          spentPayments: [320000, 280000, 200000],
+          pendingPayments: [130000, 120000],
+          unspent: 150000, daysUntilDue: 21 },
+        { name: 'Bridge Repair', total: 680000,
+          spentPayments: [170000, 140000, 110000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 6 },
+        { name: 'Park Infrastructure', total: 290000,
+          spentPayments: [80000, 60000, 40000],
+          pendingPayments: [35000, 25000],
+          unspent: 50000, daysUntilDue: 11 },
+        { name: 'Apartment Complex', total: 950000,
+          spentPayments: [240000, 200000, 160000],
+          pendingPayments: [100000, 100000],
+          unspent: 150000, daysUntilDue: 16 }
+      ];
+
+      // Sort by most pressing (soonest deadline)
+      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+      // Limit to 7 projects on dashboard
+      const displayProjects = projects.slice(0, 7);
+
+      const maxTotal = Math.max(...projects.map(p => p.total));
+
+      chartContent.innerHTML = displayProjects.map(project => {
+        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
+
+        // Create individual segments for each payment
+        const spentSegments = project.spentPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const pendingSegments = project.pendingPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const unspentPercent = (project.unspent / maxTotal) * 100;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+
+        return `
+          <div class="chart-row">
+            <div class="chart-label">${project.name}</div>
+            <div class="chart-bar-container">
+              ${spentSegments}
+              ${pendingSegments}
+              ${unspentSegment}
+            </div>
+            <div class="chart-value">${daysText}</div>
+          </div>
+        `;
+      }).join('');
+      }
+
+      function renderContractorDial(chartContent) {
+        // Contractor view: circular dial showing project milestones
+        const milestones = [
+          { name: 'Foundation Pour', amount: 120000, received: true, dueDate: '2026-04-15' },
+          { name: 'Steel Frame Section A', amount: 95000, received: true, dueDate: '2026-04-18' },
+          { name: 'Steel Frame Section B', amount: 105000, received: true, dueDate: '2026-04-22' },
+          { name: 'Electrical First Fix', amount: 40000, received: false, dueDate: '2026-04-30' },
+          { name: 'Plumbing Rough-In', amount: 40000, received: false, dueDate: '2026-05-05' },
+          { name: 'Roofing Installation', amount: 85000, received: false, dueDate: '2026-05-12' },
+          { name: 'Window Installation', amount: 65000, received: false, dueDate: '2026-05-18' },
+          { name: 'Drywall and Insulation', amount: 55000, received: false, dueDate: '2026-05-25' },
+          { name: 'HVAC Installation', amount: 75000, received: false, dueDate: '2026-06-01' },
+          { name: 'Interior Finishes', amount: 95000, received: false, dueDate: '2026-06-10' },
+          { name: 'Final Inspection', amount: 45000, received: false, dueDate: '2026-06-15' }
+        ];
+
+        const totalValue = milestones.reduce((sum, m) => sum + m.amount, 0);
+        const receivedValue = milestones.filter(m => m.received).reduce((sum, m) => sum + m.amount, 0);
+
+        // Sort remaining milestones by due date
+        const remainingMilestones = milestones.filter(m => !m.received).sort((a, b) =>
+          new Date(a.dueDate) - new Date(b.dueDate)
+        );
+
+        // Calculate angles for each segment
+        // Start at -90 degrees (top), leave 30 degree gap at top (15 degrees on each side)
+        const gapAngle = 30;
+        const startAngle = -90 + (gapAngle / 2);
+        const totalAngle = 360 - gapAngle;
+
+        // Green section for received funds
+        const receivedAngle = (receivedValue / totalValue) * totalAngle;
+        const receivedEndAngle = startAngle + receivedAngle;
+
+        // Calculate angles for each remaining milestone
+        let currentAngle = receivedEndAngle;
+        const milestoneSegments = remainingMilestones.map((milestone, index) => {
+          const segmentAngle = (milestone.amount / totalValue) * totalAngle;
+          const segmentStartAngle = currentAngle;
+          const segmentEndAngle = currentAngle + segmentAngle;
+          currentAngle = segmentEndAngle;
+
+          // Generate color based on position (gradient from yellow to orange to red)
+          const ratio = index / Math.max(remainingMilestones.length - 1, 1);
+          const hue = 60 - (ratio * 40); // From 60 (yellow) to 20 (orange-red)
+          const color = `hsl(${hue}, 70%, 55%)`;
+
+          return {
+            ...milestone,
+            startAngle: segmentStartAngle,
+            endAngle: segmentEndAngle,
+            color
+          };
+        });
+
+        // Create SVG for circular dial
+        const size = 320;
+        const cx = size / 2;
+        const cy = size / 2;
+        const outerRadius = 145;
+        const innerRadius = 95;
+
+        function polarToCartesian(angle, r) {
+          const rads = (angle * Math.PI) / 180;
+          return {
+            x: cx + r * Math.cos(rads),
+            y: cy + r * Math.sin(rads)
+          };
+        }
+
+        function createPieSlice(startAngle, endAngle, color, className, title) {
+          const outerStart = polarToCartesian(startAngle, outerRadius);
+          const outerEnd = polarToCartesian(endAngle, outerRadius);
+          const innerStart = polarToCartesian(startAngle, innerRadius);
+          const innerEnd = polarToCartesian(endAngle, innerRadius);
+          const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+          // Create a filled pie slice shape with straight radial edges
+          const pathData = [
+            `M ${outerStart.x} ${outerStart.y}`, // Move to outer start
+            `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`, // Outer arc
+            `L ${innerEnd.x} ${innerEnd.y}`, // Straight line to inner end
+            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`, // Inner arc (reverse)
+            `Z` // Close path
+          ].join(' ');
+
+          return `
+            <path d="${pathData}"
+                  fill="${color}"
+                  class="${className}"
+                  data-title="${title}">
+              <title>${title}</title>
+            </path>
+          `;
+        }
+
+        // Build SVG content
+        let svgPaths = '';
+
+        // Green section for received funds
+        if (receivedValue > 0) {
+          svgPaths += createPieSlice(
+            startAngle,
+            receivedEndAngle,
+            '#48a868',
+            'dial-segment received',
+            `Received: ${formatGBP(receivedValue)}`
+          );
+        }
+
+        // Remaining milestone segments
+        milestoneSegments.forEach((segment, index) => {
+          svgPaths += createPieSlice(
+            segment.startAngle,
+            segment.endAngle,
+            segment.color,
+            'dial-segment pending',
+            `${segment.name}: ${formatGBP(segment.amount)} (Due: ${new Date(segment.dueDate).toLocaleDateString()})`
+          );
+        });
+
+        chartContent.innerHTML = `
+          <div class="contractor-dial-container">
+            <svg class="contractor-dial-svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+              ${svgPaths}
+              <text x="${cx}" y="${cy - 20}" text-anchor="middle" class="dial-total-label">Total Project Value</text>
+              <text x="${cx}" y="${cy + 20}" text-anchor="middle" class="dial-total-value">${formatGBP(totalValue)}</text>
+              <text x="${cx}" y="${cy + 50}" text-anchor="middle" class="dial-received-label">Received: ${formatGBP(receivedValue)}</text>
+            </svg>
+            <div class="contractor-dial-legend">
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #48a868;"></div>
+                <span>Received (${milestones.filter(m => m.received).length} milestones)</span>
+              </div>
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #e5a853;"></div>
+                <span>Soonest milestones</span>
+              </div>
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #dc2626;"></div>
+                <span>Furthest milestones</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // Get assigned projects
+      const assignedProjects = store.currentRole === 'finance_director'
+        ? store.projects
+        : store.projects.filter((project) => project.team.some((member) => member.name === store.currentUser.name));
+      const packages = assignedProjects.flatMap((project) => project.packages.map((pkg) => ({ ...pkg, project })));
+
+      // Get outstanding tasks based on role
+      let tasks = [];
+      if (store.currentRole === 'finance_director') {
+        tasks = packages.flatMap((pkg) =>
+          pkg.requests
+            .filter((request) => request.pmApproved && !request.fdApproved)
+            .map((request) => ({
+              title: `Approve ${pkg.name} payment`,
+              meta: `${pkg.project.name} · ${formatGBP(request.amount)}`,
+              deadline: request.pmApprovedDate,
+              action: 'Release'
+            }))
+        );
+      } else if (store.currentRole === 'project_manager') {
+        tasks = packages.flatMap((pkg) =>
+          pkg.requests
+            .filter((request) => !request.pmApproved && request.status === 'Submitted')
+            .map((request) => ({
+              title: `Review ${pkg.name} invoice`,
+              meta: `${pkg.contractor} · ${formatGBP(request.amount)}`,
+              deadline: request.date,
+              action: 'Review'
+            }))
+        );
+      } else {
+        tasks = packages
+          .filter((pkg) => pkg.contractor === store.currentUser.name && pkg.status === 'Active')
+          .map((pkg) => ({
+            title: `Submit invoice for ${pkg.name}`,
+            meta: `${pkg.project.name} · ${formatGBP(pkg.cap - pkg.released)} remaining`,
+            deadline: new Date().toISOString(),
+            action: 'Submit'
+          }));
+      }
+
+      // Sort by deadline (soonest first)
+      tasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
+      // If no tasks, add dummy data for demonstration
+      if (tasks.length === 0) {
+        tasks = [
+          {
+            type: 'submit_doc',
+            title: 'Submit site inspection certificate',
+            meta: '',
+            deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          },
+          {
+            type: 'review',
+            title: 'Review contractor invoice',
+            meta: '£92,400',
+            deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Review'
+          },
+          {
+            type: 'response',
+            title: 'Respond to PM query on budget',
+            meta: '',
+            deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Respond'
+          },
+          {
+            type: 'submit_doc',
+            title: 'Upload compliance documentation',
+            meta: '',
+            deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          },
+          {
+            type: 'review',
+            title: 'Review milestone completion report',
+            meta: '',
+            deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Review'
+          },
+          {
+            type: 'response',
+            title: 'Respond to change order request',
+            meta: '£15,000',
+            deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Respond'
+          },
+          {
+            type: 'submit_doc',
+            title: 'Submit safety inspection report',
+            meta: '',
+            deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          }
+        ];
+      }
+
+      // Update count
+      tasksCount.textContent = `${tasks.length} task${tasks.length !== 1 ? 's' : ''}`;
+
+      // Render all tasks (scrollable)
+      tasksList.innerHTML = tasks.map((task) => {
+        const daysUntil = Math.ceil((new Date(task.deadline) - new Date()) / (1000 * 60 * 60 * 24));
+        const dueText = daysUntil < 0 ? 'Overdue' : daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+
+        // Build meta text
+        const metaParts = [dueText];
+        if (task.meta) metaParts.push(task.meta);
+        const metaText = metaParts.join(' · ');
+
+        // Define button styles based on task type
+        let buttonClass = 'btn small';
+        if (task.type === 'submit_doc') {
+          buttonClass += ' btn-upload'; // Blue
+        } else if (task.type === 'review') {
+          buttonClass += ' btn-review'; // Purple
+        } else if (task.type === 'response') {
+          buttonClass += ' btn-response'; // Orange
+        } else {
+          buttonClass += ' btn-primary'; // Default
+        }
+
+        return `
+          <li class="outstanding-task-item task-type-${task.type || 'default'}">
+            <div class="outstanding-task-content">
+              <span class="outstanding-task-title">${task.title}</span>
+              <span class="outstanding-task-meta">${metaText}</span>
+            </div>
+            <button class="${buttonClass}" data-task-type="${task.type}" data-task-title="${task.title}" type="button">${task.action}</button>
+          </li>
+        `;
+      }).join('') || '<li class="outstanding-task-item"><div class="outstanding-task-content"><span class="outstanding-task-title">No outstanding tasks</span></div></li>';
+
+      const events = store.projects.flatMap((project) => project.auditLog.map((item) => ({ ...item, project: project.name }))).sort((a, b) => new Date(b.date) - new Date(a.date));
+      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.project} · ${formatDateTime(item.date)}</span></div></li>`).join('');
+
+      // Setup task button click handlers
+      tasksList.querySelectorAll('button[data-task-type]').forEach(btn => {
+        btn.onclick = () => {
+          const taskType = btn.dataset.taskType;
+          const taskTitle = btn.dataset.taskTitle;
+
+          // Store task info in sessionStorage
+          sessionStorage.setItem('currentTask', JSON.stringify({
+            type: taskType,
+            title: taskTitle
+          }));
+
+          // Navigate to appropriate task page
+          if (taskType === 'submit_doc') {
+            window.location.hash = 'upload-task';
+          } else if (taskType === 'review') {
+            window.location.hash = 'review-task';
+          } else if (taskType === 'response') {
+            // TODO: Add page for response tasks
+            alert('Response task page coming soon!');
+          }
+        };
+      });
+
+      // Setup chart expand button
+      const expandBtn = document.getElementById('chart-expand-btn');
+      if (expandBtn) {
+        // Hide expand button for contractors (they have a circular dial, not a bar chart)
+        if (store.currentRole === 'contractor') {
+          expandBtn.style.display = 'none';
+        } else {
+          expandBtn.style.display = 'flex';
+          expandBtn.onclick = () => {
+            window.location.hash = 'chart-fullscreen';
+          };
+        }
+      }
+    }
+
+    function renderChartFullscreen() {
+      const chartContent = document.getElementById('chart-fullscreen-content');
+      const closeBtn = document.getElementById('chart-close-btn');
+      if (!chartContent) return;
+
+      // Setup close button
+      if (closeBtn) {
+        closeBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Render all projects with individual payment breakdowns
+      const projects = [
+        { name: 'Civic Library Retrofit', total: 500000,
+          spentPayments: [120000, 95000, 105000],
+          pendingPayments: [40000, 40000],
+          unspent: 100000, daysUntilDue: 3 },
+        { name: 'Demo Hospital Fit-Out', total: 800000,
+          spentPayments: [180000, 140000, 130000],
+          pendingPayments: [75000, 75000],
+          unspent: 200000, daysUntilDue: 12 },
+        { name: 'Station Works', total: 650000,
+          spentPayments: [150000, 125000, 125000],
+          pendingPayments: [60000, 40000],
+          unspent: 150000, daysUntilDue: 7 },
+        { name: 'Office Complex', total: 450000,
+          spentPayments: [80000, 70000, 50000],
+          pendingPayments: [60000, 60000],
+          unspent: 130000, daysUntilDue: 18 },
+        { name: 'Retail Park Development', total: 920000,
+          spentPayments: [250000, 200000, 150000],
+          pendingPayments: [90000, 90000],
+          unspent: 140000, daysUntilDue: 5 },
+        { name: 'School Extension', total: 380000,
+          spentPayments: [120000, 90000, 70000],
+          pendingPayments: [30000, 20000],
+          unspent: 50000, daysUntilDue: 9 },
+        { name: 'Warehouse Conversion', total: 720000,
+          spentPayments: [200000, 180000, 120000],
+          pendingPayments: [70000, 50000],
+          unspent: 100000, daysUntilDue: 14 },
+        { name: 'Community Center', total: 550000,
+          spentPayments: [140000, 120000, 90000],
+          pendingPayments: [50000, 40000],
+          unspent: 110000, daysUntilDue: 4 },
+        { name: 'Shopping Mall Renovation', total: 1200000,
+          spentPayments: [320000, 280000, 200000],
+          pendingPayments: [130000, 120000],
+          unspent: 150000, daysUntilDue: 21 },
+        { name: 'Bridge Repair', total: 680000,
+          spentPayments: [170000, 140000, 110000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 6 },
+        { name: 'Park Infrastructure', total: 290000,
+          spentPayments: [80000, 60000, 40000],
+          pendingPayments: [35000, 25000],
+          unspent: 50000, daysUntilDue: 11 },
+        { name: 'Apartment Complex', total: 950000,
+          spentPayments: [240000, 200000, 160000],
+          pendingPayments: [100000, 100000],
+          unspent: 150000, daysUntilDue: 16 },
+        { name: 'Theatre Restoration', total: 620000,
+          spentPayments: [150000, 130000, 100000],
+          pendingPayments: [60000, 50000],
+          unspent: 130000, daysUntilDue: 8 },
+        { name: 'Industrial Estate', total: 1100000,
+          spentPayments: [280000, 240000, 200000],
+          pendingPayments: [110000, 110000],
+          unspent: 160000, daysUntilDue: 22 },
+        { name: 'Sports Complex', total: 780000,
+          spentPayments: [190000, 160000, 130000],
+          pendingPayments: [75000, 65000],
+          unspent: 160000, daysUntilDue: 13 },
+        { name: 'Hotel Expansion', total: 1400000,
+          spentPayments: [380000, 320000, 250000],
+          pendingPayments: [140000, 140000],
+          unspent: 170000, daysUntilDue: 25 },
+        { name: 'Museum Addition', total: 540000,
+          spentPayments: [130000, 110000, 100000],
+          pendingPayments: [50000, 45000],
+          unspent: 105000, daysUntilDue: 10 },
+        { name: 'University Building', total: 890000,
+          spentPayments: [220000, 190000, 150000],
+          pendingPayments: [85000, 85000],
+          unspent: 160000, daysUntilDue: 15 },
+        { name: 'Medical Clinic', total: 420000,
+          spentPayments: [110000, 90000, 70000],
+          pendingPayments: [40000, 35000],
+          unspent: 75000, daysUntilDue: 6 },
+        { name: 'Town Hall Renovation', total: 750000,
+          spentPayments: [190000, 170000, 130000],
+          pendingPayments: [70000, 60000],
+          unspent: 130000, daysUntilDue: 17 },
+        { name: 'Data Center', total: 980000,
+          spentPayments: [250000, 220000, 170000],
+          pendingPayments: [95000, 95000],
+          unspent: 150000, daysUntilDue: 19 },
+        { name: 'Fire Station', total: 510000,
+          spentPayments: [130000, 110000, 80000],
+          pendingPayments: [50000, 45000],
+          unspent: 95000, daysUntilDue: 9 },
+        { name: 'Police Headquarters', total: 860000,
+          spentPayments: [220000, 190000, 140000],
+          pendingPayments: [80000, 80000],
+          unspent: 150000, daysUntilDue: 20 },
+        { name: 'Market Square', total: 340000,
+          spentPayments: [85000, 70000, 55000],
+          pendingPayments: [35000, 30000],
+          unspent: 65000, daysUntilDue: 7 },
+        { name: 'Swimming Pool', total: 670000,
+          spentPayments: [170000, 145000, 115000],
+          pendingPayments: [60000, 60000],
+          unspent: 120000, daysUntilDue: 14 },
+        { name: 'Conference Center', total: 1050000,
+          spentPayments: [270000, 230000, 180000],
+          pendingPayments: [100000, 100000],
+          unspent: 170000, daysUntilDue: 23 }
+      ];
+
+      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+
+      const maxTotal = Math.max(...projects.map(p => p.total));
+
+      chartContent.innerHTML = projects.map(project => {
+        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
+
+        // Create individual segments for each payment
+        const spentSegments = project.spentPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const pendingSegments = project.pendingPayments.map(payment => {
+          const percent = (payment / maxTotal) * 100;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+        }).join('');
+
+        const unspentPercent = (project.unspent / maxTotal) * 100;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+
+        return `
+          <div class="chart-row">
+            <div class="chart-label">${project.name}</div>
+            <div class="chart-bar-container">
+              ${spentSegments}
+              ${pendingSegments}
+              ${unspentSegment}
+            </div>
+            <div class="chart-value">${daysText}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderUploadTask() {
+      const backBtn = document.getElementById('task-back-btn');
+      const cancelBtn = document.getElementById('task-cancel-btn');
+      const dropzone = document.getElementById('upload-dropzone');
+      const fileInput = document.getElementById('upload-file-input');
+      const browseBtn = document.getElementById('upload-browse-btn');
+      const filesList = document.getElementById('uploaded-files-list');
+      const submitBtn = document.getElementById('task-submit-btn');
+      const titleElement = document.getElementById('upload-task-title');
+
+      if (!dropzone || !fileInput) return;
+
+      // Load task info from sessionStorage
+      const taskData = sessionStorage.getItem('currentTask');
+      if (taskData && titleElement) {
+        const task = JSON.parse(taskData);
+        titleElement.textContent = task.title;
+      }
+
+      let uploadedFiles = [];
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Cancel button
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Browse button
+      if (browseBtn) {
+        browseBtn.onclick = () => {
+          fileInput.click();
+        };
+      }
+
+      // Dropzone click
+      dropzone.onclick = (e) => {
+        if (e.target === dropzone || e.target.closest('.upload-icon, .upload-text, .upload-subtext')) {
+          fileInput.click();
+        }
+      };
+
+      // File input change
+      fileInput.onchange = (e) => {
+        handleFiles(e.target.files);
+      };
+
+      // Drag and drop
+      dropzone.ondragover = (e) => {
+        e.preventDefault();
+        dropzone.classList.add('drag-over');
+      };
+
+      dropzone.ondragleave = () => {
+        dropzone.classList.remove('drag-over');
+      };
+
+      dropzone.ondrop = (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('drag-over');
+        handleFiles(e.dataTransfer.files);
+      };
+
+      function handleFiles(files) {
+        Array.from(files).forEach(file => {
+          // Check file size (10MB limit)
+          if (file.size > 10 * 1024 * 1024) {
+            alert(`File ${file.name} is too large. Maximum size is 10MB.`);
+            return;
+          }
+
+          // Check file type
+          const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+          if (!validTypes.includes(file.type)) {
+            alert(`File ${file.name} has an invalid format. Please upload PDF, JPG, or PNG files.`);
+            return;
+          }
+
+          uploadedFiles.push(file);
+        });
+
+        renderFilesList();
+        updateSubmitButton();
+      }
+
+      function renderFilesList() {
+        if (uploadedFiles.length === 0) {
+          filesList.innerHTML = '';
+          return;
+        }
+
+        filesList.innerHTML = uploadedFiles.map((file, index) => {
+          const ext = file.name.split('.').pop().toUpperCase();
+          const size = formatFileSize(file.size);
+
+          return `
+            <div class="uploaded-file-item">
+              <div class="uploaded-file-info">
+                <div class="file-icon">${ext}</div>
+                <div class="file-details">
+                  <div class="file-name">${file.name}</div>
+                  <div class="file-size">${size}</div>
+                </div>
+              </div>
+              <button class="file-remove-btn" data-file-index="${index}" type="button">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Add event listeners to remove buttons
+        filesList.querySelectorAll('.file-remove-btn').forEach(btn => {
+          btn.onclick = () => {
+            const index = parseInt(btn.dataset.fileIndex);
+            uploadedFiles.splice(index, 1);
+            renderFilesList();
+            updateSubmitButton();
+          };
+        });
+      }
+
+      function updateSubmitButton() {
+        if (submitBtn) {
+          submitBtn.disabled = uploadedFiles.length === 0;
+        }
+      }
+
+      function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+      }
+
+      // Submit button
+      if (submitBtn) {
+        submitBtn.onclick = () => {
+          if (uploadedFiles.length > 0) {
+            alert(`Successfully submitted ${uploadedFiles.length} file(s)!`);
+            window.location.hash = 'dashboard2';
+          }
+        };
+      }
+    }
+
+    function renderReviewTask() {
+      const backBtn = document.getElementById('review-task-back-btn');
+      const cancelBtn = document.getElementById('review-cancel-btn');
+      const submitBtn = document.getElementById('review-submit-btn');
+      const titleElement = document.getElementById('review-task-title');
+      const commentSection = document.getElementById('review-comment-section');
+      const approveRadio = document.getElementById('review-approve');
+      const rejectRadio = document.getElementById('review-reject');
+      const suggestRadio = document.getElementById('review-suggest');
+
+      // Load task info from sessionStorage
+      const taskData = sessionStorage.getItem('currentTask');
+      if (taskData && titleElement) {
+        const task = JSON.parse(taskData);
+        titleElement.textContent = task.title;
+      }
+
+      let selectedDecision = null;
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Cancel button
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Radio button change handlers
+      const radioButtons = [approveRadio, rejectRadio, suggestRadio];
+      radioButtons.forEach(radio => {
+        if (radio) {
+          radio.onchange = () => {
+            selectedDecision = radio.value;
+            updateSubmitButton();
+
+            // Show/hide comment section for reject and suggest
+            if (commentSection) {
+              if (radio.value === 'reject' || radio.value === 'suggest') {
+                commentSection.style.display = 'block';
+              } else {
+                commentSection.style.display = 'none';
+              }
+            }
+          };
+        }
+      });
+
+      function updateSubmitButton() {
+        if (submitBtn) {
+          submitBtn.disabled = !selectedDecision;
+        }
+      }
+
+      // Submit button
+      if (submitBtn) {
+        submitBtn.onclick = () => {
+          if (selectedDecision) {
+            const commentInput = document.getElementById('review-comment-input');
+            const comment = commentInput ? commentInput.value : '';
+
+            let message = '';
+            if (selectedDecision === 'approve') {
+              message = 'Request approved successfully!';
+            } else if (selectedDecision === 'reject') {
+              message = 'Request rejected.';
+            } else if (selectedDecision === 'suggest') {
+              message = 'Alternative suggestion submitted.';
+            }
+
+            alert(message);
+            window.location.hash = 'dashboard2';
+          }
+        };
+      }
+    }
+
     function renderDocuments(projectId) {
       const container = document.getElementById('documents-tbody');
       if (!container) return;
@@ -1398,6 +2236,7 @@ const store = {
       });
       applyRoleUI(currentRole);
       renderDashboard();
+      renderDashboard2();
       renderProjectsList();
     }
 

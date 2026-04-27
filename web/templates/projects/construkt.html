@@ -104,6 +104,15 @@
           </svg>
           <span class="tab-label">Dashboard</span>
         </a>
+        <a class="tab-link" data-route-link="dashboard2" href="#dashboard2" aria-label="Dashboard 2">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span class="tab-label">Dashboard 2</span>
+        </a>
         <a class="tab-link" data-route-link="projects" href="#projects" aria-label="Projects">
           <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>
@@ -332,6 +341,339 @@
               </ul>
             </section>
           </aside>
+        </div>
+      </section>
+
+      <section id="dashboard2-page" data-app-page="dashboard2">
+        <!-- Static Dashboard - No scrolling -->
+        <div class="dashboard2-viewport">
+          <div class="dashboard2-content">
+            <div class="dashboard2-main-section">
+              <h1 class="dashboard2-title" id="dashboard2-role-title">Finance Director</h1>
+              <div class="dashboard2-chart-card" id="dashboard2-chart-card">
+                <div class="dashboard2-chart-header">
+                  <h3 class="dashboard2-chart-title">Project Funding Overview</h3>
+                  <button class="chart-expand-btn" id="chart-expand-btn" type="button" aria-label="Expand chart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="dashboard2-chart-content" id="dashboard2-chart-content">
+                  <!-- Chart will be rendered by JavaScript -->
+                </div>
+              </div>
+            </div>
+            <aside class="dashboard2-sidebar">
+              <div class="outstanding-tasks-card">
+                <div class="outstanding-tasks-header">
+                  <h2 class="outstanding-tasks-title">Outstanding Tasks</h2>
+                  <span id="outstanding-tasks-count" class="outstanding-tasks-count">5 tasks</span>
+                </div>
+                <ul id="outstanding-tasks-list" class="outstanding-tasks-list">
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Foundation Pour invoice</span>
+                      <span class="outstanding-task-meta">Due in 2 days · £92,400</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Approve Electrical First Fix payment</span>
+                      <span class="outstanding-task-meta">Due in 3 days · £118,200</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Steel Frame Section B</span>
+                      <span class="outstanding-task-meta">Due in 5 days · £244,000</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Complete drainage survey review</span>
+                      <span class="outstanding-task-meta">Due in 7 days · £64,300</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Sign off temporary works inspection</span>
+                      <span class="outstanding-task-meta">Due in 10 days · £38,750</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                </ul>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- Recent Activity - Scrolls over dashboard -->
+        <section class="dashboard2-recent-activity">
+          <div class="recent-activity-header">
+            <svg class="recent-activity-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+            <h2 class="recent-activity-heading">Recent Activity</h2>
+          </div>
+          <ul id="dashboard2-activity" class="timeline-list timeline-list-full">
+            <li class="timeline-item">
+              <span class="timeline-dot green"></span>
+              <div><span class="timeline-title">Steel payment released</span><span class="timeline-meta">Civic Library Retrofit · 18m ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot yellow"></span>
+              <div><span class="timeline-title">Foundation invoice pending</span><span class="timeline-meta">Demo Hospital Fit-Out · 2h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">Document reference added</span><span class="timeline-meta">Station Works · 5h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">PM role assigned</span><span class="timeline-meta">Demo Hospital Fit-Out · Yesterday</span></div>
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section id="chart-fullscreen-page" data-app-page="chart-fullscreen">
+        <div class="chart-fullscreen-container">
+          <div class="chart-fullscreen-header">
+            <h1 class="chart-fullscreen-title">Project Funding Overview</h1>
+            <button class="chart-close-btn" id="chart-close-btn" type="button" aria-label="Close">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="chart-fullscreen-content" id="chart-fullscreen-content">
+            <!-- Chart will be rendered by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <section id="upload-task-page" data-app-page="upload-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="upload-task-title">Submit site inspection certificate</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="task-type-value">Document Upload</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="task-due-value">In 2 days</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+              <div class="task-description" id="task-description">
+                <p>Please upload the site inspection certificate for this project. Accepted formats: PDF, JPG, PNG.</p>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="project-name-value">Civic Library Retrofit</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="project-manager-value">Sarah Chen</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="project-budget-value">£500,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="project-completion-value">64%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="project-start-value">Jan 15, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="project-end-value">Jun 30, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-zone-card">
+              <h2 class="upload-zone-heading">Upload Documents</h2>
+              <div class="upload-dropzone" id="upload-dropzone">
+                <svg class="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p class="upload-text">Drag and drop files here</p>
+                <p class="upload-subtext">or</p>
+                <button class="btn btn-primary" id="upload-browse-btn" type="button">Browse Files</button>
+                <input type="file" id="upload-file-input" style="display: none;" multiple accept=".pdf,.jpg,.jpeg,.png">
+                <p class="upload-hint">Supported formats: PDF, JPG, PNG (Max 10MB each)</p>
+              </div>
+              <div class="uploaded-files-list" id="uploaded-files-list">
+                <!-- Uploaded files will appear here -->
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="task-cancel-btn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="task-submit-btn" type="button" disabled>Submit Task</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="review-task-page" data-app-page="review-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="review-task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="review-task-title">Review contractor invoice</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="review-task-type-value">Review</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="review-task-due-value">In 1 day</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="review-project-name-value">Station Works</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="review-project-manager-value">Michael Torres</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="review-project-budget-value">£650,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="review-project-completion-value">48%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="review-project-start-value">Feb 1, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="review-project-end-value">Aug 15, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="review-content-card">
+              <h2 class="review-content-heading">Review Request</h2>
+              <div class="review-request-details">
+                <div class="review-request-title" id="review-request-title">Budget Change Request: Electrical Works Package</div>
+                <div class="review-request-body" id="review-request-body">
+                  <p>The contractor has requested a budget increase for the Electrical Works package due to unforeseen complications with the existing wiring infrastructure. The original budget was £92,400, and they are requesting an additional £12,500 to cover:</p>
+                  <ul>
+                    <li>Replacement of outdated circuit breakers (£4,200)</li>
+                    <li>Additional conduit installation for new safety requirements (£5,800)</li>
+                    <li>Upgraded panel to support increased load capacity (£2,500)</li>
+                  </ul>
+                  <p><strong>Current Budget:</strong> £92,400<br>
+                  <strong>Requested Additional:</strong> £12,500<br>
+                  <strong>New Total:</strong> £104,900</p>
+                  <p>The contractor has provided supporting documentation including photos of the existing conditions and updated schematics.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="review-decision-card">
+              <h2 class="review-decision-heading">Your Decision</h2>
+              <div class="review-decision-options">
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="approve" id="review-approve">
+                  <div class="review-option-content">
+                    <span class="review-option-icon approve">✓</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Approve</div>
+                      <div class="review-option-description">Accept the request as submitted</div>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="reject" id="review-reject">
+                  <div class="review-option-content">
+                    <span class="review-option-icon reject">✕</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Reject</div>
+                      <div class="review-option-description">Decline the request</div>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="suggest" id="review-suggest">
+                  <div class="review-option-content">
+                    <span class="review-option-icon suggest">✎</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Suggest Alternative</div>
+                      <div class="review-option-description">Propose a different solution</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="review-comment-section" id="review-comment-section" style="display: none;">
+                <label for="review-comment-input" class="review-comment-label">Comments / Alternative Suggestion</label>
+                <textarea id="review-comment-input" class="review-comment-input" rows="4" placeholder="Enter your comments or alternative suggestion..."></textarea>
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="review-cancel-btn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="review-submit-btn" type="button" disabled>Submit Decision</button>
+            </div>
+          </div>
         </div>
       </section>
 
