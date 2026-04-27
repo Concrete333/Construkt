@@ -457,6 +457,65 @@
         </div>
       </section>
 
+      <section id="upload-task-page" data-app-page="upload-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="upload-task-title">Submit site inspection certificate</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="task-type-value">Document Upload</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="task-due-value">In 2 days</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+              <div class="task-description" id="task-description">
+                <p>Please upload the site inspection certificate for this project. Accepted formats: PDF, JPG, PNG.</p>
+              </div>
+            </div>
+
+            <div class="upload-zone-card">
+              <h2 class="upload-zone-heading">Upload Documents</h2>
+              <div class="upload-dropzone" id="upload-dropzone">
+                <svg class="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p class="upload-text">Drag and drop files here</p>
+                <p class="upload-subtext">or</p>
+                <button class="btn btn-primary" id="upload-browse-btn" type="button">Browse Files</button>
+                <input type="file" id="upload-file-input" style="display: none;" multiple accept=".pdf,.jpg,.jpeg,.png">
+                <p class="upload-hint">Supported formats: PDF, JPG, PNG (Max 10MB each)</p>
+              </div>
+              <div class="uploaded-files-list" id="uploaded-files-list">
+                <!-- Uploaded files will appear here -->
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="task-cancel-btn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="task-submit-btn" type="button" disabled>Submit Task</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section id="projects-page" data-app-page="projects">
         <div class="page-head">
           <div>
