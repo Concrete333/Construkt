@@ -231,6 +231,7 @@ const store = {
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
       'upload-task': { layout: 'app', page: 'upload-task', nav: 'dashboard2' },
+      'review-task': { layout: 'app', page: 'review-task', nav: 'dashboard2' },
       projects: { layout: 'app', page: 'projects' },
       'project-detail': { layout: 'app', page: 'project-detail', nav: 'projects' },
       'work-package-detail': { layout: 'app', page: 'work-package-detail', nav: 'projects' },
@@ -1299,17 +1300,20 @@ const store = {
           const taskType = btn.dataset.taskType;
           const taskTitle = btn.dataset.taskTitle;
 
-          // For now, only upload tasks navigate to the upload task page
+          // Store task info in sessionStorage
+          sessionStorage.setItem('currentTask', JSON.stringify({
+            type: taskType,
+            title: taskTitle
+          }));
+
+          // Navigate to appropriate task page
           if (taskType === 'submit_doc') {
-            // Store task info in sessionStorage for the upload page to use
-            sessionStorage.setItem('currentTask', JSON.stringify({
-              type: taskType,
-              title: taskTitle
-            }));
             window.location.hash = 'upload-task';
-          } else {
-            // TODO: Add pages for review and response tasks
-            alert(`${taskType} task page coming soon!`);
+          } else if (taskType === 'review') {
+            window.location.hash = 'review-task';
+          } else if (taskType === 'response') {
+            // TODO: Add page for response tasks
+            alert('Response task page coming soon!');
           }
         };
       });
@@ -1634,6 +1638,88 @@ const store = {
         submitBtn.onclick = () => {
           if (uploadedFiles.length > 0) {
             alert(`Successfully submitted ${uploadedFiles.length} file(s)!`);
+            window.location.hash = 'dashboard2';
+          }
+        };
+      }
+    }
+
+    function renderReviewTask() {
+      const backBtn = document.getElementById('review-task-back-btn');
+      const cancelBtn = document.getElementById('review-cancel-btn');
+      const submitBtn = document.getElementById('review-submit-btn');
+      const titleElement = document.getElementById('review-task-title');
+      const commentSection = document.getElementById('review-comment-section');
+      const approveRadio = document.getElementById('review-approve');
+      const rejectRadio = document.getElementById('review-reject');
+      const suggestRadio = document.getElementById('review-suggest');
+
+      // Load task info from sessionStorage
+      const taskData = sessionStorage.getItem('currentTask');
+      if (taskData && titleElement) {
+        const task = JSON.parse(taskData);
+        titleElement.textContent = task.title;
+      }
+
+      let selectedDecision = null;
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Cancel button
+      if (cancelBtn) {
+        cancelBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Radio button change handlers
+      const radioButtons = [approveRadio, rejectRadio, suggestRadio];
+      radioButtons.forEach(radio => {
+        if (radio) {
+          radio.onchange = () => {
+            selectedDecision = radio.value;
+            updateSubmitButton();
+
+            // Show/hide comment section for reject and suggest
+            if (commentSection) {
+              if (radio.value === 'reject' || radio.value === 'suggest') {
+                commentSection.style.display = 'block';
+              } else {
+                commentSection.style.display = 'none';
+              }
+            }
+          };
+        }
+      });
+
+      function updateSubmitButton() {
+        if (submitBtn) {
+          submitBtn.disabled = !selectedDecision;
+        }
+      }
+
+      // Submit button
+      if (submitBtn) {
+        submitBtn.onclick = () => {
+          if (selectedDecision) {
+            const commentInput = document.getElementById('review-comment-input');
+            const comment = commentInput ? commentInput.value : '';
+
+            let message = '';
+            if (selectedDecision === 'approve') {
+              message = 'Request approved successfully!';
+            } else if (selectedDecision === 'reject') {
+              message = 'Request rejected.';
+            } else if (selectedDecision === 'suggest') {
+              message = 'Alternative suggestion submitted.';
+            }
+
+            alert(message);
             window.location.hash = 'dashboard2';
           }
         };
