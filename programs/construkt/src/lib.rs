@@ -243,8 +243,8 @@ pub mod construkt {
             wallet: role_assignment.wallet,
             role: role_assignment.role,
             active,
-            by: authority_key,
-            at: clock.unix_timestamp,
+            authority: authority_key,
+            updated_at: clock.unix_timestamp,
         });
 
         Ok(())
@@ -360,14 +360,14 @@ pub mod construkt {
             let pr = &ctx.accounts.payment_request;
             require!(!pr.is_terminal(), ConstruktError::InvalidStatus);
             require!(!pr.hold_active, ConstruktError::RequestOnHold);
-            require!(
-                pr.document_ref != document_ref,
-                ConstruktError::DocumentReferenceUnchanged
-            );
             require_keys_eq!(
                 ctx.accounts.contractor.key(),
                 pr.contractor,
                 ConstruktError::Unauthorized
+            );
+            require!(
+                pr.document_ref != document_ref,
+                ConstruktError::DocumentReferenceUnchanged
             );
         }
 
@@ -416,6 +416,10 @@ pub mod construkt {
         require!(
             !ctx.accounts.payment_request.is_terminal(),
             ConstruktError::InvalidStatus
+        );
+        require!(
+            !ctx.accounts.payment_request.hold_active,
+            ConstruktError::RequestOnHold
         );
 
         match role {
@@ -1246,8 +1250,8 @@ pub struct RoleSetActive {
     pub wallet: Pubkey,
     pub role: Role,
     pub active: bool,
-    pub by: Pubkey,
-    pub at: i64,
+    pub authority: Pubkey,
+    pub updated_at: i64,
 }
 
 #[event]

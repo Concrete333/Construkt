@@ -206,7 +206,7 @@ describe("construkt b4 holds and release", () => {
     await expectError(releasePayment(prepared), "RequestOnHold");
   });
 
-  it("hold blocks approvals and document updates", async () => {
+  it("hold blocks approvals, rejections, and document updates", async () => {
     const prepared = await prepareRequest(
       new anchor.BN(100_000),
       new anchor.BN(500_000),
@@ -237,6 +237,26 @@ describe("construkt b4 holds and release", () => {
           contractorRoleAssignment: prepared.contractorRoleAssignment,
         })
         .signers([fx.contractor])
+        .rpc(),
+      "RequestOnHold"
+    );
+
+    await expectError(
+      fx.program.methods
+        .rejectRequest({ lowApprover: {} }, "ipfs://held-rejection")
+        .accountsStrict({
+          approver: fx.pm.publicKey,
+          project: fx.project,
+          workPackage: prepared.packageAddresses.workPackage,
+          paymentRequest: prepared.paymentRequest,
+          approverRoleAssignment: prepared.pmRoleAssignment,
+          approvalRecord: fx.deriveApprovalRecordAddress(
+            prepared.paymentRequest,
+            roleSeed.lowApprover
+          ),
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([fx.pm])
         .rpc(),
       "RequestOnHold"
     );

@@ -19,6 +19,7 @@ describe("construkt b1 accounts and roles", () => {
   let vaultAuthority: anchor.web3.PublicKey;
   let vault: anchor.web3.PublicKey;
   let pmRoleAssignment: anchor.web3.PublicKey;
+  let directorRoleAssignment: anchor.web3.PublicKey;
 
   before(async () => {
     await fx.init();
@@ -115,11 +116,13 @@ describe("construkt b1 accounts and roles", () => {
 
       if (assignment.roleByte === roleSeed.lowApprover) {
         pmRoleAssignment = roleAssignment;
+      } else if (assignment.roleByte === roleSeed.highApprover) {
+        directorRoleAssignment = roleAssignment;
       }
     }
   });
 
-  it("finance deactivates roles with update metadata and no-op guard", async () => {
+  it("finance toggles roles with update metadata and no-op guards", async () => {
     await fx.program.methods
       .setRoleActive(false)
       .accountsStrict({
@@ -142,6 +145,54 @@ describe("construkt b1 accounts and roles", () => {
     await expectError(
       fx.program.methods
         .setRoleActive(false)
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: fx.project,
+          workPackage,
+          roleAssignment: pmRoleAssignment,
+        })
+        .rpc(),
+      "RoleAlreadyInRequestedState"
+    );
+
+    const conflictingHighApprover = fx.roleAssignmentAddressForPackage(
+      workPackage,
+      roleSeed.highApprover,
+      fx.pm.publicKey
+    );
+    await expectError(
+      fx.program.methods
+        .assignRole({ highApprover: {} }, fx.pm.publicKey)
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: fx.project,
+          workPackage,
+          roleAssignment: conflictingHighApprover,
+          opposingApproverRoleAssignment: pmRoleAssignment,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc(),
+      "ApproverRoleConflict"
+    );
+
+    await fx.program.methods
+      .setRoleActive(true)
+      .accountsStrict({
+        authority: fx.finance.publicKey,
+        project: fx.project,
+        workPackage,
+        roleAssignment: pmRoleAssignment,
+      })
+      .rpc();
+
+    const reactivatedRoleAssignment =
+      await fx.program.account.roleAssignmentAccount.fetch(pmRoleAssignment);
+    assert.isTrue(reactivatedRoleAssignment.active);
+    assert.ok(reactivatedRoleAssignment.updatedBy.equals(fx.finance.publicKey));
+
+    await expectError(
+      fx.program.methods
+        .setRoleActive(true)
         .accountsStrict({
           authority: fx.finance.publicKey,
           project: fx.project,
@@ -385,6 +436,26 @@ describe("construkt b1 accounts and roles", () => {
           workPackage,
           roleAssignment: conflictingHighApprover,
           opposingApproverRoleAssignment: pmRoleAssignment,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc(),
+      "ApproverRoleConflict"
+    );
+
+    const conflictingLowApprover = fx.roleAssignmentAddressForPackage(
+      workPackage,
+      roleSeed.lowApprover,
+      fx.director.publicKey
+    );
+    await expectError(
+      fx.program.methods
+        .assignRole({ lowApprover: {} }, fx.director.publicKey)
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: fx.project,
+          workPackage,
+          roleAssignment: conflictingLowApprover,
+          opposingApproverRoleAssignment: directorRoleAssignment,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc(),

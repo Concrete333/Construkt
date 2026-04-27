@@ -326,6 +326,7 @@ Checks:
 - wallet is not default pubkey
 - assigning Contractor must match `work_package.contractor`
 - the same wallet cannot hold both LowApprover and HighApprover roles for one work package
+- an inactive opposing approver role still blocks assignment; V0 has no role-recycle or close-role path
 
 State changes:
 
@@ -355,7 +356,7 @@ State changes:
 
 Events:
 
-- `RoleSetActive`
+- `RoleSetActive` with `authority` and `updated_at`
 
 ### `fund_escrow`
 
@@ -460,6 +461,7 @@ Creates `ApprovalRecord` with rejected decision and sets status to `Rejected`.
 
 Checks:
 
+- request is not on hold
 - request is not released
 - signer has active low/high approver role
 - signer is not contractor
@@ -602,7 +604,7 @@ Required test cases:
 | Director approves second | success |
 | Non-finance release | fails |
 | Hold blocks release | fails |
-| Hold blocks approval and document updates | fails |
+| Hold blocks approval, rejection, and document updates | fails |
 | Placing a second active hold | fails |
 | Placing a hold on rejected request | fails |
 | Finance removes hold | success |
@@ -667,12 +669,12 @@ Done when:
 Done:
 
 - Finance can place/remove request hold.
-- Hold blocks release.
+- Hold blocks approval, rejection, document updates, and release.
 - Finance release transfers tokens to contractor.
 - Re-release is blocked.
 - Token balances and account state are easy for the frontend to fetch.
-- Release before high approval, non-finance release, wrong token owner, and wrong token mint tests pass.
-- Full backend suite passes with 31 tests.
+- Release before high approval, non-finance release, wrong token owner, wrong token mint, direct-vault-transfer, duplicate-hold, rejected-hold, and re-release tests pass.
+- Full backend suite passes with 36 tests.
 
 ### Milestone B5: Demo Seed Script
 

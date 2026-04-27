@@ -225,6 +225,8 @@ Fields:
 - `active: bool`
 - `assigned_by: Pubkey`
 - `assigned_at: i64`
+- `updated_by: Pubkey`
+- `updated_at: i64`
 - `bump: u8`
 
 Seed:
@@ -245,7 +247,7 @@ Fields:
 - `status: PaymentRequestStatus`
 - `submitted_at: i64`
 - `updated_at: i64`
-- `released_amount: u64`
+- `released_amount: u64` (V0 full-release amount; always `0` before release or equal to `amount` after release)
 - `hold_active: bool`
 - `hold_by: Pubkey`
 - `hold_ref: String`
@@ -348,7 +350,7 @@ Events:
 
 Signer: `project.authority`.
 
-Creates or updates `RoleAssignmentAccount`.
+Creates `RoleAssignmentAccount`.
 
 Checks:
 
@@ -356,10 +358,38 @@ Checks:
 - role is Contractor, LowApprover, or HighApprover
 - wallet is not default pubkey
 - assigning Contractor must match `work_package.contractor`
+- the same wallet cannot hold both LowApprover and HighApprover roles for one work package
+- an inactive opposing approver role still blocks assignment; V0 has no role-recycle or close-role path
+
+State changes:
+
+- `updated_by = assigned_by`
+- `updated_at = assigned_at`
 
 Events:
 
 - `RoleAssigned`
+
+### `set_role_active`
+
+Signer: `project.authority`.
+
+Activates or deactivates an existing `RoleAssignmentAccount`.
+
+Checks:
+
+- signer equals `project.authority`
+- requested state differs from current state
+
+State changes:
+
+- `role_assignment.active = active`
+- `role_assignment.updated_by = project.authority`
+- `role_assignment.updated_at = Clock::get()?.unix_timestamp`
+
+Events:
+
+- `RoleSetActive` with `authority` and `updated_at`
 
 ### `fund_escrow`
 
@@ -398,6 +428,7 @@ Checks:
 - document reference is present and length `<= MAX_REF_LEN`
 - use checked arithmetic for remaining cap
 - `amount <= cap_amount - released_amount`
+- `amount <= funded_amount - released_amount`
 - `amount <= vault available balance`
 
 State changes:
@@ -421,6 +452,8 @@ Checks:
 - signer has active Contractor role assignment
 - signer equals request contractor
 - request is not rejected or released
+- request is not on hold
+- new document reference differs from the current reference
 - document reference is present and length `<= MAX_REF_LEN`
 
 Events:
@@ -432,6 +465,8 @@ Events:
 Signer: active approver role.
 
 Creates `ApprovalRecord` and advances request status.
+
+Approval and rejection records intentionally share the same PDA seed per `(payment_request, role)`, so only one decision per role can ever be recorded. A second decision for the same role may fail during account initialization before instruction-body status checks run.
 
 Checks:
 
@@ -460,6 +495,7 @@ Creates `ApprovalRecord` with rejected decision and sets status to `Rejected`.
 
 Checks:
 
+- request is not on hold
 - request is not released
 - signer has active low/high approver role
 - signer is not contractor
@@ -544,6 +580,8 @@ Add explicit program errors, including:
 - `Unauthorized`
 - `InvalidRole`
 - `InactiveRoleAssignment`
+- `RoleAlreadyInRequestedState`
+- `ApproverRoleConflict`
 - `InvalidAccountRelationship`
 - `InvalidStatus`
 - `InvalidApprovalOrder`
@@ -551,9 +589,11 @@ Add explicit program errors, including:
 - `ContractorCannotApprove`
 - `ActiveRequestExists`
 - `MissingDocumentReference`
+- `DocumentReferenceUnchanged`
 - `StringTooLong`
 - `RequestOnHold`
 - `HoldNotActive`
+- `HoldAlreadyActive`
 - `RequestAlreadyReleased`
 - `InsufficientRemainingCap`
 - `InsufficientVaultBalance`
@@ -578,6 +618,8 @@ Required test cases:
 | Finance creates project and package | success |
 | Non-finance creates package | fails |
 | Finance assigns roles | success |
+| Finance assigns same wallet to both approver roles | fails |
+| Finance re-sets role to its current active state | fails |
 | Contractor submits request | success |
 | Non-contractor submits request | fails |
 | Contractor submits second active request before first is released/rejected | fails |
@@ -593,6 +635,9 @@ Required test cases:
 | Director approves second | success |
 | Non-finance release | fails |
 | Hold blocks release | fails |
+| Hold blocks approval, rejection, and document updates | fails |
+| Placing a second active hold | fails |
+| Placing a hold on rejected request | fails |
 | Finance removes hold | success |
 | Request exactly equals remaining cap | succeeds |
 | Request exceeds remaining cap by 1 | fails |
@@ -602,6 +647,7 @@ Required test cases:
 | Non-finance funds escrow | fails |
 | Funding exactly to package cap | succeeds |
 | Multiple escrow fundings accumulate | succeeds |
+| Direct SPL transfer into vault does not increase tracked release budget | fails |
 | Release to token account not owned by contractor | fails |
 | Release to token account with wrong mint | fails |
 | Finance releases after both approvals | success and token balances update |
@@ -742,11 +788,11 @@ Done when:
 Done:
 
 - Finance can place/remove request hold.
-- Hold blocks release.
+- Hold blocks approval, rejection, document updates, and release.
 - Finance release transfers tokens to contractor.
 - Re-release is blocked.
-- Release before high approval, non-finance release, wrong token owner, and wrong token mint tests pass.
-- Full backend suite passes with 31 tests.
+- Release before high approval, non-finance release, wrong token owner, wrong token mint, direct-vault-transfer, duplicate-hold, rejected-hold, and re-release tests pass.
+- Full backend suite passes with 36 tests.
 
 ### Milestone 5: Frontend Vertical Slice
 

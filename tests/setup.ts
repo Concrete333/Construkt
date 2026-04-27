@@ -40,6 +40,7 @@ export const expectError = async (
     await action;
     assert.fail(`Expected transaction to fail with ${expected}`);
   } catch (error) {
+    // Anchor program errors expose structured codes; runtime/account errors fall back to text.
     const anchorCode = (error as any)?.error?.errorCode?.code;
     if (anchorCode === expected) {
       return;

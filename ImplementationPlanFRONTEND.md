@@ -269,6 +269,10 @@ Build one clean end-to-end flow:
 11. Finance releases after approvals and no hold.
 12. Dashboard/audit trail shows statuses, tx signatures, and event history.
 
+Hold semantics: while a request is on hold, approval, rejection, document-reference updates, and release are blocked by the program.
+
+Role-assignment semantics: one wallet cannot be both PM/LowApprover and Director/HighApprover on the same work package. In V0, deactivating one approver role does not free that wallet for the opposing approver role.
+
 ## Required Blocked-State UX
 
 The UI should make invalid actions demonstrable:
@@ -277,6 +281,10 @@ The UI should make invalid actions demonstrable:
 - early director approval
 - duplicate approval
 - second active request
+- same wallet assigned to both approver roles
+- no-op role activation/deactivation
+- document update during hold
+- rejection during hold
 - release before approvals
 - release during hold
 - release by non-finance signer

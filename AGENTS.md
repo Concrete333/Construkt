@@ -81,8 +81,10 @@ For v0:
 10. Use standard SPL Token only, not Token-2022.
 11. Vault is a token account controlled by a vault-authority PDA.
 12. UI role switching is only a demo/navigation aid. The signer wallet must still match the required role.
-13. Audit trail is built from account state, approval records, transaction signatures captured during the current demo session, and emitted Anchor events where easily available.
-14. Full historical indexing is out of scope.
+13. Holds freeze request mutation: approval, rejection, document update, and release are blocked while `hold_active`.
+14. The same wallet cannot hold both LowApprover and HighApprover for one work package. An inactive opposing approver role still blocks reassignment in V0.
+15. Audit trail is built from account state, approval records, transaction signatures captured during the current demo session, and emitted Anchor events where easily available.
+16. Full historical indexing is out of scope.
 
 ## MVP Roles
 
@@ -97,11 +99,13 @@ For v0:
 - LowApprover / Project Manager
   - First approval stage.
   - Can reject.
+  - Cannot act while request is on hold.
   - Cannot release funds.
 
 - HighApprover / Director
   - Second approval stage.
   - Can reject.
+  - Cannot act while request is on hold.
   - Cannot release funds in v0.
 
 - Contractor
@@ -153,6 +157,7 @@ Use checked arithmetic for all amount updates.
 - assigned role: Contractor, LowApprover, HighApprover
 - work-package scope
 - active/inactive status
+- assignment and update metadata: `assigned_by`, `assigned_at`, `updated_by`, `updated_at`
 
 PDA seed:
 
@@ -176,6 +181,7 @@ Stable role bytes:
 - timestamps
 - released amount
 - request-level hold state
+- V0 release is full-request only, so request `released_amount` is either 0 or equal to amount.
 
 ### `ApprovalRecord`
 
@@ -246,11 +252,13 @@ Enforce these in the program, not just in the UI:
   - required approvals are missing
   - request is rejected
   - request is on hold
-  - request exceeds package cap or remaining escrow balance
+  - request exceeds package cap, tracked funded remaining amount, or vault token balance
   - signer is not project authority
+- Holds also block approval, rejection, and document-reference updates.
+- Same-wallet LowApprover/HighApprover conflicts are rejected on-chain.
 - Finance release is explicit. Do not auto-release after approval.
 - Documents and PII are not stored on-chain. Store hashes/references only.
-- Emit events for audit trail: project created, package created, role assigned, escrow funded, request submitted, document added, approved, rejected, hold placed, hold removed, payment released.
+- Emit events for audit trail: project created, package created, role assigned, role active-state changed, escrow funded, request submitted, document added, approved, rejected, hold placed, hold removed, payment released.
 
 ## Frontend Flow
 
@@ -321,4 +329,3 @@ Prefer the smallest working vertical slice over broad scaffolding.
 8. Add Anchor tests for the required rule set.
 9. Build the React/Vite `app/`.
 10. Polish audit trail and blocked-state demo.
-
