@@ -417,10 +417,6 @@ pub mod construkt {
             !ctx.accounts.payment_request.is_terminal(),
             ConstruktError::InvalidStatus
         );
-        require!(
-            !ctx.accounts.payment_request.hold_active,
-            ConstruktError::RequestOnHold
-        );
 
         match role {
             Role::LowApprover => require!(
@@ -486,6 +482,10 @@ pub mod construkt {
         require!(
             !ctx.accounts.payment_request.is_terminal(),
             ConstruktError::InvalidStatus
+        );
+        require!(
+            !ctx.accounts.payment_request.hold_active,
+            ConstruktError::RequestOnHold
         );
 
         let approver_key = ctx.accounts.approver.key();
