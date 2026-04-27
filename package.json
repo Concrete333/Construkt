@@ -4,7 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "anchor:test": "anchor test",
+    "anchor:test": "anchor test --provider.cluster localnet",
     "lint": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" --check",
     "lint:fix": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" -w"
   },

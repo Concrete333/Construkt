@@ -6,6 +6,7 @@ import {
   getAccount,
   mintTo,
   TOKEN_PROGRAM_ID,
+  transfer,
 } from "@solana/spl-token";
 import { createFixture, defaultPubkey, expectError, roleSeed } from "./setup";
 
@@ -205,6 +206,84 @@ describe("construkt b4 holds and release", () => {
     await expectError(releasePayment(prepared), "RequestOnHold");
   });
 
+  it("hold blocks approvals and document updates", async () => {
+    const prepared = await prepareRequest(
+      new anchor.BN(100_000),
+      new anchor.BN(500_000),
+      false
+    );
+    await placeHold(prepared);
+
+    await expectError(
+      approveRequest(
+        prepared,
+        { lowApprover: {} },
+        roleSeed.lowApprover,
+        fx.pm,
+        prepared.pmRoleAssignment,
+        "ipfs://pm-note-held"
+      ),
+      "RequestOnHold"
+    );
+
+    await expectError(
+      fx.program.methods
+        .addDocumentReference("ipfs://held-doc-update")
+        .accountsStrict({
+          contractor: fx.contractor.publicKey,
+          project: fx.project,
+          workPackage: prepared.packageAddresses.workPackage,
+          paymentRequest: prepared.paymentRequest,
+          contractorRoleAssignment: prepared.contractorRoleAssignment,
+        })
+        .signers([fx.contractor])
+        .rpc(),
+      "RequestOnHold"
+    );
+  });
+
+  it("active hold cannot be overwritten", async () => {
+    const prepared = await prepareRequest();
+    await placeHold(prepared, "ipfs://original-hold");
+
+    await expectError(
+      placeHold(prepared, "ipfs://replacement-hold"),
+      "HoldAlreadyActive"
+    );
+
+    const requestAccount = await fx.program.account.paymentRequestAccount.fetch(
+      prepared.paymentRequest
+    );
+    assert.strictEqual(requestAccount.holdRef, "ipfs://original-hold");
+  });
+
+  it("rejected request cannot be put on hold", async () => {
+    const prepared = await prepareRequest(
+      new anchor.BN(100_000),
+      new anchor.BN(500_000),
+      false
+    );
+
+    await fx.program.methods
+      .rejectRequest({ lowApprover: {} }, "ipfs://reject-before-hold")
+      .accountsStrict({
+        approver: fx.pm.publicKey,
+        project: fx.project,
+        workPackage: prepared.packageAddresses.workPackage,
+        paymentRequest: prepared.paymentRequest,
+        approverRoleAssignment: prepared.pmRoleAssignment,
+        approvalRecord: fx.deriveApprovalRecordAddress(
+          prepared.paymentRequest,
+          roleSeed.lowApprover
+        ),
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([fx.pm])
+      .rpc();
+
+    await expectError(placeHold(prepared), "InvalidStatus");
+  });
+
   it("release before high approval fails", async () => {
     const prepared = await prepareRequest(
       new anchor.BN(100_000),
@@ -315,6 +394,50 @@ describe("construkt b4 holds and release", () => {
     await expectError(
       releasePayment(prepared, wrongMintTokenAccount),
       "WrongMint"
+    );
+  });
+
+  it("direct vault token transfers do not increase tracked release budget", async () => {
+    const packageAddresses = await fx.createWorkPackageForTest(
+      nextPackageId++,
+      fx.contractor.publicKey,
+      new anchor.BN(200_000)
+    );
+    await fx.fundPackage(packageAddresses, new anchor.BN(100_000));
+    const roles = await fx.assignDefaultRoles(packageAddresses);
+
+    await transfer(
+      fx.provider.connection,
+      fx.finance,
+      fx.financeTokenAccount,
+      packageAddresses.vault,
+      fx.finance,
+      100_000
+    );
+
+    const paymentRequest = fx.derivePaymentRequestAddress(
+      packageAddresses.workPackage,
+      1
+    );
+    await expectError(
+      fx.program.methods
+        .submitPaymentRequest(
+          new anchor.BN(1),
+          new anchor.BN(150_000),
+          "ipfs://over-funded-by-direct-transfer"
+        )
+        .accountsStrict({
+          contractor: fx.contractor.publicKey,
+          project: fx.project,
+          workPackage: packageAddresses.workPackage,
+          contractorRoleAssignment: roles.contractorRoleAssignment,
+          paymentRequest,
+          vault: packageAddresses.vault,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .signers([fx.contractor])
+        .rpc(),
+      "InsufficientVaultBalance"
     );
   });
 });

@@ -199,6 +199,21 @@ describe("construkt b3 payment requests and approvals", () => {
       paymentRequest
     );
     assert.strictEqual(prAccount.documentRef, "ipfs://invoice-001-v2");
+
+    await expectError(
+      fx.program.methods
+        .addDocumentReference("ipfs://invoice-001-v2")
+        .accountsStrict({
+          contractor: fx.contractor.publicKey,
+          project: fx.project,
+          workPackage: packageAddresses.workPackage,
+          paymentRequest,
+          contractorRoleAssignment,
+        })
+        .signers([fx.contractor])
+        .rpc(),
+      "DocumentReferenceUnchanged"
+    );
   });
 
   it("contractor with approver role cannot approve own request", async () => {

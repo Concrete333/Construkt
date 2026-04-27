@@ -24,6 +24,8 @@ export const defaultPubkey = new anchor.web3.PublicKey(
 export const capAmount = new anchor.BN(1_000_000);
 export const firstFundingAmount = new anchor.BN(600_000);
 
+let fixtureCounter = 0;
+
 export const u64Seed = (value: number) => {
   const buffer = Buffer.alloc(8);
   buffer.writeBigUInt64LE(BigInt(value));
@@ -38,7 +40,13 @@ export const expectError = async (
     await action;
     assert.fail(`Expected transaction to fail with ${expected}`);
   } catch (error) {
-    assert.include(String(error), expected);
+    const anchorCode = (error as any)?.error?.errorCode?.code;
+    if (anchorCode === expected) {
+      return;
+    }
+
+    const errorText = String(error);
+    assert.include(errorText, expected);
   }
 };
 
@@ -53,8 +61,9 @@ export const createFixture = () => {
   const director = anchor.web3.Keypair.generate();
   const unrelatedUser = anchor.web3.Keypair.generate();
   const pm2 = anchor.web3.Keypair.generate();
-  const projectId =
-    Math.floor(Date.now() % 1_000_000_000) + Math.floor(Math.random() * 10_000);
+  const projectId = Number(
+    BigInt(Date.now()) * 1_000n + BigInt(fixtureCounter++)
+  );
 
   let mint: anchor.web3.PublicKey;
   let financeTokenAccount: anchor.web3.PublicKey;
@@ -240,6 +249,17 @@ export const createFixture = () => {
       roleByte,
       wallet
     );
+    const opposingRoleByte =
+      roleByte === roleSeed.lowApprover
+        ? roleSeed.highApprover
+        : roleByte === roleSeed.highApprover
+        ? roleSeed.lowApprover
+        : roleByte;
+    const opposingApproverRoleAssignment = roleAssignmentAddressForPackage(
+      packageAddresses.workPackage,
+      opposingRoleByte,
+      wallet
+    );
 
     await program.methods
       .assignRole(role, wallet)
@@ -248,6 +268,7 @@ export const createFixture = () => {
         project,
         workPackage: packageAddresses.workPackage,
         roleAssignment,
+        opposingApproverRoleAssignment,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();

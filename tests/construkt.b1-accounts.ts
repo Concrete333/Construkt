@@ -18,6 +18,7 @@ describe("construkt b1 accounts and roles", () => {
   let workPackage: anchor.web3.PublicKey;
   let vaultAuthority: anchor.web3.PublicKey;
   let vault: anchor.web3.PublicKey;
+  let pmRoleAssignment: anchor.web3.PublicKey;
 
   before(async () => {
     await fx.init();
@@ -106,7 +107,50 @@ describe("construkt b1 accounts and roles", () => {
       assert.ok(roleAssignmentAccount.wallet.equals(assignment.wallet));
       assert.isTrue(roleAssignmentAccount.active);
       assert.ok(roleAssignmentAccount.assignedBy.equals(fx.finance.publicKey));
+      assert.ok(roleAssignmentAccount.updatedBy.equals(fx.finance.publicKey));
+      assert.strictEqual(
+        roleAssignmentAccount.updatedAt.toNumber(),
+        roleAssignmentAccount.assignedAt.toNumber()
+      );
+
+      if (assignment.roleByte === roleSeed.lowApprover) {
+        pmRoleAssignment = roleAssignment;
+      }
     }
+  });
+
+  it("finance deactivates roles with update metadata and no-op guard", async () => {
+    await fx.program.methods
+      .setRoleActive(false)
+      .accountsStrict({
+        authority: fx.finance.publicKey,
+        project: fx.project,
+        workPackage,
+        roleAssignment: pmRoleAssignment,
+      })
+      .rpc();
+
+    const roleAssignmentAccount =
+      await fx.program.account.roleAssignmentAccount.fetch(pmRoleAssignment);
+    assert.isFalse(roleAssignmentAccount.active);
+    assert.ok(roleAssignmentAccount.updatedBy.equals(fx.finance.publicKey));
+    assert.isAtLeast(
+      roleAssignmentAccount.updatedAt.toNumber(),
+      roleAssignmentAccount.assignedAt.toNumber()
+    );
+
+    await expectError(
+      fx.program.methods
+        .setRoleActive(false)
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: fx.project,
+          workPackage,
+          roleAssignment: pmRoleAssignment,
+        })
+        .rpc(),
+      "RoleAlreadyInRequestedState"
+    );
   });
 
   it("non-finance cannot create a work package", async () => {
@@ -266,6 +310,11 @@ describe("construkt b1 accounts and roles", () => {
           project: fx.project,
           workPackage,
           roleAssignment,
+          opposingApproverRoleAssignment: fx.roleAssignmentAddressForPackage(
+            workPackage,
+            roleSeed.highApprover,
+            wallet
+          ),
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .signers([fx.unrelatedUser])
@@ -290,6 +339,7 @@ describe("construkt b1 accounts and roles", () => {
           project: fx.project,
           workPackage,
           roleAssignment: wrongContractorAssignment,
+          opposingApproverRoleAssignment: wrongContractorAssignment,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc(),
@@ -310,10 +360,35 @@ describe("construkt b1 accounts and roles", () => {
           project: fx.project,
           workPackage,
           roleAssignment: defaultWalletAssignment,
+          opposingApproverRoleAssignment: fx.roleAssignmentAddressForPackage(
+            workPackage,
+            roleSeed.highApprover,
+            defaultPubkey
+          ),
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc(),
       "InvalidAccountRelationship"
+    );
+
+    const conflictingHighApprover = fx.roleAssignmentAddressForPackage(
+      workPackage,
+      roleSeed.highApprover,
+      fx.pm.publicKey
+    );
+    await expectError(
+      fx.program.methods
+        .assignRole({ highApprover: {} }, fx.pm.publicKey)
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: fx.project,
+          workPackage,
+          roleAssignment: conflictingHighApprover,
+          opposingApproverRoleAssignment: pmRoleAssignment,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc(),
+      "ApproverRoleConflict"
     );
   });
 });

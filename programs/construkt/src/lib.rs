@@ -176,16 +176,42 @@ pub mod construkt {
                 ctx.accounts.work_package.contractor,
                 ConstruktError::InvalidAccountRelationship
             );
+        } else if let Some(opposing_role) = role.opposing_approver() {
+            let (expected_opposing_assignment, _) = Pubkey::find_program_address(
+                &[
+                    b"role",
+                    ctx.accounts.work_package.key().as_ref(),
+                    &[opposing_role.to_u8()],
+                    wallet.as_ref(),
+                ],
+                ctx.program_id,
+            );
+            let opposing_assignment = ctx
+                .accounts
+                .opposing_approver_role_assignment
+                .to_account_info();
+            require_keys_eq!(
+                opposing_assignment.key(),
+                expected_opposing_assignment,
+                ConstruktError::InvalidAccountRelationship
+            );
+            require!(
+                opposing_assignment.data_is_empty(),
+                ConstruktError::ApproverRoleConflict
+            );
         }
 
         let clock = Clock::get()?;
+        let authority_key = ctx.accounts.authority.key();
         let role_assignment = &mut ctx.accounts.role_assignment;
         role_assignment.work_package = ctx.accounts.work_package.key();
         role_assignment.wallet = wallet;
         role_assignment.role = role;
         role_assignment.active = true;
-        role_assignment.assigned_by = ctx.accounts.authority.key();
+        role_assignment.assigned_by = authority_key;
         role_assignment.assigned_at = clock.unix_timestamp;
+        role_assignment.updated_by = authority_key;
+        role_assignment.updated_at = clock.unix_timestamp;
         role_assignment.bump = ctx.bumps.role_assignment;
 
         emit!(RoleAssigned {
@@ -200,7 +226,27 @@ pub mod construkt {
     }
 
     pub fn set_role_active(ctx: Context<SetRoleActive>, active: bool) -> Result<()> {
-        ctx.accounts.role_assignment.active = active;
+        require!(
+            ctx.accounts.role_assignment.active != active,
+            ConstruktError::RoleAlreadyInRequestedState
+        );
+
+        let clock = Clock::get()?;
+        let authority_key = ctx.accounts.authority.key();
+        let role_assignment = &mut ctx.accounts.role_assignment;
+        role_assignment.active = active;
+        role_assignment.updated_by = authority_key;
+        role_assignment.updated_at = clock.unix_timestamp;
+
+        emit!(RoleSetActive {
+            work_package: role_assignment.work_package,
+            wallet: role_assignment.wallet,
+            role: role_assignment.role,
+            active,
+            by: authority_key,
+            at: clock.unix_timestamp,
+        });
+
         Ok(())
     }
 
@@ -245,9 +291,19 @@ pub mod construkt {
                 amount <= remaining_cap,
                 ConstruktError::InsufficientRemainingCap
             );
+            // Program accounting is canonical; raw vault balance may include direct SPL transfers.
+            let funded_remaining = wp
+                .funded_amount
+                .checked_sub(wp.released_amount)
+                .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+            require!(
+                amount <= funded_remaining,
+                ConstruktError::InsufficientVaultBalance
+            );
             next_request_id
         };
 
+        // The vault still needs real liquidity even when tracked funding allows the request.
         require!(
             amount <= ctx.accounts.vault.amount,
             ConstruktError::InsufficientVaultBalance
@@ -303,6 +359,11 @@ pub mod construkt {
         {
             let pr = &ctx.accounts.payment_request;
             require!(!pr.is_terminal(), ConstruktError::InvalidStatus);
+            require!(!pr.hold_active, ConstruktError::RequestOnHold);
+            require!(
+                pr.document_ref != document_ref,
+                ConstruktError::DocumentReferenceUnchanged
+            );
             require_keys_eq!(
                 ctx.accounts.contractor.key(),
                 pr.contractor,
@@ -449,6 +510,8 @@ pub mod construkt {
             work_package: work_package_key,
             approver: approver_key,
             role,
+            decision: Decision::Rejected,
+            new_status: PaymentRequestStatus::Rejected,
             created_at: clock.unix_timestamp,
         });
 
@@ -460,6 +523,14 @@ pub mod construkt {
         require!(
             ctx.accounts.payment_request.status != PaymentRequestStatus::Released,
             ConstruktError::RequestAlreadyReleased
+        );
+        require!(
+            !ctx.accounts.payment_request.is_terminal(),
+            ConstruktError::InvalidStatus
+        );
+        require!(
+            !ctx.accounts.payment_request.hold_active,
+            ConstruktError::HoldAlreadyActive
         );
 
         let authority_key = ctx.accounts.authority.key();
@@ -516,8 +587,13 @@ pub mod construkt {
             ctx.accounts.payment_request.status != PaymentRequestStatus::Released,
             ConstruktError::RequestAlreadyReleased
         );
+        // Keep re-release failures distinct from other invalid status failures.
         require!(
             ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
+            ConstruktError::InvalidStatus
+        );
+        require!(
+            ctx.accounts.work_package.status == WorkPackageStatus::Active,
             ConstruktError::InvalidStatus
         );
         require!(
@@ -556,10 +632,27 @@ pub mod construkt {
             amount <= remaining_cap,
             ConstruktError::InsufficientRemainingCap
         );
+        // Require both tracked funding and real vault liquidity: direct deposits do not expand budget.
+        let funded_remaining = ctx
+            .accounts
+            .work_package
+            .funded_amount
+            .checked_sub(ctx.accounts.work_package.released_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        require!(
+            amount <= funded_remaining,
+            ConstruktError::InsufficientVaultBalance
+        );
         require!(
             amount <= ctx.accounts.vault.amount,
             ConstruktError::InsufficientVaultBalance
         );
+        let next_released_amount = ctx
+            .accounts
+            .work_package
+            .released_amount
+            .checked_add(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
 
         let work_package_key = ctx.accounts.work_package.key();
         let signer_seeds: &[&[&[u8]]] = &[&[
@@ -579,12 +672,6 @@ pub mod construkt {
         );
         token::transfer(cpi_ctx, amount)?;
 
-        let released_amount = ctx
-            .accounts
-            .work_package
-            .released_amount
-            .checked_add(amount)
-            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
         let authority_key = ctx.accounts.authority.key();
         let contractor_key = ctx.accounts.payment_request.contractor;
         let payment_request_key = ctx.accounts.payment_request.key();
@@ -598,7 +685,7 @@ pub mod construkt {
         payment_request.updated_at = clock.unix_timestamp;
 
         let work_package = &mut ctx.accounts.work_package;
-        work_package.released_amount = released_amount;
+        work_package.released_amount = next_released_amount;
         work_package.clear_active_request();
         if work_package.released_amount == work_package.cap_amount {
             work_package.status = WorkPackageStatus::Completed;
@@ -712,6 +799,8 @@ pub struct AssignRole<'info> {
         bump
     )]
     pub role_assignment: Account<'info, RoleAssignmentAccount>,
+    /// CHECK: For approver roles this must be the opposite approver role PDA for the same wallet.
+    pub opposing_approver_role_assignment: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -924,6 +1013,7 @@ pub struct ProjectAccount {
     pub status: ProjectStatus,
     pub created_at: i64,
     pub metadata_ref: String,
+    /// Stored for account provenance and future PDA signer paths.
     pub bump: u8,
 }
 
@@ -948,6 +1038,7 @@ pub struct WorkPackageAccount {
     pub request_counter: u64,
     pub has_active_request: bool,
     pub active_request: Pubkey,
+    /// Stored for account provenance and future PDA signer paths.
     pub bump: u8,
 }
 
@@ -986,11 +1077,13 @@ pub struct RoleAssignmentAccount {
     pub active: bool,
     pub assigned_by: Pubkey,
     pub assigned_at: i64,
+    pub updated_by: Pubkey,
+    pub updated_at: i64,
     pub bump: u8,
 }
 
 impl RoleAssignmentAccount {
-    pub const SPACE: usize = 8 + 32 + 32 + 1 + 1 + 32 + 8 + 1;
+    pub const SPACE: usize = 8 + 32 + 32 + 1 + 1 + 32 + 8 + 32 + 8 + 1;
 }
 
 #[account]
@@ -1003,10 +1096,12 @@ pub struct PaymentRequestAccount {
     pub status: PaymentRequestStatus,
     pub submitted_at: i64,
     pub updated_at: i64,
+    /// V0 releases a request in full, so this is either 0 or equal to `amount`.
     pub released_amount: u64,
     pub hold_active: bool,
     pub hold_by: Pubkey,
     pub hold_ref: String,
+    /// Stored for account provenance and future PDA signer paths.
     pub bump: u8,
 }
 
@@ -1040,6 +1135,7 @@ pub struct ApprovalRecord {
     pub decision: Decision,
     pub note_ref: String,
     pub created_at: i64,
+    /// Stored for account provenance and future PDA signer paths.
     pub bump: u8,
 }
 
@@ -1085,6 +1181,14 @@ impl Role {
             Role::Contractor => 1,
             Role::LowApprover => 2,
             Role::HighApprover => 3,
+        }
+    }
+
+    pub fn opposing_approver(self) -> Option<Role> {
+        match self {
+            Role::LowApprover => Some(Role::HighApprover),
+            Role::HighApprover => Some(Role::LowApprover),
+            Role::Contractor => None,
         }
     }
 }
@@ -1137,6 +1241,16 @@ pub struct RoleAssigned {
 }
 
 #[event]
+pub struct RoleSetActive {
+    pub work_package: Pubkey,
+    pub wallet: Pubkey,
+    pub role: Role,
+    pub active: bool,
+    pub by: Pubkey,
+    pub at: i64,
+}
+
+#[event]
 pub struct PaymentRequestSubmitted {
     pub work_package: Pubkey,
     pub payment_request: Pubkey,
@@ -1169,6 +1283,8 @@ pub struct PaymentRequestRejected {
     pub work_package: Pubkey,
     pub approver: Pubkey,
     pub role: Role,
+    pub decision: Decision,
+    pub new_status: PaymentRequestStatus,
     pub created_at: i64,
 }
 
@@ -1212,6 +1328,10 @@ pub enum ConstruktError {
     InvalidRole,
     #[msg("Role assignment is inactive")]
     InactiveRoleAssignment,
+    #[msg("Role assignment is already in the requested active state")]
+    RoleAlreadyInRequestedState,
+    #[msg("Wallet already has the opposing approver role for this work package")]
+    ApproverRoleConflict,
     #[msg("Account relationship is invalid")]
     InvalidAccountRelationship,
     #[msg("Account or request status is invalid for this action")]
@@ -1226,12 +1346,16 @@ pub enum ConstruktError {
     ActiveRequestExists,
     #[msg("Document reference is required")]
     MissingDocumentReference,
+    #[msg("Document reference is unchanged")]
+    DocumentReferenceUnchanged,
     #[msg("String is too long")]
     StringTooLong,
     #[msg("Request is on hold")]
     RequestOnHold,
     #[msg("Hold is not active")]
     HoldNotActive,
+    #[msg("Hold is already active")]
+    HoldAlreadyActive,
     #[msg("Request has already been released")]
     RequestAlreadyReleased,
     #[msg("Insufficient remaining cap")]
