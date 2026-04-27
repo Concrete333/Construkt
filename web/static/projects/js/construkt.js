@@ -230,8 +230,10 @@ const store = {
       dashboard: { layout: 'app', page: 'dashboard' },
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
+      'work-package-view': { layout: 'app', page: 'work-package-view', nav: 'dashboard2' },
       'upload-task': { layout: 'app', page: 'upload-task', nav: 'dashboard2' },
       'review-task': { layout: 'app', page: 'review-task', nav: 'dashboard2' },
+      'response-task': { layout: 'app', page: 'response-task', nav: 'dashboard2' },
       projects: { layout: 'app', page: 'projects' },
       'project-detail': { layout: 'app', page: 'project-detail', nav: 'projects' },
       'work-package-detail': { layout: 'app', page: 'work-package-detail', nav: 'projects' },
@@ -674,32 +676,54 @@ const store = {
     }
 
     function renderProjectsList() {
-      const container = document.getElementById('projects-tbody');
+      const container = document.getElementById('projects-simple-list');
       if (!container) return;
+
       const projects = store.currentRole === 'contractor'
         ? store.projects.filter((project) => project.team.some((member) => member.name === store.currentUser.name))
         : store.projects;
 
-      container.innerHTML = projects.map((project) => {
-        const role = getCurrentUserRole(project);
-        const openPackages = project.packages.filter((pkg) => pkg.status !== 'Released').length;
-        const requests = getAllRequests(project);
-        const requestLabel = requests.length ? `${requests.length} ${requests[0].status.toLowerCase()}` : '0 requests';
+      // Create dummy projects with next task due dates
+      const projectsWithDueDates = [
+        { name: 'Civic Library Retrofit', daysUntilTask: 2 },
+        { name: 'Demo Hospital Fit-Out', daysUntilTask: 1 },
+        { name: 'Station Works', daysUntilTask: 5 },
+        { name: 'Office Complex', daysUntilTask: 8 },
+        { name: 'Retail Park Development', daysUntilTask: 3 },
+        { name: 'School Extension', daysUntilTask: 12 },
+        { name: 'Warehouse Conversion', daysUntilTask: 7 },
+        { name: 'Community Center', daysUntilTask: 4 },
+        { name: 'Bridge Repair', daysUntilTask: 15 }
+      ];
+
+      // Sort by most urgent first
+      projectsWithDueDates.sort((a, b) => a.daysUntilTask - b.daysUntilTask);
+
+      container.innerHTML = projectsWithDueDates.map((project) => {
+        let dueText = '';
+        let dueClass = '';
+
+        if (project.daysUntilTask === 0) {
+          dueText = 'Task due today';
+          dueClass = 'urgent';
+        } else if (project.daysUntilTask === 1) {
+          dueText = 'Task due in 1 day';
+          dueClass = 'urgent';
+        } else if (project.daysUntilTask <= 3) {
+          dueText = `Task due in ${project.daysUntilTask} days`;
+          dueClass = 'soon';
+        } else {
+          dueText = `Task due in ${project.daysUntilTask} days`;
+          dueClass = '';
+        }
+
         return `
-          <tr class="clickable-row" data-project-row>
-            <td><span class="project-name">${project.name}</span><br><span class="muted">${project.client}</span></td>
-            <td>${statusChip(role ? roleLabel(role) : 'Not Linked')}</td>
-            <td><span class="model-badge">${modelLabel(project.contractModel)}</span></td>
-            <td>${openPackages}</td>
-            <td>${requestLabel}</td>
-            <td>${project.auditLog.length} events</td>
-            <td><a class="text-link" href="#project-detail" onclick="showProjectDetail('${project.id}'); return false;">View →</a></td>
-          </tr>
+          <div class="project-simple-item" onclick="showProjectDetail('${project.name}')">
+            <span class="project-simple-name">${project.name}</span>
+            <span class="project-simple-due ${dueClass}">${dueText}</span>
+          </div>
         `;
       }).join('');
-
-      const note = document.querySelector('[data-contractor-project-note]');
-      if (note) note.hidden = store.currentRole !== 'contractor';
     }
 
     function renderProjectDetail(projectId) {
@@ -982,22 +1006,24 @@ const store = {
         const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
 
         // Create individual segments for each payment
-        const spentSegments = project.spentPayments.map(payment => {
+        const spentSegments = project.spentPayments.map((payment, index) => {
           const percent = (payment / maxTotal) * 100;
-          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+          const packageName = `Payment ${index + 1}`;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}" onclick="showWorkPackage('${project.name}', '${packageName}', '${formatGBP(payment)}', 'Spent', event)"></div>`;
         }).join('');
 
-        const pendingSegments = project.pendingPayments.map(payment => {
+        const pendingSegments = project.pendingPayments.map((payment, index) => {
           const percent = (payment / maxTotal) * 100;
-          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+          const packageName = `Pending Payment ${index + 1}`;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}" onclick="showWorkPackage('${project.name}', '${packageName}', '${formatGBP(payment)}', 'Pending', event)"></div>`;
         }).join('');
 
         const unspentPercent = (project.unspent / maxTotal) * 100;
-        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}" onclick="showWorkPackage('${project.name}', 'Unspent Budget', '${formatGBP(project.unspent)}', 'Unspent', event)"></div>`;
 
         return `
           <div class="chart-row">
-            <div class="chart-label">${project.name}</div>
+            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
             <div class="chart-bar-container">
               ${spentSegments}
               ${pendingSegments}
@@ -1312,8 +1338,7 @@ const store = {
           } else if (taskType === 'review') {
             window.location.hash = 'review-task';
           } else if (taskType === 'response') {
-            // TODO: Add page for response tasks
-            alert('Response task page coming soon!');
+            window.location.hash = 'response-task';
           }
         };
       });
@@ -1461,22 +1486,24 @@ const store = {
         const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
 
         // Create individual segments for each payment
-        const spentSegments = project.spentPayments.map(payment => {
+        const spentSegments = project.spentPayments.map((payment, index) => {
           const percent = (payment / maxTotal) * 100;
-          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}"></div>`;
+          const packageName = `Payment ${index + 1}`;
+          return `<div class="chart-bar-segment spent" style="width: ${percent}%" title="Payment: ${formatGBP(payment)}" onclick="showWorkPackage('${project.name}', '${packageName}', '${formatGBP(payment)}', 'Spent', event)"></div>`;
         }).join('');
 
-        const pendingSegments = project.pendingPayments.map(payment => {
+        const pendingSegments = project.pendingPayments.map((payment, index) => {
           const percent = (payment / maxTotal) * 100;
-          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}"></div>`;
+          const packageName = `Pending Payment ${index + 1}`;
+          return `<div class="chart-bar-segment pending" style="width: ${percent}%" title="Pending: ${formatGBP(payment)}" onclick="showWorkPackage('${project.name}', '${packageName}', '${formatGBP(payment)}', 'Pending', event)"></div>`;
         }).join('');
 
         const unspentPercent = (project.unspent / maxTotal) * 100;
-        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}"></div>`;
+        const unspentSegment = `<div class="chart-bar-segment unspent" style="width: ${unspentPercent}%" title="Unspent: ${formatGBP(project.unspent)}" onclick="showWorkPackage('${project.name}', 'Unspent Budget', '${formatGBP(project.unspent)}', 'Unspent', event)"></div>`;
 
         return `
           <div class="chart-row">
-            <div class="chart-label">${project.name}</div>
+            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
             <div class="chart-bar-container">
               ${spentSegments}
               ${pendingSegments}
@@ -1726,6 +1753,89 @@ const store = {
       }
     }
 
+    function renderResponseTask() {
+      const backBtn = document.getElementById('response-task-back-btn');
+      const dismissBtn = document.getElementById('response-dismiss-btn');
+      const submitBtn = document.getElementById('response-submit-btn');
+      const titleElement = document.getElementById('response-task-title');
+      const messageInput = document.getElementById('response-message-input');
+
+      // Load task info from sessionStorage
+      const taskData = sessionStorage.getItem('currentTask');
+      if (taskData && titleElement) {
+        const task = JSON.parse(taskData);
+        titleElement.textContent = task.title;
+      }
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          window.location.hash = 'dashboard2';
+        };
+      }
+
+      // Dismiss button - goes back without sending response
+      if (dismissBtn) {
+        dismissBtn.onclick = () => {
+          if (confirm('Are you sure you want to dismiss this message without responding?')) {
+            alert('Message dismissed.');
+            window.location.hash = 'dashboard2';
+          }
+        };
+      }
+
+      // Submit button - sends response (even if empty)
+      if (submitBtn) {
+        submitBtn.onclick = () => {
+          const message = messageInput ? messageInput.value.trim() : '';
+
+          if (message) {
+            alert('Response sent successfully!');
+          } else {
+            alert('Response acknowledged.');
+          }
+
+          window.location.hash = 'dashboard2';
+        };
+      }
+    }
+
+    function renderWorkPackageView() {
+      const backBtn = document.getElementById('work-package-back-btn');
+      const titleElement = document.getElementById('work-package-view-title');
+
+      // Load package info from sessionStorage
+      const packageData = sessionStorage.getItem('currentWorkPackage');
+      if (packageData && titleElement) {
+        const pkg = JSON.parse(packageData);
+        titleElement.textContent = pkg.name;
+
+        // Update all fields
+        const projectName = document.getElementById('wp-project-name');
+        const amount = document.getElementById('wp-amount');
+        const status = document.getElementById('wp-status');
+        const paymentDate = document.getElementById('wp-payment-date');
+        const contractor = document.getElementById('wp-contractor');
+        const type = document.getElementById('wp-type');
+
+        if (projectName) projectName.textContent = pkg.project || 'Civic Library Retrofit';
+        if (amount) amount.textContent = pkg.amount || '£120,000';
+        if (status) status.textContent = pkg.status || 'Completed';
+        if (paymentDate) paymentDate.textContent = pkg.paymentDate || 'Mar 15, 2026';
+        if (contractor) contractor.textContent = pkg.contractor || 'BuildTech Solutions Ltd';
+        if (type) type.textContent = pkg.type || 'Spent';
+      }
+
+      // Back button
+      if (backBtn) {
+        backBtn.onclick = () => {
+          // Go back to where we came from (dashboard2 or chart-fullscreen)
+          const previousPage = sessionStorage.getItem('workPackagePreviousPage') || 'dashboard2';
+          window.location.hash = previousPage;
+        };
+      }
+    }
+
     function renderDocuments(projectId) {
       const container = document.getElementById('documents-tbody');
       if (!container) return;
@@ -1906,6 +2016,28 @@ const store = {
     function showPackageDetail(projectId, packageId) {
       renderPackageDetail(projectId, packageId);
       window.location.hash = 'work-package-detail';
+    }
+
+    function showWorkPackage(projectName, packageName, amount, type, event) {
+      if (event) event.stopPropagation(); // Prevent triggering project name click
+
+      // Store package data for the view page
+      sessionStorage.setItem('currentWorkPackage', JSON.stringify({
+        project: projectName,
+        name: packageName,
+        amount: amount,
+        type: type,
+        status: type === 'Spent' ? 'Completed' : type === 'Pending' ? 'In Progress' : 'Not Started',
+        paymentDate: type === 'Spent' ? 'Mar 15, 2026' : type === 'Pending' ? 'Apr 20, 2026' : 'May 10, 2026',
+        contractor: 'BuildTech Solutions Ltd'
+      }));
+
+      // Store current page for back navigation
+      const currentPage = window.location.hash.replace('#', '') || 'dashboard2';
+      sessionStorage.setItem('workPackagePreviousPage', currentPage);
+
+      // Navigate to work package view
+      window.location.hash = 'work-package-view';
     }
 
     function activeProject() {
