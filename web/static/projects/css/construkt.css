@@ -176,6 +176,34 @@
       background: var(--color-surface);
     }
 
+    /* Task type buttons */
+    .btn-upload {
+      color: white;
+      background: #3b82f6;
+    }
+
+    .btn-upload:hover {
+      background: #2563eb;
+    }
+
+    .btn-review {
+      color: white;
+      background: #8b5cf6;
+    }
+
+    .btn-review:hover {
+      background: #7c3aed;
+    }
+
+    .btn-response {
+      color: white;
+      background: #f59e0b;
+    }
+
+    .btn-response:hover {
+      background: #d97706;
+    }
+
     .public-main {
       min-height: calc(100vh - 108px);
       display: grid;
@@ -2721,6 +2749,74 @@
       text-align: right;
     }
 
+    /* Contractor circular dial */
+    .contractor-dial-container {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: var(--space-8);
+      padding: var(--space-2);
+      margin-top: -20px;
+    }
+
+    .contractor-dial-svg {
+      flex-shrink: 0;
+    }
+
+    .dial-segment {
+      transition: all 0.3s ease;
+      cursor: pointer;
+      stroke: rgba(255, 255, 255, 0.15);
+      stroke-width: 1;
+    }
+
+    .dial-segment:hover {
+      opacity: 0.9;
+      filter: brightness(1.15);
+      stroke: rgba(255, 255, 255, 0.4);
+      stroke-width: 2;
+    }
+
+    .dial-total-label {
+      font-size: 14px;
+      fill: var(--color-text-muted);
+      font-weight: 500;
+    }
+
+    .dial-total-value {
+      font-size: 28px;
+      fill: var(--color-text);
+      font-weight: 700;
+    }
+
+    .dial-received-label {
+      font-size: 16px;
+      fill: #48a868;
+      font-weight: 600;
+    }
+
+    .contractor-dial-legend {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+      flex: 1;
+    }
+
+    .dial-legend-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--text-sm);
+      color: var(--color-text-muted);
+    }
+
+    .dial-legend-color {
+      width: 24px;
+      height: 16px;
+      border-radius: var(--radius-sm);
+      flex-shrink: 0;
+    }
+
     .dashboard2-sidebar {
       display: flex;
       flex-direction: column;
@@ -2828,11 +2924,20 @@
     .outstanding-task-title {
       font-weight: 500;
       color: var(--color-text);
+      font-size: var(--text-sm);
     }
 
     .outstanding-task-meta {
-      font-size: var(--text-sm);
+      font-size: var(--text-xs);
       color: var(--color-text-muted);
+    }
+
+    /* Ensure task buttons are uniform size */
+    .outstanding-task-item .btn {
+      width: 80px;
+      min-width: 80px;
+      text-align: center;
+      flex-shrink: 0;
     }
 
     .recent-activity-section {

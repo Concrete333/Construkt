@@ -907,8 +907,17 @@ const store = {
       const roleLabel = roleFullLabel(store.currentRole);
       title.textContent = roleLabel;
 
-      // Render chart with dummy data (same data as fullscreen)
-      const projects = [
+      // Check if contractor role - render circular dial instead of bar chart
+      if (store.currentRole === 'contractor') {
+        renderContractorDial(chartContent);
+      } else {
+        renderBarChart(chartContent);
+      }
+
+      // Chart rendering functions
+      function renderBarChart(chartContent) {
+        // Render chart with dummy data (same data as fullscreen)
+        const projects = [
         { name: 'Civic Library Retrofit', total: 500000,
           spentPayments: [120000, 95000, 105000],
           pendingPayments: [40000, 40000],
@@ -996,6 +1005,154 @@ const store = {
           </div>
         `;
       }).join('');
+      }
+
+      function renderContractorDial(chartContent) {
+        // Contractor view: circular dial showing project milestones
+        const milestones = [
+          { name: 'Foundation Pour', amount: 120000, received: true, dueDate: '2026-04-15' },
+          { name: 'Steel Frame Section A', amount: 95000, received: true, dueDate: '2026-04-18' },
+          { name: 'Steel Frame Section B', amount: 105000, received: true, dueDate: '2026-04-22' },
+          { name: 'Electrical First Fix', amount: 40000, received: false, dueDate: '2026-04-30' },
+          { name: 'Plumbing Rough-In', amount: 40000, received: false, dueDate: '2026-05-05' },
+          { name: 'Roofing Installation', amount: 85000, received: false, dueDate: '2026-05-12' },
+          { name: 'Window Installation', amount: 65000, received: false, dueDate: '2026-05-18' },
+          { name: 'Drywall and Insulation', amount: 55000, received: false, dueDate: '2026-05-25' },
+          { name: 'HVAC Installation', amount: 75000, received: false, dueDate: '2026-06-01' },
+          { name: 'Interior Finishes', amount: 95000, received: false, dueDate: '2026-06-10' },
+          { name: 'Final Inspection', amount: 45000, received: false, dueDate: '2026-06-15' }
+        ];
+
+        const totalValue = milestones.reduce((sum, m) => sum + m.amount, 0);
+        const receivedValue = milestones.filter(m => m.received).reduce((sum, m) => sum + m.amount, 0);
+
+        // Sort remaining milestones by due date
+        const remainingMilestones = milestones.filter(m => !m.received).sort((a, b) =>
+          new Date(a.dueDate) - new Date(b.dueDate)
+        );
+
+        // Calculate angles for each segment
+        // Start at -90 degrees (top), leave 30 degree gap at top (15 degrees on each side)
+        const gapAngle = 30;
+        const startAngle = -90 + (gapAngle / 2);
+        const totalAngle = 360 - gapAngle;
+
+        // Green section for received funds
+        const receivedAngle = (receivedValue / totalValue) * totalAngle;
+        const receivedEndAngle = startAngle + receivedAngle;
+
+        // Calculate angles for each remaining milestone
+        let currentAngle = receivedEndAngle;
+        const milestoneSegments = remainingMilestones.map((milestone, index) => {
+          const segmentAngle = (milestone.amount / totalValue) * totalAngle;
+          const segmentStartAngle = currentAngle;
+          const segmentEndAngle = currentAngle + segmentAngle;
+          currentAngle = segmentEndAngle;
+
+          // Generate color based on position (gradient from yellow to orange to red)
+          const ratio = index / Math.max(remainingMilestones.length - 1, 1);
+          const hue = 60 - (ratio * 40); // From 60 (yellow) to 20 (orange-red)
+          const color = `hsl(${hue}, 70%, 55%)`;
+
+          return {
+            ...milestone,
+            startAngle: segmentStartAngle,
+            endAngle: segmentEndAngle,
+            color
+          };
+        });
+
+        // Create SVG for circular dial
+        const size = 320;
+        const cx = size / 2;
+        const cy = size / 2;
+        const outerRadius = 145;
+        const innerRadius = 95;
+
+        function polarToCartesian(angle, r) {
+          const rads = (angle * Math.PI) / 180;
+          return {
+            x: cx + r * Math.cos(rads),
+            y: cy + r * Math.sin(rads)
+          };
+        }
+
+        function createPieSlice(startAngle, endAngle, color, className, title) {
+          const outerStart = polarToCartesian(startAngle, outerRadius);
+          const outerEnd = polarToCartesian(endAngle, outerRadius);
+          const innerStart = polarToCartesian(startAngle, innerRadius);
+          const innerEnd = polarToCartesian(endAngle, innerRadius);
+          const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+
+          // Create a filled pie slice shape with straight radial edges
+          const pathData = [
+            `M ${outerStart.x} ${outerStart.y}`, // Move to outer start
+            `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`, // Outer arc
+            `L ${innerEnd.x} ${innerEnd.y}`, // Straight line to inner end
+            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`, // Inner arc (reverse)
+            `Z` // Close path
+          ].join(' ');
+
+          return `
+            <path d="${pathData}"
+                  fill="${color}"
+                  class="${className}"
+                  data-title="${title}">
+              <title>${title}</title>
+            </path>
+          `;
+        }
+
+        // Build SVG content
+        let svgPaths = '';
+
+        // Green section for received funds
+        if (receivedValue > 0) {
+          svgPaths += createPieSlice(
+            startAngle,
+            receivedEndAngle,
+            '#48a868',
+            'dial-segment received',
+            `Received: ${formatGBP(receivedValue)}`
+          );
+        }
+
+        // Remaining milestone segments
+        milestoneSegments.forEach((segment, index) => {
+          svgPaths += createPieSlice(
+            segment.startAngle,
+            segment.endAngle,
+            segment.color,
+            'dial-segment pending',
+            `${segment.name}: ${formatGBP(segment.amount)} (Due: ${new Date(segment.dueDate).toLocaleDateString()})`
+          );
+        });
+
+        chartContent.innerHTML = `
+          <div class="contractor-dial-container">
+            <svg class="contractor-dial-svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
+              ${svgPaths}
+              <text x="${cx}" y="${cy - 20}" text-anchor="middle" class="dial-total-label">Total Project Value</text>
+              <text x="${cx}" y="${cy + 20}" text-anchor="middle" class="dial-total-value">${formatGBP(totalValue)}</text>
+              <text x="${cx}" y="${cy + 50}" text-anchor="middle" class="dial-received-label">Received: ${formatGBP(receivedValue)}</text>
+            </svg>
+            <div class="contractor-dial-legend">
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #48a868;"></div>
+                <span>Received (${milestones.filter(m => m.received).length} milestones)</span>
+              </div>
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #e5a853;"></div>
+                <span>Soonest milestones</span>
+              </div>
+              <div class="dial-legend-item">
+                <div class="dial-legend-color" style="background: #dc2626;"></div>
+                <span>Furthest milestones</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
 
       // Get assigned projects
       const assignedProjects = store.currentRole === 'finance_director'
@@ -1043,7 +1200,57 @@ const store = {
 
       // If no tasks, add dummy data for demonstration
       if (tasks.length === 0) {
-        tasks = [];
+        tasks = [
+          {
+            type: 'submit_doc',
+            title: 'Submit site inspection certificate',
+            meta: '',
+            deadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          },
+          {
+            type: 'review',
+            title: 'Review contractor invoice',
+            meta: '£92,400',
+            deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Review'
+          },
+          {
+            type: 'response',
+            title: 'Respond to PM query on budget',
+            meta: '',
+            deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Respond'
+          },
+          {
+            type: 'submit_doc',
+            title: 'Upload compliance documentation',
+            meta: '',
+            deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          },
+          {
+            type: 'review',
+            title: 'Review milestone completion report',
+            meta: '',
+            deadline: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Review'
+          },
+          {
+            type: 'response',
+            title: 'Respond to change order request',
+            meta: '£15,000',
+            deadline: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Respond'
+          },
+          {
+            type: 'submit_doc',
+            title: 'Submit safety inspection report',
+            meta: '',
+            deadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+            action: 'Upload'
+          }
+        ];
       }
 
       // Update count
@@ -1053,13 +1260,31 @@ const store = {
       tasksList.innerHTML = tasks.map((task) => {
         const daysUntil = Math.ceil((new Date(task.deadline) - new Date()) / (1000 * 60 * 60 * 24));
         const dueText = daysUntil < 0 ? 'Overdue' : daysUntil === 0 ? 'Due today' : `Due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+
+        // Build meta text
+        const metaParts = [dueText];
+        if (task.meta) metaParts.push(task.meta);
+        const metaText = metaParts.join(' · ');
+
+        // Define button styles based on task type
+        let buttonClass = 'btn small';
+        if (task.type === 'submit_doc') {
+          buttonClass += ' btn-upload'; // Blue
+        } else if (task.type === 'review') {
+          buttonClass += ' btn-review'; // Purple
+        } else if (task.type === 'response') {
+          buttonClass += ' btn-response'; // Orange
+        } else {
+          buttonClass += ' btn-primary'; // Default
+        }
+
         return `
-          <li class="outstanding-task-item">
+          <li class="outstanding-task-item task-type-${task.type || 'default'}">
             <div class="outstanding-task-content">
               <span class="outstanding-task-title">${task.title}</span>
-              <span class="outstanding-task-meta">${dueText} · ${task.meta}</span>
+              <span class="outstanding-task-meta">${metaText}</span>
             </div>
-            <button class="btn btn-primary small" type="button">${task.action}</button>
+            <button class="${buttonClass}" type="button">${task.action}</button>
           </li>
         `;
       }).join('') || '<li class="outstanding-task-item"><div class="outstanding-task-content"><span class="outstanding-task-title">No outstanding tasks</span></div></li>';
@@ -1070,9 +1295,15 @@ const store = {
       // Setup chart expand button
       const expandBtn = document.getElementById('chart-expand-btn');
       if (expandBtn) {
-        expandBtn.onclick = () => {
-          window.location.hash = 'chart-fullscreen';
-        };
+        // Hide expand button for contractors (they have a circular dial, not a bar chart)
+        if (store.currentRole === 'contractor') {
+          expandBtn.style.display = 'none';
+        } else {
+          expandBtn.style.display = 'flex';
+          expandBtn.onclick = () => {
+            window.location.hash = 'chart-fullscreen';
+          };
+        }
       }
     }
 
