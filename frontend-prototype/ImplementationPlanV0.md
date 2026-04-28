@@ -100,6 +100,14 @@ ConstruktDev/
 
 If adapting `../construct-flow-demo-main`, copy only useful frontend pieces into `app/`. Do not preserve its old product naming.
 
+Current backendless demo home:
+
+- `frontend-prototype/web/index.html` is the canonical standalone backendless demo.
+- It is for product-flow walkthroughs and UX iteration before the Anchor-connected frontend is complete.
+- It should run as static browser content without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client.
+- Mocked/local-only business state in that file is acceptable for the backendless demo, but the V0 source of truth remains the Anchor program once the integrated app is built.
+- The planned Solana-integrated frontend runtime remains `app/`; migrate useful demo UX from `frontend-prototype/web/index.html` into `app/` when appropriate.
+
 ## 5. Toolchain
 
 Verify from WSL Ubuntu:

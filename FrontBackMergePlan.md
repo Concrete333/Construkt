@@ -23,7 +23,11 @@ The on-chain accounts are the backend data layer:
 
 ### Frontend Prototype: `ConstruktDev/frontend-prototype/`
 
-The Django/static frontend prototype has been moved out of `ConstruktFrontend/` and into `ConstruktDev/frontend-prototype/` so the working frontend and backend now live under the same development tree. Run the current prototype from `ConstruktDev/frontend-prototype/web`.
+The Django/static frontend prototype has been moved out of `ConstruktFrontend/` and into `ConstruktDev/frontend-prototype/` so the working frontend and backend now live under the same development tree.
+
+The backendless demo entry point is `ConstruktDev/frontend-prototype/web/index.html`. Treat this as the canonical standalone static demo for product-flow walkthroughs and UX iteration before Anchor integration. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Mocked/local-only state is acceptable in this file, but it must not be treated as on-chain truth.
+
+Run any remaining Django/static prototype surfaces from `ConstruktDev/frontend-prototype/web` only when intentionally working on those legacy/static assets.
 
 The implemented instruction set currently includes:
 
@@ -254,6 +258,7 @@ This keeps React components clean and avoids scattering Anchor-specific shapes t
 
 - Keep `ConstruktDev/` as canonical.
 - Do not merge `ConstruktFrontend/Construkt-mar-dev/programs/construkt`.
+- Keep `frontend-prototype/web/index.html` as the backendless demo surface until its UX is intentionally migrated.
 - Create `ConstruktDev/app/`.
 - Add frontend PDA helpers from the backend tests.
 - Add a typed client interface that can be backed by mock data first and Anchor later.
@@ -364,7 +369,7 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 ## Open Decisions
 
 - What off-chain metadata store should V0 use?
-- Should the first frontend pass be React/Vite only, or should the static prototype remain temporarily as a visual reference beside it?
+- When should the backendless `frontend-prototype/web/index.html` demo be retired or migrated into the React/Vite app?
 - How will local demo wallets be created and selected?
 - Where should generated IDL and TypeScript types live for frontend consumption?
 - What is the minimum audit trail for the first integrated demo?

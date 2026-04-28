@@ -59,6 +59,14 @@ Preferred stack:
 - React/Vite frontend in `app/`.
 - No Django backend for v0 unless a later requirement clearly needs it.
 
+Backendless demo path:
+
+- `frontend-prototype/web/index.html` is the canonical backendless demo entry point.
+- Treat it as a standalone static browser demo for presentation, product-flow exploration, and UX iteration before full Anchor integration.
+- It should not require Django, a REST API, wallet connection, localnet, devnet, or an Anchor client.
+- Business state in this backendless demo may be mocked/local-only and must not be described as on-chain truth.
+- When building the Solana-integrated V0 frontend, keep `app/` as the target runtime and migrate useful UX from the backendless demo deliberately.
+
 Known toolchain status:
 
 - WSL Ubuntu has Solana CLI, Anchor, Rust/Cargo, and native Linux Node.

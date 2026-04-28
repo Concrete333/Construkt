@@ -99,6 +99,14 @@ V0 frontend should focus on a clean, convincing demo flow:
 
 The frontend can remain prototype-style while the backend integration is proven, but it should feel coherent and intentional.
 
+## Backendless Demo Home
+
+The backendless V0 demo lives at `frontend-prototype/web/index.html`.
+
+This is the standalone presentation surface for the clickable/product-flow demo. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Mocked/local-only state is acceptable there as long as it is treated as demo state, not proof of on-chain execution.
+
+The Anchor-backed implementation remains the technical proof for escrow, approvals, holds, release, and audit truth. When the integrated frontend is built, useful UX from `frontend-prototype/web/index.html` should be migrated into the planned `app/` runtime.
+
 ## Core Backend Scope
 
 V0 backend should prove the smart contract primitive:

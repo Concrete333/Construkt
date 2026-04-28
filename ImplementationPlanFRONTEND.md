@@ -4,6 +4,14 @@ This plan covers the React/Vite app for the V0 demo. The frontend should make th
 
 The frontend must not be the source of truth for permissions, approval state, release eligibility, or token balances. Those come from the Anchor program and SPL Token accounts.
 
+## Backendless Demo
+
+The backendless presentation demo lives at `frontend-prototype/web/index.html`.
+
+Use that file as the standalone static demo surface for product-flow exploration and stakeholder walkthroughs before the Anchor-connected app is ready. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Any business state there is mocked/local-only and must be labelled or treated as demo state, not on-chain truth.
+
+The integrated V0 frontend target remains the React/Vite app in `app/`. Reuse UI flow, copy, and interaction ideas from `frontend-prototype/web/index.html`, but move real permission, escrow, request, approval, hold, release, and audit truth to the Anchor-backed client layer when integration begins.
+
 ## Product Goal
 
 Build the smallest useful Construkt frontend:
