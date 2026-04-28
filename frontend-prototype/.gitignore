@@ -1,0 +1,11 @@
+.anchor
+target
+node_modules
+dist
+.env
+.env.*
+!.env.example
+*.py[cod]
+__pycache__/
+web/db.sqlite3
+web/staticfiles/

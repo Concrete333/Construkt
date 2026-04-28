@@ -1,0 +1,2216 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Construkt</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&family=Geist:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/projects/css/construkt.css">
+</head>
+<body>
+  <div id="public-screen" class="screen">
+    <header class="public-header">
+      <a class="logo" href="#home" aria-label="Construkt home">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M10 7h14"></path>
+          <path d="M10 25h14"></path>
+          <path d="M10 7v18"></path>
+        </svg>
+        <span class="wordmark">Construkt</span>
+      </a>
+      <div class="header-actions">
+        <a class="btn btn-ghost" href="#signin">Sign in</a>
+        <a class="btn btn-primary" href="#signin">Get access</a>
+      </div>
+    </header>
+
+    <main id="home-page" class="public-main">
+      <section class="home-grid">
+        <div>
+          <p class="eyebrow">Construction payment control</p>
+          <h1>Clean approvals for work-package payments.</h1>
+          <p class="lead">Construkt keeps finance, site teams, and contractors aligned on package funding, request status, approval progress, and release readiness.</p>
+          <div class="public-actions">
+            <a class="btn btn-primary" href="#dashboard">Open dashboard</a>
+            <a class="btn btn-ghost" href="#signin">Sign in</a>
+          </div>
+        </div>
+        <aside class="process-panel" aria-label="Payment process">
+          <div class="process-row">
+            <span class="process-index">1</span>
+            <div><strong>Package funded</strong><span>Finance sets cap and escrow funding.</span></div>
+            <span class="status-pill chip-tone-success">Ready</span>
+          </div>
+          <div class="process-row">
+            <span class="process-index">2</span>
+            <div><strong>Request submitted</strong><span>Contractor adds amount and document ref.</span></div>
+            <span class="status-pill chip-tone-primary">Open</span>
+          </div>
+          <div class="process-row">
+            <span class="process-index">3</span>
+            <div><strong>PM review</strong><span>Approval or rejection is logged.</span></div>
+            <span class="status-pill chip-tone-primary">Next</span>
+          </div>
+          <div class="process-row">
+            <span class="process-index">4</span>
+            <div><strong>Finance release</strong><span>Funds release after rules pass.</span></div>
+            <span class="status-pill chip-tone-danger">Blocked</span>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <main id="signin-page" class="public-main">
+      <section class="signin-panel">
+        <p class="eyebrow">Secure access</p>
+        <h1>Sign in to your project workspace.</h1>
+        <form class="form-stack">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" value="finance.director@construkt.local">
+          </div>
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" type="password" value="ConstruktDemo123!">
+          </div>
+          <a class="btn btn-primary" href="#dashboard">Continue</a>
+        </form>
+      </section>
+    </main>
+
+    <footer class="public-footer">Local demo shell for Construkt</footer>
+  </div>
+
+  <div id="app-screen" class="screen">
+    <nav class="app-nav" aria-label="Application navigation">
+      <a class="logo" href="#dashboard2" aria-label="Construkt dashboard">
+        <svg viewBox="0 0 32 32" aria-hidden="true">
+          <path d="M10 7h14"></path>
+          <path d="M10 25h14"></path>
+          <path d="M10 7v18"></path>
+        </svg>
+        <span class="wordmark">Construkt</span>
+      </a>
+      <div class="tab-list" role="tablist">
+        <a class="tab-link" data-route-link="dashboard2" href="#dashboard2" aria-label="Dashboard">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+          </svg>
+          <span class="tab-label">Dashboard</span>
+        </a>
+        <a class="tab-link" data-route-link="projects" href="#projects" aria-label="Projects">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path>
+          </svg>
+          <span class="tab-label">Projects</span>
+        </a>
+        <a class="tab-link" data-route-link="settings" href="#settings" aria-label="Settings">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+            <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6l-.09.09a2 2 0 1 1-3.82 0L10 20a1.7 1.7 0 0 0-1-.6 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1l-.09-.09a2 2 0 1 1 0-3.82L4 10a1.7 1.7 0 0 0 .6-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6l.09-.09a2 2 0 1 1 3.82 0L14 4a1.7 1.7 0 0 0 1 .6 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.07.37.27.7.6 1l.09.09a2 2 0 1 1 0 3.82L20 14a1.7 1.7 0 0 0-.6 1Z"></path>
+          </svg>
+          <span class="tab-label">Settings</span>
+        </a>
+      </div>
+      <div class="nav-right">
+        <span class="network"><span class="network-dot"></span>SOLANA DEVNET DEMO</span>
+        <button id="role-toggle" class="btn role-badge" type="button">Finance Director</button>
+        <button class="user-menu" type="button" aria-label="User menu">
+          <span id="avatar" class="avatar">FD</span>
+          <span id="user-name" class="user-name">Finance Director</span>
+          <span class="chevron">⌄</span>
+        </button>
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v2"></path>
+            <path d="M12 19v2"></path>
+            <path d="M5.6 5.6l1.4 1.4"></path>
+            <path d="M17 17l1.4 1.4"></path>
+            <path d="M3 12h2"></path>
+            <path d="M19 12h2"></path>
+            <path d="M5.6 18.4l1.4-1.4"></path>
+            <path d="M17 7l1.4-1.4"></path>
+            <circle cx="12" cy="12" r="4"></circle>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <main class="app-main">
+      <section id="dashboard-page" data-app-page="dashboard">
+        <header class="dashboard-header">
+          <p id="dashboard-role-label" class="assignment-meta">FINANCE DIRECTOR · NORTHSTAR CAPITAL CONTROLS</p>
+          <h1 id="dashboard-greeting">Welcome back, Maya.</h1>
+          <p id="dashboard-context">Review release-ready packages and escrow positions across active projects.</p>
+        </header>
+
+        <div class="dashboard-layout">
+          <main class="dashboard-main">
+            <section id="dashboard-kpis" class="dashboard-kpis" aria-label="Dashboard key metrics">
+              <article class="kpi-card">
+                <span class="kpi-label">Contract Value</span>
+                <strong id="kpi-contract" class="kpi-value"><span class="kpi-count">£3.8m</span></strong>
+                <span id="kpi-contract-note" class="kpi-note">Across 4 active work packages</span>
+              </article>
+              <article class="kpi-card">
+                <span class="kpi-label">Escrow Locked</span>
+                <strong id="kpi-escrow" class="kpi-value"><span class="kpi-count">£2.6m</span></strong>
+                <span id="kpi-escrow-note" class="kpi-note">68% of contract value funded</span>
+              </article>
+              <article class="kpi-card" data-visible-to="contractor">
+                <span class="kpi-label">Released to Me</span>
+                <strong id="kpi-released" class="kpi-value"><span class="kpi-count">£0</span></strong>
+                <span id="kpi-released-note" class="kpi-note">Finance does not receive package releases</span>
+              </article>
+            </section>
+
+            <div id="dashboard-main-card"></div>
+
+            <section class="role-panel assignment-card" data-dashboard-role="Contractor" data-visible-to="contractor">
+              <div class="assignment-grid">
+                <div>
+                  <div class="chip-row">
+                    <span class="assignment-chip">Current Assignment</span>
+                    <span class="assignment-chip">Submitted</span>
+                    <span class="assignment-chip">WP-001</span>
+                  </div>
+                  <h2 class="assignment-title">Foundation Pour — Bay A</h2>
+                  <p class="assignment-description">Concrete pour and rebar inspection package for the north foundation bay. Invoice submitted with site photo reference and pour certificate.</p>
+                  <div class="assignment-stats">
+                    <div class="assignment-tile">
+                      <span class="assignment-meta">Approved Milestone</span>
+                      <strong>£184,000</strong>
+                    </div>
+                    <div class="assignment-tile">
+                      <span class="assignment-meta">Next Deadline</span>
+                      <strong>3 May 2026</strong>
+                    </div>
+                  </div>
+                  <div class="assignment-actions">
+                    <button class="btn btn-primary" data-visible-to="contractor" data-modal-target="submit-invoice" type="button">Submit invoice</button>
+                    <button class="btn btn-ghost" type="button">Request extension</button>
+                    <a class="text-link" href="#dashboard">View pending request →</a>
+                  </div>
+                </div>
+                <aside class="approval-panel">
+                  <span class="approval-label">Awaiting Approval</span>
+                  <div class="chip-row">
+                    <span class="assignment-chip">Standard</span>
+                    <span class="assignment-chip">Pending PM</span>
+                  </div>
+                  <p class="approval-title">Invoice CON-2026-014</p>
+                  <strong class="approval-amount">£92,400</strong>
+                  <span class="assignment-meta">USDC requested</span>
+                  <div class="approver-list">
+                    <div class="approver-row">
+                      <span class="approver-avatar">EL</span>
+                      <div><span class="approver-role">1. Project</span><span class="approver-name">Eleanor Lane</span></div>
+                    </div>
+                    <div class="approver-row">
+                      <span class="approver-avatar">RH</span>
+                      <div><span class="approver-role">2. Director</span><span class="approver-name">Ravi Henson</span></div>
+                    </div>
+                  </div>
+                  <a class="text-link" href="#dashboard">Open request →</a>
+                </aside>
+              </div>
+            </section>
+
+            <section class="role-panel assignment-card" data-dashboard-role="Project Manager" data-visible-to="project_manager">
+              <div class="card-head">
+                <h2>Requests Awaiting Review</h2>
+                <span class="status-pill chip-tone-primary">4 pending</span>
+              </div>
+              <div class="table-card">
+                <table class="action-table">
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Contractor</th>
+                      <th>Amount</th>
+                      <th>Submitted</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Foundation Pour — Bay A</td>
+                      <td>Okafor Builders Ltd.</td>
+                      <td>£92,400</td>
+                      <td>2h ago</td>
+                      <td><button class="btn btn-primary small" type="button">Review</button></td>
+                    </tr>
+                    <tr>
+                      <td>Temporary Works Inspection</td>
+                      <td>Northline Structures</td>
+                      <td>£38,750</td>
+                      <td>Yesterday</td>
+                      <td><button class="btn btn-primary small" type="button">Review</button></td>
+                    </tr>
+                    <tr>
+                      <td>Drainage Survey</td>
+                      <td>Civic Groundworks</td>
+                      <td>£21,900</td>
+                      <td>2 days ago</td>
+                      <td><button class="btn btn-primary small" type="button">Review</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="role-panel assignment-card" data-dashboard-role="Finance Director" data-visible-to="finance_director">
+              <div class="card-head">
+                <h2>Pending Releases</h2>
+                <span class="status-pill chip-tone-success">2 ready</span>
+              </div>
+              <div class="table-card">
+                <table class="action-table">
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>PM Approved</th>
+                      <th>Amount</th>
+                      <th>Escrow Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Electrical First Fix</td>
+                      <td>Yes · 1h ago</td>
+                      <td>£118,200</td>
+                      <td><span class="status-pill chip-tone-success">Funded</span></td>
+                      <td><button class="btn btn-primary small" type="button">Release</button></td>
+                    </tr>
+                    <tr>
+                      <td>Steel Frame Section B</td>
+                      <td>Yes · Yesterday</td>
+                      <td>£244,000</td>
+                      <td><span class="status-pill chip-tone-success">Funded</span></td>
+                      <td><button class="btn btn-primary small" type="button">Release</button></td>
+                    </tr>
+                    <tr>
+                      <td>Drainage Diversion</td>
+                      <td>Pending</td>
+                      <td>£64,300</td>
+                      <td><span class="status-pill chip-tone-danger">Locked</span></td>
+                      <td><button class="btn btn-ghost small" type="button">View</button></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </main>
+
+          <aside class="dashboard-side">
+            <section class="activity-panel">
+              <h2 class="activity-title">Recent Activity</h2>
+              <ul id="dashboard-activity" class="timeline-list">
+                <li class="timeline-item">
+                  <span class="timeline-dot green"></span>
+                  <div><span class="timeline-title">Steel payment released</span><span class="timeline-meta">Civic Library Retrofit · 18m ago</span></div>
+                </li>
+                <li class="timeline-item">
+                  <span class="timeline-dot yellow"></span>
+                  <div><span class="timeline-title">Foundation invoice pending</span><span class="timeline-meta">Demo Hospital Fit-Out · 2h ago</span></div>
+                </li>
+                <li class="timeline-item">
+                  <span class="timeline-dot"></span>
+                  <div><span class="timeline-title">Document reference added</span><span class="timeline-meta">Station Works · 5h ago</span></div>
+                </li>
+                <li class="timeline-item">
+                  <span class="timeline-dot"></span>
+                  <div><span class="timeline-title">PM role assigned</span><span class="timeline-meta">Demo Hospital Fit-Out · Yesterday</span></div>
+                </li>
+              </ul>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="dashboard2-page" data-app-page="dashboard2">
+        <!-- Static Dashboard - No scrolling -->
+        <div class="dashboard2-viewport">
+          <div class="dashboard2-content">
+            <div class="dashboard2-main-section">
+              <h1 class="dashboard2-title" id="dashboard2-role-title">Finance Director</h1>
+              <div class="dashboard2-chart-card" id="dashboard2-chart-card">
+                <div class="dashboard2-chart-header">
+                  <h3 class="dashboard2-chart-title">Project Funding Overview</h3>
+                  <button class="chart-expand-btn" id="chart-expand-btn" type="button" aria-label="Expand chart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+                    </svg>
+                  </button>
+                </div>
+                <div class="project-funding-legend" aria-label="Project funding status legend">
+                  <span><i class="funding-legend-dot completed"></i>Completed</span>
+                  <span><i class="funding-legend-dot in-progress"></i>In Progress</span>
+                  <span><i class="funding-legend-dot estimated"></i>Estimated</span>
+                  <span><i class="funding-legend-dot unallocated"></i>Unallocated</span>
+                </div>
+                <div class="dashboard2-chart-content" id="dashboard2-chart-content">
+                  <!-- Chart will be rendered by JavaScript -->
+                </div>
+              </div>
+            </div>
+            <aside class="dashboard2-sidebar">
+              <div class="outstanding-tasks-card">
+                <div class="outstanding-tasks-header">
+                  <h2 class="outstanding-tasks-title">Outstanding Tasks</h2>
+                  <span id="outstanding-tasks-count" class="outstanding-tasks-count">5 tasks</span>
+                </div>
+                <ul id="outstanding-tasks-list" class="outstanding-tasks-list">
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Foundation Pour invoice</span>
+                      <span class="outstanding-task-meta">Due in 2 days · £92,400</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Approve Electrical First Fix payment</span>
+                      <span class="outstanding-task-meta">Due in 3 days · £118,200</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Review Steel Frame Section B</span>
+                      <span class="outstanding-task-meta">Due in 5 days · £244,000</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Complete drainage survey review</span>
+                      <span class="outstanding-task-meta">Due in 7 days · £64,300</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Review</button>
+                  </li>
+                  <li class="outstanding-task-item">
+                    <div class="outstanding-task-content">
+                      <span class="outstanding-task-title">Sign off temporary works inspection</span>
+                      <span class="outstanding-task-meta">Due in 10 days · £38,750</span>
+                    </div>
+                    <button class="btn btn-primary small" type="button">Approve</button>
+                  </li>
+                </ul>
+              </div>
+              <div class="on-chain-feedback-card">
+                <div class="on-chain-feedback-header">
+                  <h2 class="on-chain-feedback-title">On-Chain Feedback</h2>
+                  <span class="on-chain-feedback-network">Devnet demo</span>
+                </div>
+                <div id="chain-feedback-list" class="on-chain-feedback-list"></div>
+              </div>
+            </aside>
+          </div>
+        </div>
+
+        <!-- Recent Activity - Scrolls over dashboard -->
+        <section class="dashboard2-recent-activity">
+          <div class="recent-activity-header">
+            <svg class="recent-activity-arrow" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+            <h2 class="recent-activity-heading">Recent Activity</h2>
+          </div>
+          <ul id="dashboard2-activity" class="timeline-list timeline-list-full">
+            <li class="timeline-item">
+              <span class="timeline-dot green"></span>
+              <div><span class="timeline-title">Steel payment released</span><span class="timeline-meta">Civic Library Retrofit · 18m ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot yellow"></span>
+              <div><span class="timeline-title">Foundation invoice pending</span><span class="timeline-meta">Demo Hospital Fit-Out · 2h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">Document reference added</span><span class="timeline-meta">Station Works · 5h ago</span></div>
+            </li>
+            <li class="timeline-item">
+              <span class="timeline-dot"></span>
+              <div><span class="timeline-title">PM role assigned</span><span class="timeline-meta">Demo Hospital Fit-Out · Yesterday</span></div>
+            </li>
+          </ul>
+        </section>
+      </section>
+
+      <section id="chart-fullscreen-page" data-app-page="chart-fullscreen">
+        <div class="chart-fullscreen-container">
+          <div class="chart-fullscreen-header">
+            <h1 class="chart-fullscreen-title">Project Funding Overview</h1>
+            <button class="chart-close-btn" id="chart-close-btn" type="button" aria-label="Close">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 6L6 18M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div class="project-funding-legend project-funding-legend--fullscreen" aria-label="Project funding status legend">
+            <span><i class="funding-legend-dot completed"></i>Completed</span>
+            <span><i class="funding-legend-dot in-progress"></i>In Progress</span>
+            <span><i class="funding-legend-dot estimated"></i>Estimated</span>
+            <span><i class="funding-legend-dot unallocated"></i>Unallocated</span>
+          </div>
+          <div class="chart-fullscreen-content" id="chart-fullscreen-content">
+            <!-- Chart will be rendered by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <section id="upload-task-page" data-app-page="upload-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="upload-task-title">Submit site inspection certificate</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="task-type-value">Document Upload</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="task-due-value">In 2 days</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+              <div class="task-description" id="task-description">
+                <p>Please upload the site inspection certificate for this project. Accepted formats: PDF, JPG, PNG.</p>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="project-name-value">Civic Library Retrofit</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="project-manager-value">Sarah Chen</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="project-budget-value">£500,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="project-completion-value">64%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="project-start-value">Jan 15, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="project-end-value">Jun 30, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="upload-zone-card">
+              <h2 class="upload-zone-heading">Upload Documents</h2>
+              <div class="upload-dropzone" id="upload-dropzone">
+                <svg class="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                </svg>
+                <p class="upload-text">Drag and drop files here</p>
+                <p class="upload-subtext">or</p>
+                <button class="btn btn-primary" id="upload-browse-btn" type="button">Browse Files</button>
+                <input type="file" id="upload-file-input" style="display: none;" multiple accept=".pdf,.jpg,.jpeg,.png">
+                <p class="upload-hint">Supported formats: PDF, JPG, PNG (Max 10MB each)</p>
+              </div>
+              <div class="uploaded-files-list" id="uploaded-files-list">
+                <!-- Uploaded files will appear here -->
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="task-cancel-btn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="task-submit-btn" type="button" disabled>Submit Task</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="review-task-page" data-app-page="review-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="review-task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="review-task-title">Review contractor invoice</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="review-task-type-value">Review</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="review-task-due-value">In 1 day</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="review-project-name-value">Station Works</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="review-project-manager-value">Michael Torres</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="review-project-budget-value">£650,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="review-project-completion-value">48%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="review-project-start-value">Feb 1, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="review-project-end-value">Aug 15, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="review-content-card">
+              <h2 class="review-content-heading">Review Request</h2>
+              <div class="review-request-details">
+                <div class="review-request-title" id="review-request-title">Budget Change Request: Electrical Works Package</div>
+                <div class="review-request-body" id="review-request-body">
+                  <p>The contractor has requested a budget increase for the Electrical Works package due to unforeseen complications with the existing wiring infrastructure. The original budget was £92,400, and they are requesting an additional £12,500 to cover:</p>
+                  <ul>
+                    <li>Replacement of outdated circuit breakers (£4,200)</li>
+                    <li>Additional conduit installation for new safety requirements (£5,800)</li>
+                    <li>Upgraded panel to support increased load capacity (£2,500)</li>
+                  </ul>
+                  <p><strong>Current Budget:</strong> £92,400<br>
+                  <strong>Requested Additional:</strong> £12,500<br>
+                  <strong>New Total:</strong> £104,900</p>
+                  <p>The contractor has provided supporting documentation including photos of the existing conditions and updated schematics.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="review-decision-card">
+              <h2 class="review-decision-heading">Your Decision</h2>
+              <div class="review-decision-options">
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="approve" id="review-approve">
+                  <div class="review-option-content">
+                    <span class="review-option-icon approve">✓</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Approve</div>
+                      <div class="review-option-description">Accept the request as submitted</div>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="reject" id="review-reject">
+                  <div class="review-option-content">
+                    <span class="review-option-icon reject">✕</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Reject</div>
+                      <div class="review-option-description">Decline the request</div>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="review-option">
+                  <input type="radio" name="review-decision" value="suggest" id="review-suggest">
+                  <div class="review-option-content">
+                    <span class="review-option-icon suggest">✎</span>
+                    <div class="review-option-text">
+                      <div class="review-option-title">Suggest Alternative</div>
+                      <div class="review-option-description">Propose a different solution</div>
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <div class="review-comment-section" id="review-comment-section" style="display: none;">
+                <label for="review-comment-input" class="review-comment-label">Comments / Alternative Suggestion</label>
+                <textarea id="review-comment-input" class="review-comment-input" rows="4" placeholder="Enter your comments or alternative suggestion..."></textarea>
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="review-cancel-btn" type="button">Cancel</button>
+              <button class="btn btn-primary" id="review-submit-btn" type="button" disabled>Submit Decision</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="response-task-page" data-app-page="response-task">
+        <div class="upload-task-container">
+          <div class="upload-task-header">
+            <button class="task-back-btn" id="response-task-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back
+            </button>
+            <h1 class="upload-task-title" id="response-task-title">Respond to PM query on budget</h1>
+          </div>
+
+          <div class="upload-task-content">
+            <div class="task-info-card">
+              <h2 class="task-info-heading">Task Information</h2>
+              <div class="task-info-grid">
+                <div class="task-info-item">
+                  <span class="task-info-label">Type</span>
+                  <span class="task-info-value" id="response-task-type-value">Response Required</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Due Date</span>
+                  <span class="task-info-value" id="response-task-due-value">In 3 days</span>
+                </div>
+                <div class="task-info-item">
+                  <span class="task-info-label">Status</span>
+                  <span class="task-info-value task-status-pending">Pending</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="project-info-card">
+              <h2 class="project-info-heading">Project Information</h2>
+              <div class="project-info-grid">
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Name</span>
+                  <span class="project-info-value" id="response-project-name-value">Retail Park Development</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Project Manager</span>
+                  <span class="project-info-value" id="response-project-manager-value">Emma Watson</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Total Budget</span>
+                  <span class="project-info-value" id="response-project-budget-value">£920,000</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Completion</span>
+                  <span class="project-info-value" id="response-project-completion-value">52%</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Start Date</span>
+                  <span class="project-info-value" id="response-project-start-value">Mar 10, 2026</span>
+                </div>
+                <div class="project-info-item">
+                  <span class="project-info-label">Expected End</span>
+                  <span class="project-info-value" id="response-project-end-value">Sep 20, 2026</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="response-message-card">
+              <h2 class="response-message-heading">Message</h2>
+              <div class="response-message-details">
+                <div class="response-message-from">
+                  <span class="response-message-label">From:</span>
+                  <span class="response-message-value">Emma Watson (Project Manager)</span>
+                </div>
+                <div class="response-message-date">
+                  <span class="response-message-label">Sent:</span>
+                  <span class="response-message-value">Apr 24, 2026 at 2:35 PM</span>
+                </div>
+                <div class="response-message-body" id="response-message-body">
+                  <p>Hi,</p>
+                  <p>I wanted to reach out regarding the budget allocation for the Retail Park Development project. We're approaching the halfway mark and I'd like to discuss the remaining budget distribution across the final phases.</p>
+                  <p>Specifically, I have some questions about:</p>
+                  <ul>
+                    <li>The contingency fund allocation for potential delays</li>
+                    <li>Whether we can reallocate some funds from the landscaping package to accelerate the parking structure completion</li>
+                    <li>Timeline for the next payment release</li>
+                  </ul>
+                  <p>Could we schedule a brief call this week to go over these points? Alternatively, if you could provide your thoughts via message, that would be helpful too.</p>
+                  <p>Thanks,<br>Emma</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="response-action-card">
+              <h2 class="response-action-heading">Your Response</h2>
+              <div class="response-textarea-section">
+                <label for="response-message-input" class="response-message-label">Message (Optional)</label>
+                <textarea id="response-message-input" class="response-message-input" rows="6" placeholder="Type your response here..."></textarea>
+              </div>
+            </div>
+
+            <div class="task-actions">
+              <button class="btn btn-ghost" id="response-dismiss-btn" type="button">Dismiss</button>
+              <button class="btn btn-primary" id="response-submit-btn" type="button">Send Response</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="projects-page" data-app-page="projects">
+        <div class="projects-simple-container">
+          <div class="projects-simple-head">
+            <h1 class="projects-simple-title">Projects</h1>
+            <button class="btn btn-primary small" data-visible-to="finance_director" data-modal-target="new-project" type="button">Create project</button>
+          </div>
+          <div class="projects-simple-list" id="projects-simple-list">
+            <!-- Projects will be rendered by JavaScript -->
+          </div>
+        </div>
+      </section>
+
+      <section id="work-package-view-page" data-app-page="work-package-view">
+        <div class="work-package-view-container">
+          <div class="work-package-view-header">
+            <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+              </svg>
+              Back to Chart
+            </button>
+            <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+          </div>
+
+          <div class="work-package-view-content">
+            <!-- Package Info Card -->
+            <div class="work-package-info-card">
+              <h2 class="work-package-info-heading">Package Information</h2>
+              <div class="work-package-info-grid">
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Project</span>
+                  <span class="work-package-info-value" id="wp-project-name">Civic Library Retrofit</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Amount</span>
+                  <span class="work-package-info-value" id="wp-amount">£120,000</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Status</span>
+                  <span class="work-package-info-value" id="wp-status">Completed</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Payment Date</span>
+                  <span class="work-package-info-value" id="wp-payment-date">Mar 15, 2026</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Contractor</span>
+                  <span class="work-package-info-value" id="wp-contractor">BuildTech Solutions Ltd</span>
+                </div>
+                <div class="work-package-info-item">
+                  <span class="work-package-info-label">Package Type</span>
+                  <span class="work-package-info-value" id="wp-type">Spent</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Milestone Payment Card -->
+            <div class="work-package-milestone-card">
+              <div class="work-package-milestone-head">
+                <h2 class="work-package-milestone-heading">Milestone Payment Schedule</h2>
+                <div class="work-package-milestone-legend" aria-label="Milestone status legend">
+                  <span><i class="milestone-legend-dot is-uninvoiced"></i>Uninvoiced</span>
+                  <span><i class="milestone-legend-dot is-invoiced"></i>Invoiced</span>
+                  <span><i class="milestone-legend-dot is-paid"></i>Paid</span>
+                  <span><i class="milestone-legend-dot is-contested"></i>Contested</span>
+                </div>
+              </div>
+              <div class="milestone-payment-bar" id="wp-milestone-bar" aria-label="Work package milestone payment status"></div>
+              <div class="milestone-payment-details" id="wp-milestone-details"></div>
+            </div>
+
+            <!-- Actions Card -->
+            <div class="work-package-actions-card">
+              <div class="work-package-actions-head">
+                <h2 class="work-package-actions-heading">Package Actions</h2>
+                <span class="work-package-info-label" id="wp-action-role-label">Role actions</span>
+              </div>
+              <div class="work-package-action-buttons" id="wp-action-buttons"></div>
+              <div class="work-package-review-list" id="wp-review-list"></div>
+            </div>
+
+            <!-- On-chain Feedback Card -->
+            <div class="work-package-chain-card">
+              <div class="work-package-actions-head">
+                <h2 class="work-package-actions-heading">On-Chain Feedback</h2>
+                <span class="work-package-info-label">Solana devnet demo</span>
+              </div>
+              <div id="wp-chain-feedback-list" class="on-chain-feedback-list"></div>
+            </div>
+
+            <!-- Timeline Card -->
+            <div class="work-package-timeline-card">
+              <h2 class="work-package-timeline-heading">Package Timeline</h2>
+              <ul class="work-package-timeline-list" id="work-package-timeline-list">
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Payment Released</span>
+                    <span class="wp-timeline-meta">Mar 15, 2026 at 10:30 AM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Finance Director Approved</span>
+                    <span class="wp-timeline-meta">Mar 14, 2026 at 3:45 PM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Project Manager Approved</span>
+                    <span class="wp-timeline-meta">Mar 13, 2026 at 11:20 AM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Work Completed</span>
+                    <span class="wp-timeline-meta">Mar 10, 2026 at 4:00 PM</span>
+                  </div>
+                </li>
+                <li class="wp-timeline-item">
+                  <span class="wp-timeline-dot completed"></span>
+                  <div class="wp-timeline-content">
+                    <span class="wp-timeline-title">Work Started</span>
+                    <span class="wp-timeline-meta">Feb 20, 2026 at 8:00 AM</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+
+            <!-- Documents Card -->
+            <div class="work-package-docs-card">
+              <h2 class="work-package-docs-heading">Related Documents</h2>
+              <div class="work-package-docs-list" id="work-package-docs-list">
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">PDF</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Invoice_Foundation_Pour_120000.pdf</div>
+                    <div class="wp-doc-meta">Uploaded Mar 12, 2026 · 245 KB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">PDF</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Completion_Certificate.pdf</div>
+                    <div class="wp-doc-meta">Uploaded Mar 10, 2026 · 189 KB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+                <div class="wp-doc-item">
+                  <div class="wp-doc-icon">JPG</div>
+                  <div class="wp-doc-details">
+                    <div class="wp-doc-name">Site_Photo_Foundation_Complete.jpg</div>
+                    <div class="wp-doc-meta">Uploaded Mar 10, 2026 · 1.2 MB</div>
+                  </div>
+                  <button class="btn btn-ghost small" type="button">Download</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="project-detail-page" data-app-page="project-detail">
+        <a class="back-link" href="#projects">← Projects</a>
+        <div class="page-head">
+          <div>
+            <p class="breadcrumb" data-project-detail-breadcrumb>Projects → Demo Hospital Fit-Out</p>
+            <h1 id="project-title" data-project-detail-name>Demo Hospital Fit-Out</h1>
+            <div id="project-meta" class="project-subtitle">
+              <span data-project-detail-client>Northstar Health Trust</span>
+              <span class="status-pill chip-tone-success">Active</span>
+              <span class="model-badge" data-project-detail-model>Milestone</span>
+              <span data-project-detail-start>Started 12 Feb 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <section id="project-kpis" class="summary-bar" aria-label="Project financial summary">
+          <article class="kpi-card">
+            <span class="kpi-label">Contract Value</span>
+            <strong class="kpi-value">£4.25m</strong>
+            <span class="kpi-note">Across 5 active packages</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Escrow Funded</span>
+            <strong class="kpi-value">£2.81m</strong>
+            <div class="kpi-progress-pct-row">
+              <span class="kpi-progress-pct">66% funded</span>
+            </div>
+            <div class="kpi-progress-track" aria-hidden="true">
+              <span class="kpi-progress-fill kpi-progress-fill--funded"></span>
+            </div>
+            <span class="kpi-note">66% currently locked</span>
+          </article>
+          <article class="kpi-card" data-visible-to="finance_director project_manager">
+            <span class="kpi-label">Total Released</span>
+            <strong class="kpi-value">£1.17m</strong>
+            <div class="kpi-progress-pct-row">
+              <span class="kpi-progress-pct">28% released</span>
+            </div>
+            <div class="kpi-progress-track" aria-hidden="true">
+              <span class="kpi-progress-fill kpi-progress-fill--released"></span>
+            </div>
+            <span class="kpi-note">Paid against approved work</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label" data-model-summary-label>Next Milestone</span>
+            <strong class="kpi-value" data-model-summary-value>Stage 2 of 3</strong>
+            <span class="kpi-note" data-model-summary-note>Steel frame completion gate</span>
+          </article>
+        </section>
+
+        <section id="project-timeline" class="project-phase-timeline" aria-label="Project timeline">
+          <div class="project-phase-timeline__track" aria-hidden="true">
+            <div class="project-phase-timeline__fill"></div>
+            <span class="project-phase-timeline__today">Today</span>
+          </div>
+          <div class="project-phase-timeline__nodes">
+            <div class="project-phase-timeline__node project-phase-timeline__node--complete">
+              <span class="project-phase-timeline__dot" aria-hidden="true">
+                <svg width="12" height="12" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter" />
+                </svg>
+              </span>
+              <span class="project-phase-timeline__label">Start</span>
+              <span class="project-phase-timeline__date">12 Feb 2026</span>
+            </div>
+            <div class="project-phase-timeline__node project-phase-timeline__node--current">
+              <span class="project-phase-timeline__dot" aria-hidden="true"></span>
+              <span class="project-phase-timeline__label">Current Phase</span>
+              <span class="project-phase-timeline__date">Steel frame · Apr 2026</span>
+            </div>
+            <div class="project-phase-timeline__node project-phase-timeline__node--future">
+              <span class="project-phase-timeline__dot" aria-hidden="true"></span>
+              <span class="project-phase-timeline__label">Next Phase</span>
+              <span class="project-phase-timeline__date">MEP commissioning</span>
+            </div>
+            <div class="project-phase-timeline__node project-phase-timeline__node--future">
+              <span class="project-phase-timeline__dot" aria-hidden="true"></span>
+              <span class="project-phase-timeline__label">Completion</span>
+              <span class="project-phase-timeline__date">Target · Sep 2026</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="project-detail-layout">
+          <main class="project-detail-main">
+            <section class="assignment-card">
+              <div class="card-head">
+                <h2>Work Packages</h2>
+                <button class="btn btn-primary small" data-visible-to="project_manager" data-modal-target="add-package" type="button">Add estimated package</button>
+              </div>
+              <div data-wp-table-wrap>
+                <div class="table-card">
+                <table class="action-table">
+                  <thead>
+                    <tr>
+                      <th>Package</th>
+                      <th>Cap</th>
+                      <th data-model-column-label>Milestone Stage</th>
+                      <th data-visible-to="finance_director project_manager">Funded</th>
+                      <th data-visible-to="finance_director project_manager">Released</th>
+                      <th>Requests</th>
+                      <th data-visible-to="finance_director project_manager">Finance Approval</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="packages-tbody">
+                    <tr>
+                      <td>Foundation Pour — Bay A</td>
+                      <td>£640k</td>
+                      <td data-model-cell data-milestone-stage="Stage 1 of 3" data-valuation-period="Month 3" data-release-trigger="Manual">Stage 1 of 3</td>
+                      <td data-visible-to="finance_director project_manager">£410k</td>
+                      <td data-visible-to="finance_director project_manager">£128k</td>
+                      <td>1 pending</td>
+                      <td><span class="status-pill chip-tone-warning">Partially Funded</span></td>
+                      <td><a class="text-link" href="#work-package-view" data-package-view>View</a></td>
+                    </tr>
+                    <tr>
+                      <td>Steel Frame Section B</td>
+                      <td>£920k</td>
+                      <td data-model-cell data-milestone-stage="Stage 2 of 3" data-valuation-period="Month 4" data-release-trigger="On PM approval">Stage 2 of 3</td>
+                      <td data-visible-to="finance_director project_manager">£920k</td>
+                      <td data-visible-to="finance_director project_manager">£244k</td>
+                      <td>1 ready</td>
+                      <td><span class="status-pill chip-tone-success">Funded</span></td>
+                      <td><a class="text-link" href="#work-package-view" data-package-view>View</a></td>
+                    </tr>
+                    <tr>
+                      <td>MEP First Fix</td>
+                      <td>£780k</td>
+                      <td data-model-cell data-milestone-stage="Stage 2 of 3" data-valuation-period="Month 4" data-release-trigger="Manual">Stage 2 of 3</td>
+                      <td data-visible-to="finance_director project_manager">£560k</td>
+                      <td data-visible-to="finance_director project_manager">£210k</td>
+                      <td>2 open</td>
+                      <td><span class="status-pill chip-tone-warning">Partially Funded</span></td>
+                      <td><a class="text-link" href="#work-package-view" data-package-view>View</a></td>
+                    </tr>
+                    <tr>
+                      <td>Facade Remediation</td>
+                      <td>£1.1m</td>
+                      <td data-model-cell data-milestone-stage="Stage 3 of 3" data-valuation-period="Month 5" data-release-trigger="Director sign-off">Stage 3 of 3</td>
+                      <td data-visible-to="finance_director project_manager">£620k</td>
+                      <td data-visible-to="finance_director project_manager">£388k</td>
+                      <td>0 open</td>
+                      <td><span class="status-pill chip-tone-danger">Locked</span></td>
+                      <td><a class="text-link" href="#work-package-view" data-package-view>View</a></td>
+                    </tr>
+                    <tr>
+                      <td>Interior Fit-Out</td>
+                      <td>£810k</td>
+                      <td data-model-cell data-milestone-stage="Stage 3 of 3" data-valuation-period="Month 5" data-release-trigger="Manual">Stage 3 of 3</td>
+                      <td data-visible-to="finance_director project_manager">£300k</td>
+                      <td data-visible-to="finance_director project_manager">£200k</td>
+                      <td>1 draft</td>
+                      <td><span class="status-pill chip-tone-primary">Pending</span></td>
+                      <td><a class="text-link" href="#work-package-view" data-package-view>View</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+                </div>
+              </div>
+              <div class="records-empty" data-wp-empty>
+                <div class="records-empty__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="m7.5 4.27 9 5.15" fill="none" stroke="currentColor"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" fill="none" stroke="currentColor"/><path d="m3.3 7 8.7 5 8.7-5" fill="none" stroke="currentColor"/><path d="M12 22V12" fill="none" stroke="currentColor"/></svg>
+                </div>
+                <h3 class="records-empty__title">No packages added yet</h3>
+                <p class="records-empty__body">Project Managers add estimated work packages before contractor agreement and finance approval.</p>
+                <button class="btn btn-primary small" data-visible-to="project_manager" data-modal-target="add-package" type="button">Add Estimated Package</button>
+              </div>
+            </section>
+
+            <section class="assignment-card project-records">
+              <div class="section-tabs">
+                <div class="tab-buttons" role="tablist" aria-label="Project records">
+                  <button class="section-tab is-active" data-audit-tab="audit" type="button">Audit Trail</button>
+                  <button class="section-tab" data-audit-tab="documents" type="button">Documents</button>
+                  <button class="section-tab" data-audit-tab="payments" type="button">Payments</button>
+                </div>
+                <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a>
+              </div>
+              <div class="audit-panel is-active" data-audit-panel="audit">
+                <div data-audit-trail-wrap>
+                <ul id="audit-list" class="timeline-list">
+                  <li class="timeline-item">
+                    <span class="timeline-dot green"></span>
+                    <div><span class="timeline-title">Steel frame payment released</span><span class="timeline-meta">Maya Shah · 14 Apr 2026, 10:42</span></div>
+                  </li>
+                  <li class="timeline-item">
+                    <span class="timeline-dot yellow"></span>
+                    <div><span class="timeline-title">Foundation invoice awaiting PM review</span><span class="timeline-meta">Okafor Builders Ltd. · 14 Apr 2026, 09:18</span></div>
+                  </li>
+                  <li class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div><span class="timeline-title">Pour certificate reference added</span><span class="timeline-meta">Daniel Okafor · 13 Apr 2026, 16:04</span></div>
+                  </li>
+                  <li class="timeline-item">
+                    <span class="timeline-dot red"></span>
+                    <div><span class="timeline-title">Facade variation request rejected</span><span class="timeline-meta">Eleanor Lane · 12 Apr 2026, 11:27</span></div>
+                  </li>
+                  <li class="timeline-item">
+                    <span class="timeline-dot green"></span>
+                    <div><span class="timeline-title">MEP package funded</span><span class="timeline-meta">Maya Shah · 11 Apr 2026, 15:52</span></div>
+                  </li>
+                  <li class="timeline-item">
+                    <span class="timeline-dot"></span>
+                    <div><span class="timeline-title">Project Manager role assigned</span><span class="timeline-meta">Northstar Admin · 10 Apr 2026, 13:10</span></div>
+                  </li>
+                </ul>
+                </div>
+                <div class="records-empty" data-audit-empty>
+                  <div class="records-empty__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor"/><path d="M12 6v6l4 2" fill="none" stroke="currentColor"/></svg>
+                  </div>
+                  <h3 class="records-empty__title">No activity yet</h3>
+                  <p class="records-empty__body">Events will be recorded as the project progresses.</p>
+                </div>
+              </div>
+              <div class="audit-panel" data-audit-panel="documents">
+                <div class="card-head">
+                  <span></span>
+                  <button class="btn btn-primary small" data-visible-to="finance_director project_manager contractor" data-modal-target="add-document" data-document-scope="project" type="button">Add document</button>
+                </div>
+                <div class="document-filter-bar" aria-label="Document filters">
+                  <label class="filter-select-wrap">
+                    <select class="filter-select" data-doc-filter="type" aria-label="Filter documents by type">
+                      <option value="all">All Types</option>
+                      <option value="Certificate">Certificate</option>
+                      <option value="Delivery Log">Delivery Log</option>
+                      <option value="Photo Evidence">Photo Evidence</option>
+                      <option value="Payment Notice">Payment Notice</option>
+                      <option value="Drawing">Drawing</option>
+                      <option value="Variation">Variation</option>
+                    </select>
+                  </label>
+                  <label class="filter-select-wrap">
+                    <select class="filter-select" data-doc-filter="uploader" aria-label="Filter documents by uploader">
+                      <option value="all">All</option>
+                      <option value="Maya Shah">Maya Shah</option>
+                      <option value="Eleanor Lane">Eleanor Lane</option>
+                      <option value="Daniel Okafor">Daniel Okafor</option>
+                      <option value="Northline Structures">Northline Structures</option>
+                    </select>
+                  </label>
+                  <label class="filter-select-wrap">
+                    <select class="filter-select" data-doc-filter="date" aria-label="Filter documents by date">
+                      <option value="all">All Time</option>
+                      <option value="week">This Week</option>
+                      <option value="month">This Month</option>
+                      <option value="quarter">Last 3 Months</option>
+                    </select>
+                  </label>
+                </div>
+                <div data-documents-table-wrap>
+                <div class="table-card">
+                  <table class="action-table">
+                    <thead>
+                      <tr>
+                        <th>Document</th>
+                        <th>Type</th>
+                        <th>Ref</th>
+                        <th>Uploaded By</th>
+                        <th>Date</th>
+                        <th>Version</th>
+                        <th>Package</th>
+                        <th>Linked To</th>
+                        <th>Payment Status</th>
+                        <th>Chain</th>
+                      </tr>
+                    </thead>
+                    <tbody id="documents-tbody">
+                      <tr data-document-row="doc-foundation" data-doc-type="Certificate" data-doc-uploader="Daniel Okafor" data-doc-date="2026-04-11">
+                        <td><a class="document-link" href="#">Foundation Pour Certificate</a></td>
+                        <td>Milestone Cert</td>
+                        <td>DOC-FND-014</td>
+                        <td>D. Okafor</td>
+                        <td>11 Apr</td>
+                        <td><button class="version-badge" data-version-toggle="foundation" type="button">V3</button></td>
+                        <td><a class="linked-to-link" href="#" data-linked-payment="pay-001">INV-FND-001</a></td>
+                        <td><span class="status-pill chip-tone-success">Released</span></td>
+                      </tr>
+                      <tr class="version-strip-row" data-version-row="foundation">
+                        <td class="version-strip-cell" colspan="8">
+                          <div class="version-strip">
+                            <div class="version-node"><span class="version-dot"></span><span>V1 · Okafor · 1 Apr</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V2 · Okafor · 6 Apr</span></div>
+                            <div class="version-node current"><span class="version-dot"></span><span>V3 · Okafor · 11 Apr · Current</span></div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr data-document-row="doc-notice" data-doc-type="Payment Notice" data-doc-uploader="Maya Shah" data-doc-date="2026-04-08">
+                        <td><a class="document-link" href="#">Approved Payment Notice</a></td>
+                        <td>Payment Notice</td>
+                        <td>DOC-PAY-008</td>
+                        <td>M. Shah</td>
+                        <td>8 Apr</td>
+                        <td><button class="version-badge" data-version-toggle="notice" type="button">V2</button></td>
+                        <td><a class="linked-to-link" href="#" data-linked-payment="pay-002">INV-PAY-008</a></td>
+                        <td><span class="status-pill chip-tone-primary">Pending</span></td>
+                      </tr>
+                      <tr class="version-strip-row" data-version-row="notice">
+                        <td class="version-strip-cell" colspan="8">
+                          <div class="version-strip">
+                            <div class="version-node"><span class="version-dot"></span><span>V1 · Maya · 5 Apr</span></div>
+                            <div class="version-node current"><span class="version-dot"></span><span>V2 · Maya · 8 Apr · Current</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V3 · Pending</span></div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr data-document-row="doc-photos" data-doc-type="Photo Evidence" data-doc-uploader="Eleanor Lane" data-doc-date="2026-04-09">
+                        <td><a class="document-link" href="#">Site Inspection Photo Set</a></td>
+                        <td>Photo Evidence</td>
+                        <td>DOC-PHO-031</td>
+                        <td>E. Lane</td>
+                        <td>9 Apr</td>
+                        <td><button class="version-badge" data-version-toggle="photos" type="button">V1</button></td>
+                        <td>—</td>
+                        <td></td>
+                      </tr>
+                      <tr class="version-strip-row" data-version-row="photos">
+                        <td class="version-strip-cell" colspan="8">
+                          <div class="version-strip">
+                            <div class="version-node current"><span class="version-dot"></span><span>V1 · Eleanor · 9 Apr · Current</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V2 · Pending</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V3 · Pending</span></div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr data-document-row="doc-variation" data-doc-type="Variation" data-doc-uploader="Northline Structures" data-doc-date="2026-04-06">
+                        <td><a class="document-link" href="#">Steel Frame Variation Pack</a></td>
+                        <td>Variation</td>
+                        <td>DOC-VAR-017</td>
+                        <td>Northline Structures</td>
+                        <td>6 Apr</td>
+                        <td><button class="version-badge" data-version-toggle="variation" type="button">V3</button></td>
+                        <td><a class="linked-to-link" href="#" data-linked-payment="pay-003">INV-STL-002</a></td>
+                        <td><span class="status-pill chip-tone-warning">Held</span></td>
+                      </tr>
+                      <tr class="version-strip-row" data-version-row="variation">
+                        <td class="version-strip-cell" colspan="8">
+                          <div class="version-strip">
+                            <div class="version-node"><span class="version-dot"></span><span>V1 · Northline · 30 Mar</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V2 · Northline · 3 Apr</span></div>
+                            <div class="version-node current"><span class="version-dot"></span><span>V3 · Northline · 6 Apr · Current</span></div>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr data-document-row="doc-mep" data-doc-type="Drawing" data-doc-uploader="Daniel Okafor" data-doc-date="2026-04-07">
+                        <td><a class="document-link" href="#">MEP Schematic Rev B</a></td>
+                        <td>Drawing</td>
+                        <td>DOC-MEP-009</td>
+                        <td>D. Okafor</td>
+                        <td>7 Apr</td>
+                        <td><button class="version-badge" data-version-toggle="mep" type="button">V2</button></td>
+                        <td>—</td>
+                        <td></td>
+                      </tr>
+                      <tr class="version-strip-row" data-version-row="mep">
+                        <td class="version-strip-cell" colspan="8">
+                          <div class="version-strip">
+                            <div class="version-node"><span class="version-dot"></span><span>V1 · Okafor · 4 Apr</span></div>
+                            <div class="version-node current"><span class="version-dot"></span><span>V2 · Okafor · 7 Apr · Current</span></div>
+                            <div class="version-node"><span class="version-dot"></span><span>V3 · Pending</span></div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                </div>
+                <div class="records-empty" data-documents-empty>
+                  <div class="records-empty__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.38-8.38a4 4 0 0 1 5.66 5.66l-8.38 8.38a2 2 0 0 1-2.83-2.83l7.07-7.07" fill="none" stroke="currentColor"/></svg>
+                  </div>
+                  <h3 class="records-empty__title">No documents uploaded</h3>
+                  <p class="records-empty__body">Supporting documents will appear here once added.</p>
+                  <button class="btn btn-primary small" data-visible-to="finance_director project_manager contractor" data-modal-target="add-document" data-document-scope="project" type="button">Add Document</button>
+                </div>
+              </div>
+              <div class="audit-panel" data-audit-panel="payments">
+                <div data-payments-table-wrap>
+                <div class="table-card">
+                  <table class="action-table">
+                    <thead>
+                      <tr>
+                        <th>Invoice Ref</th>
+                        <th>Package</th>
+                        <th class="amount-cell">Amount</th>
+                        <th>Submitted By</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr class="payment-row" data-payment-toggle="pay-001">
+                        <td>INV-FND-001</td>
+                        <td>Foundation Pour — Bay A</td>
+                        <td class="amount-cell">£92,400</td>
+                        <td>Daniel Okafor</td>
+                        <td>8 Apr 2026</td>
+                        <td><span class="status-pill chip-tone-success">Released</span></td>
+                      </tr>
+                      <tr class="payment-detail-row" data-payment-row="pay-001">
+                        <td class="payment-detail-cell" colspan="6">
+                          <div class="payment-inner-panel is-active" data-payment-inner-panel="pay-001-timeline">
+                            <ol class="approval-trail">
+                              <li class="approval-step done"><strong>Requested</strong><span>Daniel Okafor · 8 Apr 2026, 09:14</span></li>
+                              <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 9 Apr 2026, 11:30</span></li>
+                              <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 10 Apr 2026, 14:22</span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 10 Apr 2026, 14:25 <a class="doc-chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></span></li>
+                            </ol>
+                            <div class="linked-documents">
+                              <h4 class="linked-documents-title">Linked Documents</h4>
+                              <div class="linked-document-list">
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr class="payment-row" data-payment-toggle="pay-002">
+                        <td>INV-PAY-008</td>
+                        <td>Approved Payment Notice</td>
+                        <td class="amount-cell">£118,200</td>
+                        <td>Northline Structures</td>
+                        <td>12 Apr 2026</td>
+                        <td><span class="status-pill chip-tone-primary">Pending Approval</span></td>
+                      </tr>
+                      <tr class="payment-detail-row" data-payment-row="pay-002">
+                        <td class="payment-detail-cell" colspan="6">
+                          <div class="payment-inner-panel is-active" data-payment-inner-panel="pay-002-timeline">
+                            <ol class="approval-trail">
+                              <li class="approval-step done"><strong>Requested</strong><span>Northline Structures · 12 Apr 2026, 08:40</span></li>
+                              <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 13 Apr 2026, 10:05</span></li>
+                              <li class="approval-step"><strong>Finance Review</strong><span>Awaiting Maya Shah</span></li>
+                              <li class="approval-step"><strong>Released</strong><span>Awaiting finance approval</span></li>
+                            </ol>
+                            <div class="linked-documents">
+                              <h4 class="linked-documents-title">Linked Documents</h4>
+                              <div class="linked-document-list">
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr class="payment-row" data-payment-toggle="pay-003">
+                        <td>INV-STL-002</td>
+                        <td>Steel Frame Variation Pack</td>
+                        <td class="amount-cell">£76,850</td>
+                        <td>Northline Structures</td>
+                        <td>11 Apr 2026</td>
+                        <td><span class="status-pill chip-tone-warning">Held</span></td>
+                      </tr>
+                      <tr class="payment-detail-row" data-payment-row="pay-003">
+                        <td class="payment-detail-cell" colspan="6">
+                          <div class="payment-inner-panel is-active" data-payment-inner-panel="pay-003-timeline">
+                            <ol class="approval-trail">
+                              <li class="approval-step done"><strong>Requested</strong><span>Northline Structures · 11 Apr 2026</span></li>
+                              <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 12 Apr 2026</span></li>
+                              <li class="approval-step hold"><strong>Finance Review</strong><span>Hold placed by Maya Shah</span><span class="state-note-warning">"Pending document verification"</span></li>
+                              <li class="approval-step"><strong>Released</strong><span>Awaiting hold removal</span></li>
+                            </ol>
+                            <div class="linked-documents">
+                              <h4 class="linked-documents-title">Linked Documents</h4>
+                              <div class="linked-document-list">
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-photos">Site Inspection Photo Set</a><span>Photo Evidence</span><span>DOC-PHO-031</span><span class="version-badge">V1</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr class="payment-row" data-payment-toggle="pay-004">
+                        <td>INV-FAC-009</td>
+                        <td>Facade Remediation</td>
+                        <td class="amount-cell">£54,600</td>
+                        <td>Brightwell Facades</td>
+                        <td>9 Apr 2026</td>
+                        <td><span class="status-pill chip-tone-danger">Rejected</span></td>
+                      </tr>
+                      <tr class="payment-detail-row" data-payment-row="pay-004">
+                        <td class="payment-detail-cell" colspan="6">
+                          <div class="payment-inner-panel is-active" data-payment-inner-panel="pay-004-timeline">
+                            <ol class="approval-trail">
+                              <li class="approval-step done"><strong>Requested</strong><span>Brightwell Facades · 9 Apr 2026, 12:18</span></li>
+                              <li class="approval-step rejected"><strong>PM Review</strong><span>Rejected by Eleanor Lane · 10 Apr 2026, 09:50</span><span class="state-note-error">Scope reference does not match approved package.</span></li>
+                              <li class="approval-step"><strong>Finance Review</strong><span>Not required after rejection</span></li>
+                              <li class="approval-step"><strong>Released</strong><span>No release scheduled</span></li>
+                            </ol>
+                            <div class="linked-documents">
+                              <h4 class="linked-documents-title">Linked Documents</h4>
+                              <div class="linked-document-list">
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr class="payment-row" data-payment-toggle="pay-005">
+                        <td>INV-INT-003</td>
+                        <td>Interior Fit-Out</td>
+                        <td class="amount-cell">£43,250</td>
+                        <td>Harbour Interiors</td>
+                        <td>6 Apr 2026</td>
+                        <td><span class="status-pill chip-tone-success">Released</span></td>
+                      </tr>
+                      <tr class="payment-detail-row" data-payment-row="pay-005">
+                        <td class="payment-detail-cell" colspan="6">
+                          <div class="payment-inner-panel is-active" data-payment-inner-panel="pay-005-timeline">
+                            <ol class="approval-trail">
+                              <li class="approval-step done"><strong>Requested</strong><span>Harbour Interiors · 6 Apr 2026, 08:05</span></li>
+                              <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 6 Apr 2026, 15:40</span></li>
+                              <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 7 Apr 2026, 10:12</span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 7 Apr 2026, 10:16 <a class="doc-chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></span></li>
+                            </ol>
+                            <div class="linked-documents">
+                              <h4 class="linked-documents-title">Linked Documents</h4>
+                              <div class="linked-document-list">
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-mep">MEP Schematic Rev B</a><span>Drawing</span><span>DOC-MEP-009</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                </div>
+                <div class="records-empty" data-payments-empty>
+                  <div class="records-empty__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2" fill="none" stroke="currentColor"/><circle cx="12" cy="12" r="2" fill="none" stroke="currentColor"/><path d="M6 12h.01M18 12h.01" fill="none" stroke="currentColor"/></svg>
+                  </div>
+                  <h3 class="records-empty__title">No payments recorded</h3>
+                  <p class="records-empty__body">Payment history will appear as invoices are approved.</p>
+                </div>
+              </div>
+            </section>
+          </main>
+
+          <aside class="project-detail-side">
+            <section class="activity-panel">
+              <div class="card-head">
+                <h2 class="activity-title">Team</h2>
+                <button class="btn btn-ghost small" data-visible-to="finance_director project_manager" data-modal-target="add-team-member" type="button">Add member</button>
+              </div>
+              <div id="team-list" class="team-list">
+                <div class="team-row">
+                  <span class="approver-avatar">MS</span>
+                  <strong>Maya Shah</strong>
+                  <span class="status-pill chip-tone-neutral">Finance</span>
+                </div>
+                <div class="team-row">
+                  <span class="approver-avatar">EL</span>
+                  <strong>Eleanor Lane</strong>
+                  <span class="status-pill chip-tone-neutral">PM</span>
+                </div>
+                <div class="team-row">
+                  <span class="approver-avatar">DO</span>
+                  <strong>Daniel Okafor</strong>
+                  <span class="status-pill chip-tone-neutral">Contractor</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="activity-panel quick-actions" data-visible-to="finance_director">
+              <h2 class="activity-title">Quick Actions</h2>
+              <button class="btn btn-primary" data-visible-to="finance_director" data-modal-target="fund-package" type="button">Fund Package</button>
+              <button class="btn btn-ghost" data-visible-to="finance_director" data-modal-target="place-hold" type="button">Place Hold</button>
+            </section>
+          </aside>
+        </div>
+      </section>
+
+      <section id="work-package-detail-page" data-app-page="work-package-detail">
+        <button data-package-back type="button" style="display:flex; align-items:center; gap:var(--space-2); margin-bottom:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); cursor:pointer;">
+          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="m12 19-7-7 7-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"/></svg>
+          <span>Back to Demo Hospital Fit-Out</span>
+        </button>
+        <a class="breadcrumb back-link" href="#project-detail">Projects → Demo Hospital Fit-Out → Foundation Pour — Bay A</a>
+        <div class="page-head">
+          <div>
+            <h1 id="package-title">Foundation Pour — Bay A</h1>
+            <p class="contract-context" data-package-contract-context>Contract type: Milestone · Stage 2 of 3</p>
+            <div class="project-subtitle">
+              <span class="status-pill chip-tone-primary">Submitted</span>
+              <span>Demo Hospital Fit-Out</span>
+              <span>Okafor Builders Ltd.</span>
+            </div>
+          </div>
+        </div>
+
+        <section id="package-kpis" class="summary-bar" aria-label="Work package financial summary">
+          <article class="kpi-card">
+            <span class="kpi-label">Package Cap</span>
+            <strong class="kpi-value">£640k</strong>
+            <span class="kpi-note">Approved package ceiling</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Escrow Funded</span>
+            <strong class="kpi-value">£410k</strong>
+            <span class="kpi-note">Locked for this package</span>
+          </article>
+          <article class="kpi-card" data-visible-to="finance_director project_manager">
+            <span class="kpi-label">Released</span>
+            <strong class="kpi-value">£128k</strong>
+            <span class="kpi-note">Paid to contractor</span>
+          </article>
+          <article class="kpi-card">
+            <span class="kpi-label">Remaining</span>
+            <strong class="kpi-value">£512k</strong>
+            <span class="kpi-note">Cap less released</span>
+          </article>
+        </section>
+
+        <div class="work-package-layout">
+          <main class="work-package-main">
+            <section id="package-request" class="assignment-card">
+              <div class="request-head">
+                <span class="assignment-meta">Current Request</span>
+                <div class="chip-row">
+                  <span class="assignment-chip">INV-FND-001</span>
+                  <span class="assignment-chip">11 Apr 2026</span>
+                </div>
+              </div>
+              <h2 class="request-title">Foundation Pour Certificate Payment</h2>
+              <strong class="request-amount">£92,400</strong>
+              <span class="assignment-meta">USDC requested</span>
+              <p class="assignment-description">Payment request for completed concrete pour, rebar inspection, and bay handover evidence. Supporting certificate and site photo references are linked below.</p>
+            </section>
+
+            <section id="package-approval" class="assignment-card">
+              <div class="card-head"><h2>Approval Progress</h2></div>
+              <div class="approval-flow">
+                <div class="flow-step complete line-complete" data-flow-step="submitted">
+                  <span class="flow-dot"></span>
+                  <span class="flow-label">Submitted</span>
+                  <span class="flow-meta">Daniel Okafor · 11 Apr</span>
+                </div>
+                <div class="flow-step current" data-flow-step="pm">
+                  <span class="flow-dot"></span>
+                  <span class="flow-label">PM Review</span>
+                  <span class="flow-meta">Eleanor Lane · pending</span>
+                  <div class="flow-actions" data-visible-to="project_manager">
+                    <button class="btn btn-primary small" data-visible-to="project_manager" data-modal-target="approve-request" type="button">Approve</button>
+                    <button class="btn btn-ghost small" data-visible-to="project_manager" data-modal-target="reject-request" type="button">Reject</button>
+                  </div>
+                </div>
+                <div class="flow-step" data-flow-step="finance">
+                  <span class="flow-dot"></span>
+                  <span class="flow-label">Finance Review</span>
+                  <div class="flow-actions" data-visible-to="finance_director">
+                    <button class="btn btn-primary small" data-visible-to="finance_director" data-modal-target="release-funds" type="button">Release</button>
+                    <button class="btn btn-ghost small" data-visible-to="finance_director" data-modal-target="place-hold" type="button">Hold</button>
+                  </div>
+                </div>
+                <div class="flow-step" data-flow-step="released">
+                  <span class="flow-dot"></span>
+                  <span class="flow-label">Released</span>
+                </div>
+              </div>
+            </section>
+
+            <section id="package-docs" class="assignment-card">
+              <div class="card-head">
+                <h2>Supporting Documents</h2>
+                <button class="btn btn-primary small" data-visible-to="finance_director project_manager contractor" data-modal-target="add-document" data-document-scope="package" type="button">Add document</button>
+              </div>
+              <div class="table-card">
+                <table class="action-table">
+                  <thead>
+                    <tr>
+                      <th>Document</th>
+                      <th>Type</th>
+                      <th>Ref</th>
+                      <th>Version</th>
+                      <th>Chain</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><a class="document-link" href="#">Foundation Pour Certificate</a></td>
+                      <td>Milestone Cert</td>
+                      <td>DOC-FND-014</td>
+                      <td><span class="version-badge">V3</span></td>
+                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                    </tr>
+                    <tr>
+                      <td><a class="document-link" href="#">Site Inspection Photo Set</a></td>
+                      <td>Photo Evidence</td>
+                      <td>DOC-PHO-031</td>
+                      <td><span class="version-badge">V1</span></td>
+                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                    </tr>
+                    <tr>
+                      <td><a class="document-link" href="#">Concrete Batch Delivery Log</a></td>
+                      <td>Delivery Log</td>
+                      <td>DOC-BAT-022</td>
+                      <td><span class="version-badge">V2</span></td>
+                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </main>
+
+          <aside class="work-package-side">
+            <section class="activity-panel">
+              <h2 class="activity-title">Package Info</h2>
+              <ul class="info-list">
+                <li class="info-row"><span>Contract ref</span><span>WP-001 / FND-A</span></li>
+                <li class="info-row"><span>Start date</span><span>1 Apr 2026</span></li>
+                <li class="info-row"><span>Completion date</span><span>28 Apr 2026</span></li>
+                <li class="info-row"><span>Assigned contractor</span><span>Okafor Builders Ltd.</span></li>
+                <li class="info-row"><span>PM</span><span>Eleanor Lane</span></li>
+                <li class="info-row"><span>Package type</span><span>Groundworks</span></li>
+              </ul>
+            </section>
+
+            <section class="activity-panel">
+              <h2 class="activity-title">Role Actions</h2>
+              <div class="role-actions" data-visible-to="finance_director">
+                <button class="btn btn-primary" data-visible-to="finance_director" data-modal-target="release-funds" type="button">Release Funds</button>
+                <button class="btn btn-ghost" data-visible-to="finance_director" data-modal-target="place-hold" type="button">Place Hold</button>
+              </div>
+              <div class="role-actions" data-visible-to="project_manager">
+                <button class="btn btn-primary" data-visible-to="project_manager" data-modal-target="approve-request" type="button">Approve Request</button>
+                <button class="btn btn-ghost" data-visible-to="project_manager" data-modal-target="reject-request" type="button">Reject Request</button>
+              </div>
+              <div class="role-actions" data-visible-to="contractor">
+                <button class="btn btn-primary" data-visible-to="contractor" data-modal-target="submit-invoice" type="button">Submit Invoice</button>
+                <button class="btn btn-ghost" data-visible-to="contractor" data-modal-target="submit-variation" type="button">Submit Variation</button>
+                <button class="btn btn-ghost" data-visible-to="contractor" data-modal-target="add-document" data-document-scope="package" type="button">Add Document</button>
+              </div>
+            </section>
+          </aside>
+
+          <section id="package-audit" class="assignment-card package-audit">
+            <div class="section-tabs">
+              <div class="tab-buttons" role="tablist" aria-label="Package audit trail">
+                <button class="section-tab is-active" type="button">Audit Trail</button>
+              </div>
+              <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a>
+            </div>
+            <ul class="timeline-list">
+              <li class="timeline-item">
+                <span class="timeline-dot yellow"></span>
+                <div><span class="timeline-title">Invoice INV-FND-001 awaiting PM review</span><span class="timeline-meta">Eleanor Lane · 14 Apr 2026, 09:18</span></div>
+              </li>
+              <li class="timeline-item">
+                <span class="timeline-dot"></span>
+                <div><span class="timeline-title">Foundation pour certificate attached</span><span class="timeline-meta">Daniel Okafor · 13 Apr 2026, 16:04</span></div>
+              </li>
+              <li class="timeline-item">
+                <span class="timeline-dot"></span>
+                <div><span class="timeline-title">Payment request submitted</span><span class="timeline-meta">Daniel Okafor · 11 Apr 2026, 09:14</span></div>
+              </li>
+              <li class="timeline-item">
+                <span class="timeline-dot green"></span>
+                <div><span class="timeline-title">Escrow funded for package</span><span class="timeline-meta">Maya Shah · 8 Apr 2026, 14:45</span></div>
+              </li>
+              <li class="timeline-item">
+                <span class="timeline-dot"></span>
+                <div><span class="timeline-title">Contractor role assigned</span><span class="timeline-meta">Maya Shah · 2 Apr 2026, 10:20</span></div>
+              </li>
+              <li class="timeline-item">
+                <span class="timeline-dot green"></span>
+                <div><span class="timeline-title">Work package created</span><span class="timeline-meta">Maya Shah · 1 Apr 2026, 08:30</span></div>
+              </li>
+            </ul>
+          </section>
+        </div>
+      </section>
+
+      <section id="settings-page" data-app-page="settings">
+        <div class="page-head">
+          <div>
+            <h1>Settings</h1>
+            <p>Manage your profile, roles, and connected wallet.</p>
+          </div>
+        </div>
+        <div class="settings-layout">
+          <nav class="settings-tabs" aria-label="Settings sections">
+            <button class="settings-tab is-active" data-settings-tab="profile" type="button">Profile</button>
+            <button class="settings-tab" data-settings-tab="roles" type="button">Roles &amp; Access</button>
+            <button class="settings-tab" data-settings-tab="wallet" type="button">Wallet</button>
+            <button class="settings-tab" data-settings-tab="notifications" type="button">Notifications</button>
+          </nav>
+
+          <div class="settings-content">
+            <section class="card settings-card settings-panel is-active" data-settings-panel="profile">
+              <div class="profile-photo-row">
+                <span class="profile-avatar">MS</span>
+                <a class="text-link" href="#">Change photo</a>
+              </div>
+              <form class="settings-form">
+                <div class="form-field">
+                  <label for="settings-name">Display Name</label>
+                  <input id="settings-name" name="display-name" value="Maya Shah">
+                </div>
+                <div class="form-field">
+                  <label for="profile-job-title">Job Title</label>
+                  <input id="profile-job-title" name="job-title" value="Finance Director">
+                </div>
+                <div class="form-field">
+                  <label for="profile-email">Email</label>
+                  <input id="profile-email" name="email" value="maya.shah@northstar.example" readonly>
+                </div>
+                <div class="form-field">
+                  <label for="profile-phone">Phone Number</label>
+                  <input id="profile-phone" name="phone" value="+44 7700 900184">
+                </div>
+                <div class="form-field">
+                  <label for="profile-organisation">Organisation</label>
+                  <input id="profile-organisation" name="organisation" value="Northstar Capital Controls">
+                </div>
+                <div class="form-actions">
+                  <button class="btn btn-primary" type="button">Save changes</button>
+                </div>
+              </form>
+            </section>
+
+            <section class="card settings-card settings-panel" data-settings-panel="roles">
+              <div class="card-head"><h2>Project Memberships</h2></div>
+              <div class="table-card">
+                <table class="action-table">
+                  <thead>
+                    <tr>
+                      <th>Project</th>
+                      <th>Role</th>
+                      <th>Since</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Demo Hospital Fit-Out</td>
+                      <td><span class="status-pill chip-tone-neutral" id="settings-role">Finance</span></td>
+                      <td>12 Feb 2026</td>
+                      <td><span class="status-pill chip-tone-success">Active</span></td>
+                    </tr>
+                    <tr>
+                      <td>Civic Library Retrofit</td>
+                      <td><span class="status-pill chip-tone-neutral">PM</span></td>
+                      <td>3 Mar 2026</td>
+                      <td><span class="status-pill chip-tone-primary">Pending</span></td>
+                    </tr>
+                    <tr>
+                      <td>Station Works</td>
+                      <td><span class="status-pill chip-tone-neutral">Contractor</span></td>
+                      <td>18 Jan 2026</td>
+                      <td><span class="status-pill chip-tone-neutral">Inactive</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="settings-note">Your role permissions are managed by your organisation. Contact your Finance Director to request changes.</p>
+            </section>
+
+            <section class="settings-panel" data-settings-panel="wallet">
+              <div class="wallet-readonly-card">
+                <span class="wallet-label">Connected Wallet</span>
+                <strong class="wallet-title">Phantom Wallet</strong>
+                <span class="wallet-address">7xK2...m9Qr
+                  <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                </span>
+                <span class="status-pill chip-tone-success">Active</span>
+              </div>
+              <div class="wallet-meta">
+                <a class="text-link" href="#">View wallet on chain ↗</a>
+                <span class="faint">This wallet is managed by your organisation. Contact your Finance Director to make changes.</span>
+              </div>
+            </section>
+
+            <section class="card settings-card settings-panel" data-settings-panel="notifications">
+              <ul class="notification-list">
+                <li class="notification-row">
+                  <div><strong>Payment released</strong><span>When funds are released to your wallet</span></div>
+                  <button class="toggle-switch is-on" type="button" aria-pressed="true"></button>
+                </li>
+                <li class="notification-row">
+                  <div><strong>Request approved</strong><span>When your invoice is approved by PM</span></div>
+                  <button class="toggle-switch is-on" type="button" aria-pressed="true"></button>
+                </li>
+                <li class="notification-row">
+                  <div><strong>Hold placed</strong><span>When a hold is placed on your package</span></div>
+                  <button class="toggle-switch is-on" type="button" aria-pressed="true"></button>
+                </li>
+                <li class="notification-row">
+                  <div><strong>Weekly summary</strong><span>Weekly digest of project activity</span></div>
+                  <button class="toggle-switch" type="button" aria-pressed="false"></button>
+                </li>
+                <li class="notification-row">
+                  <div><strong>Marketing updates</strong><span>Product news and feature updates</span></div>
+                  <button class="toggle-switch" type="button" aria-pressed="false"></button>
+                </li>
+              </ul>
+            </section>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay" data-modal="new-project" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
+      <div class="modal-header">
+        <h2 id="new-project-title">Create New Project</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="modal-step-panel is-active" data-new-project-panel="1">
+          <label class="checkbox-row"><input type="checkbox" data-project-end-client checked> We are the end client for this project</label>
+          <div class="form-field"><label>Project Name</label><input type="text" data-new-project-name></div>
+          <div class="form-field" data-project-client-field hidden><label>Client / Organisation</label><input type="text" data-new-project-client></div>
+          <div class="form-field"><label>Contract Reference</label><input type="text" data-new-project-ref></div>
+          <div data-project-contract-reference hidden>
+            <label class="form-field-label">Reference Contract Model</label>
+            <div class="contract-model-list contract-model-list--compact" role="radiogroup" aria-label="Reference contract model">
+              <button class="contract-model-card is-selected" data-project-contract-model-card data-project-contract-model="milestone" type="button" aria-pressed="true">
+                <h3>Milestone-Based</h3>
+                <p>Fixed payments released when defined project stages are completed and approved.</p>
+                <span class="model-badge">Most common</span>
+              </button>
+              <button class="contract-model-card" data-project-contract-model-card data-project-contract-model="valuation" type="button" aria-pressed="false">
+                <h3>Valuation-Based</h3>
+                <p>Periodic payment assessments at set intervals. Suitable for NEC and JCT contracts.</p>
+                <span class="model-badge">NEC · JCT</span>
+              </button>
+              <button class="contract-model-card" data-project-contract-model-card data-project-contract-model="bespoke" type="button" aria-pressed="false">
+                <h3>Bespoke Schedule</h3>
+                <p>Fully custom payment schedule with manual release triggers defined by your team.</p>
+                <span class="model-badge">Flexible</span>
+              </button>
+            </div>
+            <p class="faint">This is project-level reference only. Work packages still choose their own contract type.</p>
+          </div>
+          <div class="form-field"><label>Start Date</label><input type="date" data-new-project-start></div>
+          <div class="form-field"><label>Estimated Completion</label><input type="date" data-new-project-end></div>
+          <div class="form-field"><label>Invite / Assign Project Manager Owner</label><select data-new-project-pm><option>Eleanor Lane</option><option>Emma Watson</option><option>Ravi Henson</option></select></div>
+          <div class="form-field"><label>Assign Finance Director</label><select data-new-project-fd><option>Maya Shah</option></select></div>
+        </div>
+        <p class="faint">Work packages can still use different contract types for different contractors or subcontractors.</p>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-ghost" data-new-project-back type="button" hidden>← Back</button>
+        <button class="btn btn-primary" data-new-project-next type="button" hidden>Next →</button>
+        <button class="btn btn-primary" data-new-project-create type="button">Create Project</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="add-package" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-package-title">
+      <div class="modal-header">
+        <h2 id="add-package-title">Add Estimated Work Package</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Package Name</label><input type="text"></div>
+        <div class="form-field">
+          <label>Contract Type</label>
+          <select data-package-contract-model>
+            <option value="milestone">Milestone-Based</option>
+            <option value="valuation">Valuation-Based</option>
+            <option value="bespoke">Bespoke Schedule</option>
+          </select>
+        </div>
+        <div class="form-field"><label>Estimated Budget — £</label><input type="number"></div>
+        <div class="form-field"><label>Contractor Agreement</label><select><option>Unassigned estimate</option><option>Daniel Okafor</option><option>Northline Structures</option></select></div>
+        <div class="form-field"><label>Contract Reference</label><input type="text"></div>
+        <div class="form-field"><label>Start Date</label><input type="date"></div>
+        <div class="form-field"><label>Completion Date</label><input type="date"></div>
+        <p class="faint">Packages begin as estimates. When a contractor agreement and budget are ready, Finance approves the package and locks escrow.</p>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Add Estimated Package</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="fund-package" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fund-package-title">
+      <div class="modal-header">
+        <h2 id="fund-package-title">Fund Escrow</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <div class="modal-summary">
+        <div class="modal-summary-row"><span>Package</span><strong>Foundation Pour — Bay A</strong></div>
+        <div class="modal-summary-row"><span>Cap</span><strong>£640,000</strong></div>
+        <div class="modal-summary-row"><span>Currently Funded</span><strong>£410,000</strong></div>
+        <div class="modal-summary-row"><span>Remaining to fund</span><strong>£230,000</strong></div>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Amount to Fund — £</label><input type="number"></div>
+        <label class="checkbox-row"><input type="checkbox"> I confirm this amount will be locked in smart contract escrow</label>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Fund Escrow</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="place-hold" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="place-hold-title">
+      <div class="modal-header">
+        <h2 id="place-hold-title">Place Hold on Package</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Reason for Hold</label><textarea rows="3"></textarea></div>
+        <label class="checkbox-row"><input type="checkbox" checked> Notify team</label>
+      </form>
+      <p class="modal-warning">This will pause all payment releases for this package.</p>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-warning" type="button">Place Hold</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="release-funds" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="release-funds-title">
+      <div class="modal-header">
+        <h2 id="release-funds-title">Release Funds</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <div class="modal-summary">
+        <div class="modal-summary-row"><span>Invoice</span><strong>INV-FND-001</strong></div>
+        <div class="modal-summary-row"><span>PM Approved by</span><strong>Eleanor Lane · 9 Apr 2026</strong></div>
+        <div class="modal-summary-row"><span>Amount</span><strong>£92,400</strong></div>
+        <div class="modal-summary-row"><span>Escrow Status</span><strong>Funded</strong></div>
+      </div>
+      <label class="checkbox-row"><input type="checkbox"> I confirm release of £92,400 from escrow to contractor wallet</label>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Confirm Release</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="submit-invoice" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="submit-invoice-title">
+      <div class="modal-header">
+        <h2 id="submit-invoice-title">Submit Payment Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <p style="font-size:var(--text-xs); color:var(--color-text-faint); margin:0;">Requests unlock funds from the work package escrow according to the agreed package contract terms.</p>
+        <div class="form-field"><label>Invoice Reference</label><input data-submit-invoice-ref type="text"></div>
+        <div class="form-field"><label>Amount — £</label><input data-submit-invoice-amount type="number"></div>
+        <div class="form-field"><label>Release Basis</label><select data-submit-invoice-basis><option>Package-level release</option><option>Milestone / payment schedule release</option><option>Valuation period release</option><option>Bespoke contract trigger</option></select></div>
+        <div class="form-field"><label>Description / Scope Note</label><textarea data-submit-invoice-description rows="3"></textarea></div>
+        <div class="form-field"><label>Document Reference</label><input data-submit-invoice-document type="text" placeholder="e.g. DOC-FND-014"></div>
+        <label class="checkbox-row"><input type="checkbox"> I confirm this work package payment request is accurate and supported by the referenced documentation</label>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Submit Request</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="submit-variation" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="submit-variation-title">
+      <div class="modal-header">
+        <h2 id="submit-variation-title">Submit Variation Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <p style="font-size:var(--text-xs); color:var(--color-text-faint); margin:0;">Variations are tied to the work package, not to a milestone. Submit cost and time changes as separate claims where possible.</p>
+        <div class="form-field"><label>Variation Reference</label><input data-variation-ref type="text" placeholder="e.g. VAR-FND-002"></div>
+        <div class="form-field"><label>Variation Type</label><select data-variation-type><option>Increase package value</option><option>Decrease package value</option><option>Extend programme</option><option>Reduce programme</option></select></div>
+        <div class="form-field"><label>Amount Change — £</label><input data-variation-amount type="number" placeholder="Use negative value for reduction"></div>
+        <div class="form-field"><label>Time Change — days</label><input data-variation-days type="number" placeholder="Use negative value for reduction"></div>
+        <div class="form-field"><label>Reason / Scope Note</label><textarea data-variation-reason rows="3"></textarea></div>
+        <div class="form-field"><label>Supporting Document Reference</label><input data-variation-document type="text" placeholder="e.g. DOC-SITE-041"></div>
+        <label class="checkbox-row"><input type="checkbox"> I confirm this variation is for the work package as a whole</label>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Submit Variation</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="request-documents" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="request-documents-title">
+      <div class="modal-header">
+        <h2 id="request-documents-title">Request Contractor Documents</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <p style="font-size:var(--text-xs); color:var(--color-text-faint); margin:0;">Document requests are sent to the contractor assigned to this work package.</p>
+        <div class="form-field"><label>Document Type</label><select data-document-request-type><option>Materials Vesting Certificate</option><option>Certificate of Practical Completion</option><option>Site Photos</option><option>Progress Report</option><option>Invoice Evidence</option><option>Other</option></select></div>
+        <div class="form-field"><label>Due Date</label><input data-document-request-due type="date"></div>
+        <div class="form-field"><label>Request Note</label><textarea data-document-request-note rows="3" placeholder="Explain what evidence is needed"></textarea></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Send Request</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="approve-variation" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="approve-variation-title">
+      <div class="modal-header">
+        <h2 id="approve-variation-title">Approve Variation Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Approval Note</label><textarea rows="3" placeholder="Add approval note"></textarea></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-success" type="button">Approve</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="reject-variation" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reject-variation-title">
+      <div class="modal-header">
+        <h2 id="reject-variation-title">Reject Variation Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Rejection Note</label><textarea rows="3" required placeholder="Explain why this variation cannot proceed"></textarea></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-error" type="button">Reject</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="approve-request" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="approve-request-title">
+      <div class="modal-header">
+        <h2 id="approve-request-title">Approve Payment Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <div class="modal-summary">
+        <div class="modal-summary-row"><span>Invoice ref</span><strong>INV-FND-001</strong></div>
+        <div class="modal-summary-row"><span>Contractor</span><strong>Okafor Builders Ltd.</strong></div>
+        <div class="modal-summary-row"><span>Amount</span><strong>£92,400</strong></div>
+        <div class="modal-summary-row"><span>Document refs</span><strong>DOC-FND-014, DOC-PHO-031</strong></div>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Review note</label><textarea rows="3" placeholder="Add review note"></textarea></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-success" type="button">Approve</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="reject-request" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="reject-request-title">
+      <div class="modal-header">
+        <h2 id="reject-request-title">Reject Payment Request</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <div class="modal-summary">
+        <div class="modal-summary-row"><span>Invoice ref</span><strong>INV-FND-001</strong></div>
+        <div class="modal-summary-row"><span>Contractor</span><strong>Okafor Builders Ltd.</strong></div>
+        <div class="modal-summary-row"><span>Amount</span><strong>£92,400</strong></div>
+        <div class="modal-summary-row"><span>Document refs</span><strong>DOC-FND-014, DOC-PHO-031</strong></div>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Rejection reason</label><textarea rows="3" required></textarea></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-error" type="button">Reject</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="add-team-member" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-team-member-title">
+      <div class="modal-header">
+        <h2 id="add-team-member-title">Add Team Member</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Name</label><input type="text"></div>
+        <div class="form-field"><label>Email</label><input type="email"></div>
+        <div class="form-field"><label>Role</label><select><option>Finance Director</option><option>Project Manager</option><option>Contractor</option></select></div>
+        <div class="form-field"><label>Organisation</label><input type="text"></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Add Member</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="add-document" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-document-title">
+      <div class="modal-header">
+        <h2 id="add-document-title">Add Document</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <p data-document-attach-label hidden style="font-size:var(--text-xs); color:var(--color-text-faint);"></p>
+        <div class="form-field"><label>Document Name</label><input data-add-document-name type="text"></div>
+        <div class="form-field"><label>Document Type</label><select data-add-document-type><option>Materials Vesting Certificate</option><option>Certificate of Practical Completion</option><option>Site Photos</option><option>Progress Report</option><option>Certificate</option><option>Delivery Log</option><option>Payment Notice</option><option>Drawing</option><option>Variation</option></select></div>
+        <div class="form-field"><label>Reference Number</label><input data-add-document-ref type="text"></div>
+        <div class="form-field" data-document-package-field hidden><label>Link to Package</label><select data-document-package-select></select></div>
+        <div class="form-field"><label>Optional Milestone Reference</label><input data-add-document-milestone-ref type="text" placeholder="e.g. Package milestone 2"></div>
+        <div class="form-field"><label>Link to Payment</label><select data-add-document-payment><option>INV-FND-001</option><option>INV-PAY-008</option><option>INV-STL-002</option><option>Not linked</option></select></div>
+        <div class="form-field"><label>Upload / paste URL</label><input data-add-document-url type="text" placeholder="Document URL or reference"></div>
+        <div class="form-field"><label>Or upload from computer</label><input data-add-document-file type="file" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xlsx" style="width:100%; padding:var(--space-3); border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface-offset, var(--color-surface)); color:var(--color-text); font-size:var(--text-sm);"><span data-add-document-file-name style="display:block; margin-top:var(--space-2); color:var(--color-text-faint); font-size:var(--text-xs);"></span></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Add Document</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-overlay" data-modal="edit-document" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="edit-document-title">
+      <div class="modal-header">
+        <h2 id="edit-document-title">Edit Document</h2>
+        <button class="modal-close" data-modal-close type="button">×</button>
+      </div>
+      <form class="modal-form">
+        <div class="form-field"><label>Document Name</label><input data-edit-document-name type="text"></div>
+        <div class="form-field"><label>Document Type</label><select data-edit-document-type><option>Certificate</option><option>Delivery Log</option><option>Photo Evidence</option><option>Payment Notice</option><option>Drawing</option><option>Variation</option></select></div>
+        <div class="form-field"><label>Reference Number</label><input data-edit-document-ref type="text"></div>
+        <div class="form-field"><label>Link to Payment</label><select data-edit-document-payment></select></div>
+        <div class="form-field"><label>Link to Package</label><select data-edit-document-package></select></div>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Save Changes</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="static/projects/js/construkt.js"></script>
+</body>
+</html>
