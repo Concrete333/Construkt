@@ -3152,8 +3152,6 @@ const store = {
       const settingsRole = document.getElementById('settings-role');
       const roleShortLabel = role.label === 'Finance Director' ? 'Finance' : role.label === 'Project Manager' ? 'PM' : 'Contractor';
       document.getElementById('role-toggle').textContent = role.label;
-      document.getElementById('avatar').textContent = role.initials;
-      document.getElementById('user-name').textContent = role.label;
       if (settingsName) settingsName.value = role.label === 'Contractor' ? 'Daniel Okafor' : `${role.name} ${role.label === 'Finance Director' ? 'Shah' : 'Lane'}`;
       if (settingsRole) settingsRole.textContent = roleShortLabel;
       document.getElementById('dashboard-role-label').textContent = `${role.label} · ${role.org}`.toUpperCase();
