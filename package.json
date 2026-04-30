@@ -5,6 +5,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "anchor:test": "anchor test --provider.cluster localnet",
+    "test:frontend": "ts-mocha -p ./tsconfig.json -t 10000 \"frontend-prototype/tests/construkt.frontend.ts\"",
     "lint": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" --check",
     "lint:fix": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" -w"
   },
