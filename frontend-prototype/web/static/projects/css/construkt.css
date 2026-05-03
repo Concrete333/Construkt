@@ -205,7 +205,7 @@
     }
 
     .public-main {
-      min-height: calc(100vh - 108px);
+      min-height: calc(100svh - 108px);
       display: grid;
       place-items: center;
       padding: var(--space-10) var(--space-8);
@@ -214,7 +214,7 @@
     .home-grid {
       width: min(1120px, 100%);
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
       gap: var(--space-10);
       align-items: center;
     }
@@ -630,7 +630,7 @@
       right: 0;
       height: 64px;
       display: grid;
-      grid-template-columns: minmax(190px, 1fr) auto minmax(300px, 1fr);
+      grid-template-columns: minmax(120px, 1fr) auto minmax(120px, 1fr);
       align-items: stretch;
       gap: var(--space-6);
       padding: 0 var(--space-8);
@@ -1083,7 +1083,7 @@
     .table-card {
       max-width: 100%;
       overflow-x: auto;
-      overflow-y: hidden;
+      overflow-y: visible;
       -webkit-overflow-scrolling: touch;
     }
 
@@ -2319,7 +2319,9 @@
       border-radius: var(--radius-md);
     }
 
+    /* ─── Responsive: tablet (≤900px) ──────────────────────────────────────── */
     @media (max-width: 900px) {
+      /* Nav: collapse labels → icon-only tabs */
       .app-nav {
         height: 64px;
         grid-template-columns: auto minmax(0, 1fr) auto;
@@ -2356,6 +2358,7 @@
         min-width: 0;
       }
 
+      /* Shrink network label to dot only */
       .network {
         gap: 0;
         font-size: 0;
@@ -2364,19 +2367,60 @@
       .network-dot {
         flex: 0 0 auto;
       }
+
+      /* Chart labels shorter on tablet */
+      .chart-label {
+        width: 110px;
+      }
+
+      /* Dashboard V2 sidebar narrower on tablet */
+      .dashboard2-content {
+        grid-template-columns: 1fr 300px;
+      }
     }
 
+    /* ─── Responsive: mobile (≤768px) ──────────────────────────────────────── */
     @media (max-width: 768px) {
+      /* Public header */
       .public-header {
         padding: 0 var(--space-4);
       }
 
+      /* Public main centring */
       .public-main {
         align-items: start;
         padding: var(--space-8) var(--space-4);
+        min-height: auto;
       }
 
-      .home-grid,
+      /* Hero: stack hero text above process panel */
+      .home-grid {
+        grid-template-columns: 1fr;
+        gap: var(--space-6);
+      }
+
+      /* Hero h1 scale */
+      h1 {
+        font-size: clamp(1.9rem, 8vw, 2.6rem);
+        line-height: 1.05;
+      }
+
+      /* Process panel status pill wraps below text */
+      .process-row {
+        grid-template-columns: 2.1rem 1fr;
+      }
+
+      .process-row .status-pill {
+        grid-column: 2;
+        justify-self: start;
+      }
+
+      /* App main padding accounts for fixed nav */
+      .app-main {
+        padding: calc(64px + var(--space-6)) var(--space-4) var(--space-8);
+      }
+
+      /* Single-column grids */
       .content-grid,
       .metric-grid,
       .dashboard-layout,
@@ -2390,10 +2434,12 @@
         grid-template-columns: 1fr;
       }
 
+      /* Summary bar: 2 columns on mobile */
       .summary-bar {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
+      /* Project detail reflow */
       .project-detail-main > .assignment-card:not(.project-records),
       .project-detail-side,
       .project-records,
@@ -2403,27 +2449,12 @@
         grid-row: auto;
       }
 
-      .home-grid {
-        gap: var(--space-6);
-      }
-
+      /* Page head stacks */
       .page-head {
         display: grid;
       }
 
-      .process-row {
-        grid-template-columns: 2.1rem 1fr;
-      }
-
-      .process-row .status-pill {
-        grid-column: 2;
-        justify-self: start;
-      }
-
-      .app-main {
-        padding: calc(64px + var(--space-6)) var(--space-4) var(--space-8);
-      }
-
+      /* Card padding tightened */
       .card,
       .assignment-card,
       .activity-panel,
@@ -2434,18 +2465,33 @@
         padding: var(--space-4);
       }
 
+      /* Tables: horizontal scroll with touch momentum */
       .table-card {
         overflow-x: auto;
-        overflow-y: hidden;
+        overflow-y: visible;
         -webkit-overflow-scrolling: touch;
+        /* Fade hint that table scrolls right */
+        position: relative;
+      }
+
+      .table-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        pointer-events: none;
+        background: linear-gradient(to right, transparent, var(--color-surface-2));
+        border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
       }
 
       .table-card table {
-        min-width: 720px;
+        min-width: 680px;
       }
 
       .project-records .table-card table {
-        min-width: 940px;
+        min-width: 900px;
       }
 
       th,
@@ -2453,6 +2499,7 @@
         white-space: nowrap;
       }
 
+      /* But detail/expanded rows can wrap */
       .payment-detail-cell,
       .version-strip-cell,
       .payment-detail-cell *,
@@ -2460,6 +2507,7 @@
         white-space: normal;
       }
 
+      /* Team rows: avatar + info only (no status pill inline) */
       .team-row {
         grid-template-columns: 34px minmax(0, 1fr);
       }
@@ -2469,15 +2517,13 @@
         justify-self: start;
       }
 
+      /* Section tabs stack vertically */
       .section-tabs {
         align-items: flex-start;
         flex-direction: column;
       }
 
-      h1 {
-        font-size: 2.4rem;
-      }
-
+      /* Approval flow: single column on mobile */
       .approval-flow {
         grid-template-columns: 1fr;
         gap: var(--space-5);
@@ -2487,6 +2533,7 @@
         display: none;
       }
 
+      /* Info rows stack label above value */
       .info-row {
         align-items: flex-start;
         flex-direction: column;
@@ -2496,9 +2543,243 @@
       .info-row span:last-child {
         text-align: left;
       }
+
+      /* Modal: full width, use dynamic viewport height for notched phones */
+      .modal-card {
+        width: 100%;
+        max-height: calc(100dvh - var(--space-8));
+        padding: var(--space-5);
+      }
+
+      .modal-overlay {
+        padding: var(--space-3);
+        align-items: flex-end;
+      }
+
+      /* Chart label narrower */
+      .chart-label {
+        width: 90px;
+        font-size: var(--text-xs);
+      }
+
+      .chart-value {
+        width: 70px;
+        font-size: var(--text-xs);
+      }
+
+      /* ── Dashboard V2 mobile layout ─── */
+      .dashboard2-viewport {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        overflow: visible;
+      }
+
+      .dashboard2-content {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        overflow: visible;
+        padding: var(--space-4);
+        padding-top: calc(64px + var(--space-4));
+        padding-bottom: var(--space-6);
+        gap: var(--space-4);
+      }
+
+      .dashboard2-main-section {
+        overflow: visible;
+      }
+
+      .dashboard2-title {
+        font-size: 1.75rem;
+        margin-bottom: var(--space-4);
+      }
+
+      .dashboard2-chart-card {
+        overflow: visible;
+      }
+
+      .dashboard2-chart-content {
+        overflow: visible;
+      }
+
+      .dashboard2-sidebar {
+        overflow: visible;
+      }
+
+      /* Outstanding tasks: allow wrapping on small screens */
+      .outstanding-tasks-card {
+        height: auto;
+        overflow: visible;
+      }
+
+      .outstanding-tasks-list {
+        overflow: visible;
+      }
+
+      .outstanding-task-item {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .outstanding-task-item .btn {
+        width: auto;
+        min-width: 0;
+        flex-shrink: 0;
+      }
+
+      /* Recent activity: no longer position:fixed overlay pattern */
+      .dashboard2-recent-activity {
+        position: relative;
+        margin-top: 0;
+        left: auto;
+        transform: none;
+        width: 100%;
+        min-height: auto;
+        padding: var(--space-4);
+      }
+
+      /* Projects page container */
+      .projects-simple-container {
+        padding: var(--space-4);
+        padding-top: calc(64px + var(--space-4));
+      }
+
+      .projects-simple-head {
+        flex-wrap: wrap;
+        gap: var(--space-3);
+      }
+
+      .projects-simple-title {
+        font-size: 1.4rem;
+      }
+
+      /* Project simple list items: stack name + due on mobile */
+      .project-simple-item {
+        flex-wrap: wrap;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
+      }
+
+      /* Upload / Review / Response task pages */
+      .upload-task-container,
+      .work-package-view-container {
+        padding: var(--space-4);
+        padding-top: calc(64px + var(--space-4));
+        max-width: 100%;
+      }
+
+      .upload-task-title,
+      .work-package-view-title {
+        font-size: 1.4rem;
+      }
+
+      .task-info-card,
+      .project-info-card,
+      .upload-zone-card,
+      .review-content-card,
+      .review-decision-card,
+      .response-message-card,
+      .response-action-card,
+      .work-package-info-card,
+      .work-package-milestone-card,
+      .work-package-actions-card,
+      .work-package-chain-card,
+      .work-package-timeline-card,
+      .work-package-docs-card {
+        padding: var(--space-4);
+      }
+
+      /* Task action buttons: full width stack */
+      .task-actions {
+        flex-direction: column-reverse;
+        gap: var(--space-2);
+      }
+
+      .task-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Chart fullscreen */
+      .chart-fullscreen-container {
+        padding: var(--space-4);
+        padding-top: calc(64px + var(--space-4));
+      }
+
+      .chart-fullscreen-title {
+        font-size: 1.4rem;
+      }
+
+      /* Work package doc items: wrap button below name */
+      .wp-doc-item {
+        flex-wrap: wrap;
+      }
+
+      .wp-doc-details {
+        min-width: 0;
+        flex: 1 1 140px;
+      }
+
+      /* Contractor dial: stack vertically */
+      .contractor-dial-container {
+        flex-direction: column;
+        align-items: center;
+        gap: var(--space-4);
+        margin-top: 0;
+      }
+
+      .contractor-dial-legend {
+        width: 100%;
+      }
+
+      /* Settings layout: sidebar → dropdown-like top list */
+      .settings-layout {
+        gap: var(--space-4);
+      }
+
+      /* Dashboard header */
+      .dashboard-header h1 {
+        font-size: 1.75rem;
+      }
+
+      /* KPI count font scale */
+      .kpi-count {
+        font-size: 1.4rem;
+      }
+
+      /* Assignment title */
+      .assignment-title {
+        font-size: 1.2rem;
+      }
+
+      /* Page head title */
+      .page-head h1 {
+        font-size: 1.5rem;
+      }
+
+      /* Project subtitle wraps */
+      .project-subtitle {
+        flex-wrap: wrap;
+      }
+
+      /* Request head */
+      .request-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      /* Request amount */
+      .request-amount {
+        font-size: 1.75rem;
+      }
     }
 
+    /* ─── Responsive: small mobile (≤600px) ───────────────────────────────── */
     @media (max-width: 600px) {
+      /* Version history nodes wrap */
       .version-strip {
         display: flex;
         flex-wrap: wrap;
@@ -2512,21 +2793,107 @@
       .version-node {
         flex: 1 1 140px;
       }
+
+      /* Process panel: narrow */
+      .process-panel {
+        padding: var(--space-3);
+      }
+
+      /* Sign-in panel full width */
+      .signin-panel {
+        padding: var(--space-5);
+      }
+
+      /* Summary bar: 2 cols */
+      .summary-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+
+      /* Nav right: hide theme toggle label */
+      .theme-toggle {
+        width: 32px;
+        height: 32px;
+      }
+
+      /* Review options icon smaller */
+      .review-option-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+      }
+
+      /* Work package review items: stack button */
+      .work-package-review-item {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+      }
+
+      .work-package-review-actions {
+        justify-content: flex-start;
+      }
+
+      /* Approval trail: tighten indent */
+      .approval-trail {
+        padding-left: var(--space-4);
+      }
+
+      /* Modal steps: vertical */
+      .modal-steps {
+        grid-template-columns: 1fr;
+        gap: var(--space-2);
+      }
+
+      .modal-step-line {
+        display: none;
+      }
+
+      /* Inner tabs scroll */
+      .inner-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: var(--space-1);
+      }
+
+      /* Filter bar: stacks */
+      .document-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .filter-select-wrap {
+        min-width: 0;
+        width: 100%;
+      }
+
+      /* Timeline chart rows: narrower labels */
+      .chart-label {
+        width: 70px;
+      }
+
+      .chart-value {
+        display: none;
+      }
     }
 
+    /* ─── Responsive: extra small (≤480px) ───────────────────────────────── */
     @media (max-width: 480px) {
+      /* Hide wordmark on tiny phones — logo SVG only */
       .wordmark {
         display: none;
       }
 
+      /* Hide ghost btn in public header */
       .header-actions .btn-ghost {
         display: none;
       }
 
+      /* Single column for summary bar */
       .summary-bar {
         grid-template-columns: 1fr;
       }
 
+      /* Nav: tightest padding */
       .app-nav {
         padding: 0 var(--space-2);
       }
@@ -2536,13 +2903,202 @@
         padding: 0 var(--space-1);
       }
 
+      /* Hide network dot too — nav is very narrow */
+      .network-dot {
+        display: none;
+      }
+
+      /* Tighten all cards */
       .card,
       .signin-panel,
       .assignment-card,
       .activity-panel,
       .settings-card,
       .wallet-readonly-card {
+        padding: var(--space-3);
+      }
+
+      /* Modal almost full-screen sheet */
+      .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+      }
+
+      .modal-card {
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        max-height: 92dvh;
         padding: var(--space-4);
+      }
+
+      /* Hero headline */
+      h1 {
+        font-size: clamp(1.6rem, 9vw, 2rem);
+      }
+
+      .lead {
+        font-size: var(--text-base);
+      }
+
+      /* Public actions: stack */
+      .public-actions {
+        flex-direction: column;
+      }
+
+      .public-actions .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Chip rows wrap tighter */
+      .chip-row {
+        gap: var(--space-1);
+        margin-bottom: var(--space-3);
+      }
+
+      /* Assignment stats single column */
+      .assignment-stats {
+        grid-template-columns: 1fr;
+      }
+
+      /* Assignment actions: stack */
+      .assignment-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      /* KPIs: tighter */
+      .kpi-card {
+        padding: var(--space-4);
+      }
+
+      .kpi-count {
+        font-size: 1.3rem;
+      }
+
+      /* Dashboard V2 title */
+      .dashboard2-title {
+        font-size: 1.4rem;
+      }
+
+      /* Upload dropzone: smaller padding */
+      .upload-dropzone {
+        padding: var(--space-6);
+      }
+
+      /* Work package actions: full-width buttons */
+      .work-package-action-buttons {
+        flex-direction: column;
+      }
+
+      .work-package-action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+      }
+
+      /* Outstanding task items: stack title above button */
+      .outstanding-task-item {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .outstanding-task-item .btn {
+        align-self: flex-end;
+      }
+
+      /* Role actions: already full-width, ensure font size fine */
+      .role-actions .btn {
+        font-size: var(--text-sm);
+      }
+
+      /* Wallet address: allow overflow wrap */
+      .wallet-address {
+        word-break: break-all;
+        white-space: normal;
+        font-size: var(--text-xs);
+      }
+
+      /* Doc item: tighten */
+      .wp-doc-item {
+        padding: var(--space-2);
+        gap: var(--space-2);
+      }
+
+      .wp-doc-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 10px;
+      }
+
+      /* Approval flow: smaller dots */
+      .flow-dot {
+        width: 18px;
+        height: 18px;
+      }
+
+      /* Dashboard V2 chart label: hide on very small */
+      .chart-label {
+        display: none;
+      }
+
+      .chart-bar-container {
+        border-radius: var(--radius-sm);
+      }
+
+      /* Tab buttons scroll horizontally */
+      .tab-buttons {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        flex-wrap: nowrap;
+      }
+
+      /* Settings tabs: horizontal scroll at very small sizes */
+      .settings-tabs {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: var(--space-1);
+        padding: var(--space-2);
+      }
+
+      .settings-tab {
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
+      /* Project phase timeline: 2 columns */
+      .project-phase-timeline__nodes {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: var(--space-3);
+      }
+    }
+
+    /* ─── Responsive: milestone bar stacks on narrow ─────────────────────── */
+    @media (max-width: 720px) {
+      .work-package-milestone-head {
+        flex-direction: column;
+      }
+
+      .work-package-milestone-legend {
+        justify-content: flex-start;
+      }
+
+      .milestone-payment-bar {
+        height: auto;
+        min-height: 52px;
+        border-radius: var(--radius-lg);
+        flex-direction: column;
+      }
+
+      .milestone-payment-segment {
+        width: 100% !important;
+        min-height: 48px;
+        min-width: 0;
+      }
+
+      .milestone-payment-segment + .milestone-payment-segment {
+        border-left: 0;
+        border-top: 2px solid color-mix(in srgb, #ffffff 70%, transparent);
       }
     }
 
@@ -3845,34 +4401,6 @@
     .milestone-detail-meta strong {
       color: var(--color-text);
       font-weight: 600;
-    }
-
-    @media (max-width: 720px) {
-      .work-package-milestone-head {
-        flex-direction: column;
-      }
-
-      .work-package-milestone-legend {
-        justify-content: flex-start;
-      }
-
-      .milestone-payment-bar {
-        height: auto;
-        min-height: 52px;
-        border-radius: var(--radius-lg);
-        flex-direction: column;
-      }
-
-      .milestone-payment-segment {
-        width: 100% !important;
-        min-height: 48px;
-        min-width: 0;
-      }
-
-      .milestone-payment-segment + .milestone-payment-segment {
-        border-left: 0;
-        border-top: 2px solid color-mix(in srgb, #ffffff 70%, transparent);
-      }
     }
 
     /* Timeline */

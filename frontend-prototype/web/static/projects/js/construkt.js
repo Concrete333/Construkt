@@ -615,9 +615,9 @@ const store = {
 
     function chipTone(status) {
       const value = String(status || '').toLowerCase();
+      if (/(held|partially funded|in progress)/.test(value)) return 'chip-tone-warning';
       if (/(released|funded|approved|active)/.test(value)) return 'chip-tone-success';
       if (/(submitted|pending|under review)/.test(value)) return 'chip-tone-primary';
-      if (/(held|partially funded|in progress)/.test(value)) return 'chip-tone-warning';
       if (/(rejected|locked|blocked)/.test(value)) return 'chip-tone-danger';
       return 'chip-tone-neutral';
     }
