@@ -12,7 +12,8 @@ Use lowercase `construkt` for code-level names:
 
 - Anchor workspace/program: `construkt`
 - Program folder: `programs/construkt`
-- Test file: `tests/construkt.ts`
+- Anchor test files: `tests/construkt.b1-accounts.ts` through `tests/construkt.b4-release.ts`
+- Shared Anchor test fixture: `tests/setup.ts`
 - Frontend app folder: `app`
 - Frontend package name: `construkt-app`
 
@@ -287,6 +288,19 @@ Build one clean end-to-end flow:
 Role switching is a demo/navigation aid only. Program permissions are enforced by the signer wallet, not UI selection.
 
 ## Tests
+
+Commands:
+
+- `npm run test:frontend` runs the backendless demo helper unit tests from the repository root. It uses `frontend-prototype/tests/construkt.frontend.ts`, does not require WSL, Django, a browser, localnet, devnet, or Anchor.
+- `npm run anchor:test` runs the Anchor/localnet program tests. Run Anchor/Solana program commands inside WSL Ubuntu.
+
+Frontend helper tests currently cover:
+
+- money formatting/parsing, easing, percent clamping, and date progress helpers
+- role labels, initials, chip tones, timeline dots, and model labels
+- project totals, contractor assignment detection, finance approval status, package status labels/classes, and bespoke timeline generation
+
+These tests are useful regression checks for expected frontend helper behavior, but they copy pure helper logic into the test file instead of importing the browser bundle directly. Keep that limitation in mind when changing `frontend-prototype/web/static/projects/js/construkt.js`.
 
 Anchor tests should cover at least:
 

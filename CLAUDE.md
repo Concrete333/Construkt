@@ -77,10 +77,10 @@ Role bytes: Contractor=1, LowApprover=2, HighApprover=3
 
 Tests are split into four ordered files (b1–b4) using ts-mocha with shared fixtures from `tests/setup.ts`. The `createFixture()` helper creates isolated per-test keypairs and PDAs so test suites don't share state. Requires WSL + localnet.
 
-- `b1-accounts.ts` — project/package setup, role assignment
-- `b2-funding.ts` — escrow funding
-- `b3-requests.ts` — request submission, document ref, approvals, rejection, holds
-- `b4-release.ts` — payment release and blocked-state guards
+- `construkt.b1-accounts.ts` — project/package setup, role assignment
+- `construkt.b2-funding.ts` — escrow funding
+- `construkt.b3-requests.ts` — request submission, document ref, approvals, rejection, holds
+- `construkt.b4-release.ts` — payment release and blocked-state guards
 
 ### Frontend Unit Tests (`frontend-prototype/tests/construkt.frontend.ts`)
 
@@ -95,6 +95,12 @@ Covers: `formatGBP`, `parseMoneyKpi`, `formatMoneyKpi`, `easeOutCubic`, `clampPe
 ### Backendless Demo (`frontend-prototype/web/index.html`)
 
 Static HTML/CSS/JS demo — the canonical presentation entry point. No wallet, no Anchor, no server required. Business state is mocked. Used for UX iteration before the full Solana-integrated frontend (`app/`, not yet built).
+
+The other HTML sources are intentionally retained for planning but are not the canonical demo source right now:
+
+- `frontend-prototype/web/templates/projects/construkt.html` may be used later if the final site becomes Django-based.
+- `frontend-prototype/website/construkt.html` is retained as a standalone legacy/export source.
+- Keep product behavior changes in `frontend-prototype/web/static/projects/js/construkt.js` and shared CSS unless a specific HTML source is being updated deliberately.
 
 ## V0 Design Decisions
 

@@ -124,10 +124,10 @@ onclick="showWorkPackage('${project.name}', '${packageName}', '${formatGBP(payme
   ```
 
 ### Navigation Functions
-Located around lines 2010-2041:
+Located in `frontend-prototype/web/static/projects/js/construkt.js`:
 - `showProjectDetail(id)` - Navigate to project detail page
-- `showPackageDetail(projectId, packageId)` - Navigate to package detail page
-- `showWorkPackage(projectName, packageName, amount, type, event)` - Navigate to work package view (NEW)
+- `openWorkPackageView(projectId, packageId, event)` - Navigate to the current work package view from stored project/package IDs
+- `showWorkPackage(projectName, packageName, amount, type, event)` - Navigate to the current work package view from chart/dashboard display data
 
 ### Design System
 The application uses CSS custom properties (CSS variables) for consistent styling:

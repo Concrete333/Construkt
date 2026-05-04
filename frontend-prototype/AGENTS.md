@@ -12,7 +12,8 @@ Use lowercase `construkt` for code-level names:
 
 - Anchor workspace/program: `construkt`
 - Program folder: `programs/construkt`
-- Test file: `tests/construkt.ts`
+- Anchor test files: `../tests/construkt.b1-accounts.ts` through `../tests/construkt.b4-release.ts`
+- Shared Anchor test fixture: `../tests/setup.ts`
 - Frontend app folder: `app`
 - Frontend package name: `construkt-app`
 

@@ -1,18 +1,58 @@
 # Front/Back Merge Plan
 
-Living plan for merging the canonical Construkt Anchor backend in `ConstruktDev/` with the frontend prototype now staged at `ConstruktDev/frontend-prototype/`.
+Current plan for connecting the Construkt frontend prototype to the Anchor smart contract backend.
 
-This document should be updated as the frontend develops. Its job is to keep the team aligned on source of truth, data ownership, schema mapping, and integration steps.
+This plan is frontend-first. The current frontend tells us which product actions users expect. The backend work is to make each action execute at the correct time, with the correct signer, against the correct Anchor instruction or off-chain metadata path.
 
-## Current State
+Working source:
 
-### Backend: `ConstruktDev/`
+- Frontend demo: `frontend-prototype/web/index.html`
+- Frontend behavior: `frontend-prototype/web/static/projects/js/construkt.js`
+- Frontend unit tests: `frontend-prototype/tests/construkt.frontend.ts`
+- Anchor program: `programs/construkt/src/lib.rs`
+- Anchor tests: `tests/`
 
-`ConstruktDev/` is the canonical backend.
+Frontend source policy:
 
-It is a Solana Anchor program, not a traditional web backend. There is no REST API, Django API, database, or off-chain application server in V0.
+- `frontend-prototype/web/index.html` is the canonical backendless demo entry point for current demos.
+- `frontend-prototype/web/templates/projects/construkt.html` is retained for possible Django-based planning.
+- `frontend-prototype/website/construkt.html` is retained as a standalone legacy/export source.
+- These three HTML sources may intentionally diverge until the final frontend runtime is chosen. Keep product behavior changes in `frontend-prototype/web/static/projects/js/construkt.js` and shared CSS unless a specific HTML source is being updated deliberately.
 
-The on-chain accounts are the backend data layer:
+## Goal
+
+Build backwards from the current frontend so the integrated product can complete one real escrow payment flow:
+
+1. Finance creates a project.
+2. A package is prepared from frontend inputs.
+3. Finance approves the package for escrow.
+4. The backend creates the work package, role assignments, vault, and funding.
+5. Contractor submits a payment request with a document reference.
+6. Project Manager approves or rejects.
+7. Finance performs the final approval/release path required by the backend.
+8. Contractor receives tokens.
+9. The UI updates from backend account state and transaction results.
+
+For V0, the smart contract remains the source of truth for escrow, roles, request status, holds, approvals, and release. Rich product data stays off-chain unless explicitly listed as an Anchor account requirement.
+
+## Current Backend Capability
+
+The current Anchor program supports:
+
+- `initialize_project(project_id, name, metadata_ref)`
+- `create_work_package(package_id, cap_amount, contractor, scope_ref)`
+- `assign_role(role, wallet)`
+- `set_role_active(active)`
+- `fund_escrow(amount)`
+- `submit_payment_request(request_id, amount, document_ref)`
+- `add_document_reference(document_ref)`
+- `approve_request(role, note_ref)`
+- `reject_request(role, note_ref)`
+- `place_hold(hold_ref)`
+- `remove_hold()`
+- `release_payment()`
+
+Current on-chain accounts:
 
 - `ProjectAccount`
 - `WorkPackageAccount`
@@ -21,374 +61,1063 @@ The on-chain accounts are the backend data layer:
 - `ApprovalRecord`
 - SPL Token mint/accounts for mock USDC escrow
 
-### Frontend Prototype: `ConstruktDev/frontend-prototype/`
+Current backend-enforced flow:
 
-The Django/static frontend prototype has been moved out of `ConstruktFrontend/` and into `ConstruktDev/frontend-prototype/` so the working frontend and backend now live under the same development tree.
+1. `initialize_project`
+2. `create_work_package`
+3. `assign_role(Role::Contractor)`
+4. `assign_role(Role::LowApprover)`
+5. `assign_role(Role::HighApprover)`
+6. `fund_escrow`
+7. `submit_payment_request`
+8. `approve_request(Role::LowApprover)`
+9. `approve_request(Role::HighApprover)`
+10. `release_payment`
 
-The backendless demo entry point is `ConstruktDev/frontend-prototype/web/index.html`. Treat this as the canonical standalone static demo for product-flow walkthroughs and UX iteration before Anchor integration. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Mocked/local-only state is acceptable in this file, but it must not be treated as on-chain truth.
+Important backend constraints:
 
-Run any remaining Django/static prototype surfaces from `ConstruktDev/frontend-prototype/web` only when intentionally working on those legacy/static assets.
+- Only `ProjectAccount.authority` can create work packages, fund escrow, place/remove holds, and release.
+- Contractor must be assigned and active before submitting requests.
+- Low approver must approve before high approver.
+- Contractor cannot approve their own request.
+- Same wallet cannot hold both approver roles for one package.
+- Holds are request-level, not package-level.
+- Release requires `PaymentRequestStatus::HighApproved`.
+- The backend tracks funded amount; direct SPL transfers to the vault do not expand budget.
 
-The implemented instruction set currently includes:
+## Current Frontend Actions
 
-- `initialize_project`
-- `create_work_package`
-- `assign_role`
-- `set_role_active`
-- `fund_escrow`
-- `submit_payment_request`
-- `add_document_reference`
-- `approve_request`
-- `reject_request`
-- `place_hold`
-- `remove_hold`
-- `release_payment`
+The current frontend has these user-facing actions:
 
-The source of truth is `programs/construkt/src/lib.rs`, with tests under `tests/`.
+| Frontend action | Current frontend function | Backend requirement |
+|---|---|---|
+| Create project | `createProject` | `initialize_project` plus off-chain metadata save |
+| Add estimated package | `addPackage` | Off-chain package draft, then later on-chain `create_work_package` |
+| Finance approve package | `approveWorkPackage` | Orchestrate `create_work_package`, `assign_role`, and maybe `fund_escrow` |
+| Fund package | `fundPackage` | `fund_escrow` |
+| Place hold | `placeHold` | `place_hold` on an active payment request, not package status |
+| Remove hold | No clear current UI action | Add UI action for `remove_hold` |
+| Submit invoice | `submitInvoice` | `submit_payment_request` |
+| Add/update document | `addDocument`, `editDocument`, `updateDocument` | Off-chain document metadata; `add_document_reference` only when updating request reference |
+| Request documents | `requestDocuments` | Off-chain task/notification metadata |
+| PM approve request | `approveRequest` | `approve_request(Role::LowApprover)` |
+| Finance/final approve request | currently folded into `releaseFunds` | Must either call `approve_request(Role::HighApprover)` or backend must be changed |
+| Reject request | `rejectRequest` | `reject_request(role)` |
+| Release funds | `releaseFunds` | `release_payment` after high approval |
+| Add team member | `addTeamMember` | Off-chain team metadata and/or `assign_role` when wallet + package role are known |
+| Submit variation | `submitVariation` | No current backend support |
+| Approve/reject variation | `approveVariation`, `rejectVariation` | No current backend support |
+| Settings/profile/notifications | settings UI | Off-chain only |
 
-### Frontend Prototype: `ConstruktFrontend/Construkt-mar-dev/`
+## Product Decision: Finance And High Approval
 
-`ConstruktFrontend/Construkt-mar-dev/` is the current frontend prototype and design reference.
+The largest mismatch is final approval.
 
-It is currently a Django shell serving one static HTML page from `web/templates/projects/construkt.html`, with UI behavior driven by a hardcoded JavaScript object in `web/static/projects/js/construkt.js`.
+The frontend currently has three roles:
 
-There are no meaningful Django models, no app database, no API layer, no fetch/axios calls, and no wallet or Anchor client integration.
+- Finance Director
+- Project Manager
+- Contractor
 
-`website/construkt.html` appears to be a standalone/exported copy of the same prototype and should be treated as a visual reference only unless it is intentionally chosen as the working source.
+The backend has four distinct responsibilities:
 
-`ConstruktFrontend/Construkt-mar-dev/` also contains a duplicate Anchor workspace and program under `programs/construkt`. That duplicate program is not canonical and should not be merged into the backend.
+- Project authority/Finance: funds, holds, releases
+- Contractor: submits payment request
+- LowApprover: first approval, maps naturally to Project Manager
+- HighApprover: second approval, required before release
 
-## Current Frontend Functionality Scan
+We need one explicit decision before integration work starts:
 
-The prototype is feature-rich as a click-through UI, but all product data is local browser state:
+Option A: Add a Director/High Approver role to the frontend.
 
-- Hash routes: `home`, `signin`, `dashboard2`, `chart-fullscreen`, `work-package-view`, `upload-task`, `review-task`, `response-task`, `projects`, `project-detail`, and `settings`. Legacy `#dashboard` and `#work-package-detail` hashes should alias to `#dashboard2` and `#work-package-view`.
-- Demo role switcher: Finance Director, Project Manager, and Contractor. It controls visible panels/actions only.
-- Project views: project list, project detail, work package list, milestone timeline, team list, audit log, and work package detail.
-- Workflow modals: create project, add package, fund package, place hold, submit invoice, approve request, reject request, release funds, add team member, add document, and edit document.
-- Contract model UI: milestone, valuation, and bespoke project setup paths.
-- Document UI: document list, filters, linked-payment selection, package attachment, edit flow, version increment flow, and local file-name display.
-- Payment UI: request cards/tables, expandable payment rows, approval timeline, linked documents, and role-specific action buttons.
-- V0 dashboard UI: `#dashboard2`, chart fullscreen, task upload/review/response screens, and work-package drilldown using `sessionStorage`.
-- Persistence: `localStorage` only stores theme; `sessionStorage` stores temporary task/package navigation context. Business state resets on refresh.
+- Best match for the existing smart contract.
+- Keeps Finance release separate from second approval.
+- Requires UI updates for role switcher, dashboard tasks, request cards, and work-package action rows.
 
-Important implementation anchors in `web/static/projects/js/construkt.js`:
+Option B: Treat Finance Director as both `HighApprover` and project authority in V0 demos.
 
-- `store` defines all projects, packages, payment requests, documents, milestones, team members, and audit rows.
-- `createProject()` adds inline project metadata and local milestone/team objects.
-- `addPackage()` creates nested package objects under a project.
-- `fundPackage()` increments `pkg.funded` and updates string status.
-- `placeHold()` sets package status to `Locked`.
-- `submitInvoice()` appends a nested request object under a package.
-- `approveRequest()` always models PM approval and moves to `Pending Finance Review`.
-- `rejectRequest()` sets local request status to `Rejected`.
-- `releaseFunds()` sets finance approval fields, marks request `Released`, and increments package released amount.
-- `addDocument()`, `editDocument()`, and `updateDocument()` manage rich document metadata and version display locally.
+- Smaller frontend change.
+- The same wallet may approve as high approver and then release.
+- Must be documented as demo simplification.
+- Still requires two backend transactions: high approval, then release.
 
-## Prototype Gaps To Preserve In Merge Planning
+Option C: Modify the smart contract to remove high approval from V0.
 
-- The navbar currently labels the network as `SOLANA MAINNET`; the V0 integrated app should label localnet/devnet mock USDC clearly.
-- Finance release and second approval are conflated in `releaseFunds()`. Backend V0 separates Director/`HighApprover` approval from Finance/project-authority release.
-- Holds are package-level UI locks in the prototype, but backend holds are payment-request-level fields.
-- Funding and release are GBP-style JS numbers in the prototype, but backend escrow uses SPL Token base units.
-- `approveRequest()` is only PM-shaped. The integrated UI needs distinct PM low approval and Director high approval actions.
-- Role visibility is not authorization. The integrated UI must compare the connected signer wallet with assigned role accounts and still rely on program errors.
-- Project/team/milestone/document detail is richer than the on-chain accounts. That data needs an off-chain metadata adapter.
-- The static/Django template is large and tightly coupled to imperative DOM rendering. Porting should extract view models and component boundaries rather than copying the JS store forward as architecture.
+- Best match for the current frontend, but weakens the locked approval model.
+- Requires changing `PaymentRequestStatus`, `approve_request`, tests, release guard, and AGENTS.md design assumptions.
+- Not recommended unless the product has intentionally changed to PM approval plus Finance release only.
 
-## Canonical Repo Decision
+Recommended path: Option B for the first integrated demo, followed by Option A if the product needs a true separate Director actor.
 
-`ConstruktDev/` is the canonical repo for the merged product.
+## Backend Modifications Needed
 
-The recommended frontend target remains:
+These are the smart contract or backend-adjacent changes needed to support the current frontend cleanly.
 
-```text
-ConstruktDev/app/
-```
+### Required For First Integrated Demo
 
-Use the prototype as a UX/design source, not as the runtime architecture.
+1. Add a frontend integration client layer.
 
-## Material Data Differences
+   Files to create under the future app or integration package:
 
-| Concern | Backend: Anchor/on-chain | Frontend prototype: JS store |
-| --- | --- | --- |
-| Source of truth | Solana program accounts fetched via Anchor and IDL | Hardcoded in-memory `store` object |
-| Identity | Wallet public keys and transaction signers | Demo role strings and a role switcher |
-| Finance | `ProjectAccount.authority` | `finance_director` semantic role |
-| PM | `Role::LowApprover` assignment | `project_manager` string |
-| Director | `Role::HighApprover` assignment | Not cleanly separated from finance release in the prototype |
-| Contractor | `Role::Contractor` assignment and request signer | `contractor` string/name |
-| Project metadata | Minimal fields plus `metadata_ref` pointer | Rich inline object: client, contract model, dates, team, milestones |
-| Work packages | Separate PDA account per package | Nested `packages[]` array |
-| Payment requests | Separate PDA account per request | Nested `requests[]` array inside package |
-| Approvals | `ApprovalRecord` PDAs plus request status enum | Flat booleans like `pmApproved`, `fdApproved` |
-| Status flow | `Submitted -> LowApproved -> HighApproved -> Released` or `Rejected` | Human strings like `Submitted`, `Pending Finance Review`, `Released`, `Locked` |
-| Holds | Request-level fields: `hold_active`, `hold_by`, `hold_ref` | Package-level lock/status behavior through `placeHold()` |
-| Money | `u64` token base units, SPL Token escrow vault, checked arithmetic | Plain JS numbers formatted as GBP |
-| Documents | `document_ref` string pointer only | Full `documents[]` objects with versions and links |
-| Audit | Account state, approval records, transaction signatures, emitted events | Hand-populated `auditLog[]` array |
+   - `src/lib/construkt/anchorClient.ts`
+   - `src/lib/construkt/pda.ts`
+   - `src/lib/construkt/transactions.ts`
+   - `src/lib/construkt/viewModels.ts`
+   - `src/lib/construkt/metadataClient.ts`
 
-## Important Integration Rules
+   Responsibilities:
 
-1. The UI may explain likely blocked states, but the Anchor program decides what is valid.
-2. Role switching is only a demo/navigation aid. It must not imply signing authority.
-3. The connected signer wallet must match the required role or authority.
-4. Finance is not the high approver. Finance is the project authority and handles funding, holds, and release.
-5. PM maps to `LowApprover`.
-6. Director maps to `HighApprover`.
-7. Holds are request-level in the backend, even if the UI presents them in a package context.
-8. Full document storage, project/team metadata, and milestone details are off-chain concerns.
+   - create Anchor provider/program
+   - derive all PDAs
+   - build each transaction from UI input
+   - convert token display units to base units
+   - fetch Anchor accounts
+   - return UI-friendly view models
+   - preserve transaction signatures for audit display
 
-## Off-Chain Metadata Gap
+2. Add seed/dev wallet setup.
 
-Several backend fields are references, not full payloads:
+   Needed wallets:
 
-- `metadata_ref`
-- `scope_ref`
-- `document_ref`
-- `note_ref`
-- `hold_ref`
+   - Finance/project authority
+   - Project Manager/LowApprover
+   - HighApprover, either separate Director or Finance for demo
+   - Contractor
 
-The prototype assumes rich inline data for:
+   Needed token accounts:
 
-- client details
-- contract model
-- start/end dates
-- team members
-- milestones
-- document names/types/versions/files
-- payment notice style metadata
-- audit display text
+   - finance mock USDC token account
+   - contractor mock USDC token account
+   - per-package escrow vault ATA, created by `create_work_package`
 
-V0 needs a simple answer for where that data lives.
+3. Add ID and PDA mapping.
 
-Options:
+   Frontend IDs like `proj-...`, `wp-...`, and `req-...` cannot be sent directly to Anchor.
 
-- Session/local JSON for a local demo only
-- Static seed JSON checked into `app/`
-- Supabase or another lightweight database
-- IPFS/S3-style document and metadata storage
+   Required mapping:
 
-Short-term recommendation: use a small off-chain metadata adapter in the frontend, backed by seed JSON for demo, with refs written to chain where required. Keep the adapter boundary narrow so it can later point to Supabase/IPFS/S3.
+   - project display ID -> `u64 project_id`
+   - package display ID -> `u64 package_id`
+   - request display ID -> `u64 request_id`
+   - off-chain metadata ID -> `metadata_ref`, `scope_ref`, `document_ref`, `note_ref`, `hold_ref`
 
-## Proposed Frontend Architecture
+   PDA seeds to implement:
 
-Create a React/Vite app:
+   - `["project", authority, project_id_le_bytes]`
+   - `["work_package", project, package_id_le_bytes]`
+   - `["vault_authority", work_package]`
+   - `["role", work_package, role_byte, wallet]`
+   - `["payment_request", work_package, request_id_le_bytes]`
+   - `["approval", payment_request, role_byte]`
 
-```text
-app/
-  src/
-    lib/
-      anchorClient.ts
-      pda.ts
-      program.ts
-      format.ts
-      metadataClient.ts
-    selectors/
-      projectSelectors.ts
-      paymentSelectors.ts
-      auditSelectors.ts
-    components/
-    pages/
-```
+4. Add transaction orchestration for package approval.
 
-### Client Layer
+   The frontend `approveWorkPackage()` currently does too much as a local state update.
 
-`anchorClient.ts` should own:
+   Backend-backed flow should be:
 
-- wallet/provider setup
-- program ID and IDL loading
+   - save or resolve package metadata off-chain
+   - call `create_work_package`
+   - call `assign_role(Role::Contractor)`
+   - call `assign_role(Role::LowApprover)`
+   - call `assign_role(Role::HighApprover)`
+   - optionally call `fund_escrow` immediately if Finance enters funding amount
+   - refresh project/package accounts
+   - show vault address and transaction signatures
+
+   Keep the UI label "Approve package" if that makes product sense, but internally it must become multiple backend operations.
+
+5. Split final request handling.
+
+   Current `releaseFunds()` must be split into:
+
+   - `approveHighRequest()` -> `approve_request(Role::HighApprover, note_ref)`
+   - `releasePayment()` -> `release_payment()`
+
+   The release button must not be enabled until the request account is `HighApproved`, not merely PM-approved.
+
+6. Rework holds.
+
+   Current `placeHold()` sets package status to `Locked`.
+
+   Backend-backed behavior:
+
+   - user selects or confirms an active request
+   - UI writes hold note metadata and passes `hold_ref`
+   - call `place_hold(hold_ref)`
+   - render request as held from `PaymentRequestAccount.hold_active`
+   - add a visible "Remove hold" action for Finance
+   - call `remove_hold()`
+
+7. Route document actions through metadata.
+
+   Current frontend document objects contain names, versions, file details, payment links, package links, uploader, and dates.
+
+   V0 backend should not store rich document data on-chain.
+
+   Required behavior:
+
+   - save document metadata off-chain
+   - attach returned ref/hash to frontend view model
+   - when a payment request document reference changes, call `add_document_reference(document_ref)`
+   - keep document filters and version display off-chain
+
+8. Add account-state based view models.
+
+   Replace local mutation as source of truth with selectors over fetched state.
+
+   Required selectors:
+
+   - project summary
+   - package funding status
+   - package release readiness
+   - request approval timeline
+   - active request per package
+   - held request state
+   - role-specific actions
+   - token balances
+   - audit/event timeline
+
+### Backend Program Changes To Consider After First Demo
+
+These are not required for the first on-chain escrow demo, but the current frontend already models them.
+
+1. Estimated/unassigned work packages.
+
+   Current contract requires a contractor and cap at `create_work_package`.
+
+   Options:
+
+   - keep estimates off-chain until Finance approval
+   - add an on-chain `PackageDraftAccount`
+   - allow nullable contractor/zero funding in `WorkPackageAccount`
+
+   Recommendation: keep estimates off-chain in V0.
+
+2. Package-level holds.
+
+   Current contract supports request-level holds only.
+
+   Options:
+
+   - keep UI package hold as "place hold on active request"
+   - add package-level hold fields to `WorkPackageAccount`
+
+   Recommendation: keep request-level holds for V0 and change the UI wording.
+
+3. Variations/change orders.
+
+   Current frontend supports variation submission, PM approval, Finance approval, contractor agreement, and rejection.
+
+   Backend options:
+
+   - off-chain only for V0
+   - add `VariationRequestAccount`
+   - add cap adjustment instruction after approvals
+
+   Recommendation: off-chain only for V0 unless variations become part of the escrow demo.
+
+4. Document requests.
+
+   Current frontend supports PM requesting documents from contractor.
+
+   Backend options:
+
+   - off-chain task/notification only
+   - add `DocumentRequestAccount`
+
+   Recommendation: off-chain only for V0.
+
+5. Milestone, valuation, and bespoke schedules.
+
+   Current frontend has contract model UI and package milestone schedule display.
+
+   Backend options:
+
+   - off-chain metadata only
+   - add schedule accounts and partial release support
+
+   Recommendation: off-chain metadata only for V0 because current backend releases each payment request in full.
+
+6. Partial release/retention.
+
+   Current backend V0 releases request amount in full.
+
+   Do not add partial release until the basic flow is integrated and tested.
+
+## Integration Architecture
+
+Use three layers between UI and Anchor.
+
+### 1. Metadata Adapter
+
+Stores rich fields that are not on-chain:
+
+- client/organisation
+- project dates
+- project contract model
+- package display name and contract reference
+- package start/completion dates
+- package contract model
+- milestones/payment schedule
+- team member display names/orgs
+- document names/types/files/versions
+- approval/rejection/hold note text
+- variation data
+- document request data
+
+For first demo this can be seed JSON plus local persistence. Later it can point to Supabase, IPFS, S3, or another backend.
+
+### 2. Anchor Client
+
+Owns all blockchain work:
+
+- provider/program creation
+- wallet/signer checks
+- PDA derivation
+- instruction calls
 - account fetches
-- transaction submission
-- SPL token balance reads
+- token account lookup
+- unit conversion
 - transaction signature capture
+- explorer URL generation for localnet/devnet
 
-`pda.ts` should own all PDA derivations:
+### 3. View Model Layer
 
-```text
-["project", authority, project_id]
-["work_package", project, package_id]
-["vault_authority", work_package]
-["role", work_package, role_byte, wallet]
-["payment_request", work_package, request_id]
-["approval", payment_request, role_byte]
-```
+Combines Anchor state and metadata:
 
-Role seed bytes:
+- account state is authoritative for escrow/request/action status
+- metadata supplies names, descriptions, docs, and display context
+- view models decide which buttons are visible or disabled
+- components should not inspect raw Anchor account shapes directly
 
-```text
-Contractor = 1
-LowApprover = 2
-HighApprover = 3
-```
+## Required Frontend Refactors
 
-### Selector/View Model Layer
+1. Replace local `store` mutations with adapter calls.
 
-Selectors should translate raw Anchor accounts into UI-friendly view models.
+   Keep a mock implementation first, but make the interface match the eventual Anchor-backed implementation.
 
-Example responsibilities:
+2. Replace role switcher permissions.
 
-- Convert `PaymentRequestStatus` enum to display labels.
-- Merge `PaymentRequestAccount` and `ApprovalRecord[]` into an approval tracker.
-- Compute release blocked reasons from fetched state.
-- Convert token base units into mock USDC display values.
-- Resolve `metadata_ref`, `scope_ref`, `document_ref`, and `note_ref` through the off-chain metadata adapter.
-- Build audit timeline rows from current account state, approval records, transaction signatures, and events where available.
+   Role switcher may remain as a demo aid, but transaction permissions must come from connected wallet and on-chain `RoleAssignmentAccount`.
 
-This keeps React components clean and avoids scattering Anchor-specific shapes through the UI.
+3. Add wallet state.
 
-## Prototype Function Mapping
+   UI needs to show:
 
-| Prototype function | Backend-backed replacement |
-| --- | --- |
-| `createProject()` | `initializeProject()` plus metadata ref creation |
-| `addPackage()` | `createWorkPackage()` plus scope metadata ref |
-| `addTeamMember()` | Usually `assignRole()` for V0 roles; richer team data stays off-chain |
-| `fundPackage()` | `fundEscrow()` |
-| `submitInvoice()` | `submitPaymentRequest()` |
-| `addDocument()` / `updateDocument()` | Off-chain metadata update plus `addDocumentReference()` when linked to active request |
-| `approveRequest()` | Split into PM `approveRequest({ lowApprover: {} })` and Director `approveRequest({ highApprover: {} })` actions |
-| `rejectRequest()` | `rejectRequest(role, noteRef)` |
-| `placeHold()` | `placeHold(holdRef)` on the active request |
-| `releaseFunds()` | `releasePayment()` |
+   - connected wallet
+   - active demo role
+   - whether wallet matches required signer for an action
+   - token account availability
 
-## Merge Plan
+4. Split request actions.
 
-### Phase 1: Stabilize Boundaries
+   PM approval, high approval, rejection, hold, remove hold, and release need separate action states.
 
-- Keep `ConstruktDev/` as canonical.
-- Do not merge `ConstruktFrontend/Construkt-mar-dev/programs/construkt`.
-- Keep `frontend-prototype/web/index.html` as the backendless demo surface until its UX is intentionally migrated.
-- Create `ConstruktDev/app/`.
-- Add frontend PDA helpers from the backend tests.
-- Add a typed client interface that can be backed by mock data first and Anchor later.
-- Decide whether `web/templates/projects/construkt.html` or `website/construkt.html` is the authoritative visual source; avoid maintaining both during the merge.
+5. Convert money values.
 
-### Phase 2: Port Prototype UX
+   Frontend uses GBP-style display values. Backend uses SPL Token base units.
 
-- Port useful layout, visual language, and page concepts from the Django/static prototype.
-- Prioritize the working app surfaces: dashboard, project list/detail, work package detail, payment/request timeline, documents panel, and setup/action modals.
-- Treat `dashboard2` as the canonical V0 dashboard. Task upload/review/response and chart fullscreen remain demo polish unless needed for the main presentation path.
-- Avoid carrying over the in-memory store as the long-term data model.
-- Keep UI state for form drafts, selected demo role, pending tx state, and current-session tx history only.
-- Replace the current Finance-only release flow with PM approval, Director approval, then Finance release.
+   Add helper functions:
 
-### Phase 3: Data Adapter
+   - display amount -> token base units
+   - token base units -> display amount
+   - mock USDC label formatting
 
-- Build mock adapter with backend-shaped data.
-- Build selector layer from backend-shaped data to UI view models.
-- Add off-chain metadata adapter for rich project/document/team/milestone display data.
-- Map prototype rich fields into metadata refs:
-  - project client, contract model, dates, and milestones -> `metadata_ref`
-  - package descriptions, contractor display names, and milestone grouping -> `scope_ref` or metadata adapter
-  - document names, versions, file names, and URLs -> `document_ref`
-  - approval/rejection/hold notes -> `note_ref` and `hold_ref`
+6. Replace mock chain log entries.
 
-### Phase 4: Anchor Integration
+   Current `logChainAction()` creates fake chain messages.
 
-- Load generated IDL.
-- Connect wallet/local demo signer.
-- Replace mock setup calls with Anchor instructions.
-- Fetch project, package, request, role, approval, and token account state.
-- Capture transaction signatures.
-- Surface program errors in user-friendly copy.
-- Read SPL token balances for finance token account, vault, and contractor destination account.
-- Display PDA/account addresses in setup/debug affordances so demo failures are traceable.
+   Replace with real:
 
-### Phase 5: Demo Completion
+   - transaction signatures
+   - account addresses
+   - event/account fetch results
+   - explorer links
 
-- Demonstrate full flow on localnet/devnet:
-  - finance creates project/package
-  - finance assigns contractor, PM, director
-  - finance funds escrow
-  - contractor submits request
-  - PM approves
-  - director approves
-  - finance places/removes hold
-  - finance releases
-  - contractor token balance increases
-- Demonstrate blocked states:
-  - wrong signer
-  - early director approval
-  - duplicate approval
-  - second active request
-  - release before approvals
-  - release during hold
+7. Preserve frontend unit tests.
 
-## Frontend-Specific Merge Tasks From Current Prototype
+   Keep `npm run test:frontend` passing while moving helpers behind reusable modules. The current tests copy pure helper logic, so follow-up work should import helpers from source modules when the frontend is modularized.
 
-- Replace the prototype `store` with a `ConstruktClient` mock adapter that mirrors Anchor account shapes.
-- Move money formatting behind helpers that can display mock USDC token units; do not hard-code GBP as the canonical unit.
-- Add a Director role/view/action path. The current role switcher has Finance, PM, and Contractor only.
-- Split `releaseFunds()` into selector-derived release readiness plus an explicit `releasePayment()` transaction.
-- Rework `placeHold()` so the UI asks for/selects an active request, not only a package.
-- Keep the document table/version UI, but route content through an off-chain metadata client and write only refs/hashes to chain.
-- Replace static "View on chain" links with transaction signature/account explorer links once signatures and addresses are available.
-- Add wallet/signer display separate from demo role display.
-- Remove or relabel `SOLANA MAINNET` in the prototype navbar before any localnet/devnet demo.
-- Avoid copying `sessionStorage` task state into the integrated architecture; `dashboard2` is now V0 scope, but its transient state should still be replaced by view models/selectors.
+## Execution Plan
 
-## Project And Work Package Ownership Workflow
+### Phase 1: Define Interfaces
 
-The frontend prototype is now modelling this intended V0 workflow:
+- Create `ConstruktClient` TypeScript interface.
+- Implement `MockConstruktClient` using current demo state.
+- Define view model types for project, package, request, approval step, document, and task.
+- Add PDA helper functions and unit tests.
+- Add money conversion helper tests.
 
-- Finance Director creates a project.
-- During project creation, Finance invites or assigns the Project Manager owner.
-- Project creation supports two client contexts:
-  - end-client projects, such as University of Exeter, where no external `Client / Organisation` field is needed
-  - contractor-created projects, where `Client / Organisation` is shown and a project-level contract model can be recorded as reference
-- Project-level contract model is reference metadata only; a project can still contain multiple package contract models.
-- Project Manager creates work packages inside assigned projects.
-- Contract type is selected at work package creation: milestone-based, valuation-based, or bespoke schedule.
-- Work packages are not assigned to project milestones.
-- Some work packages may contain their own internal milestones/payment schedule, but those belong to the package.
-- New work packages always begin as `Estimated`.
-- A package may show `Awaiting Finance Approval` once contractor selection and budget agreement are represented.
-- Finance Director approval is the future integration point for escrow locking through the Anchor backend.
-- After Finance approval/escrow lock, the package moves to `In Progress`.
-- Contractor contracts are represented as assignments to work packages.
-- Contractor `dashboard2` should show only projects where they have assigned work packages, then the assigned work packages under each project.
-- The Contractor Projects page should use the same assignment filter, so contractors do not see unrelated projects.
-- The shared package surface is `#work-package-view`; Contractor and Project Manager package links should land there for package-level actions.
-- Contractor work package bars mirror the Finance/PM funding visual, but at package level:
-  - released funds
-  - submitted invoice requests
-  - not-yet-invoiced package value
-  - contested or held value
-- Contractors can submit invoices against a work package to request escrow release. The release basis depends on package contract terms: whole package, package milestone/payment schedule, valuation period, or bespoke trigger.
-- Contractors can submit variation requests against the work package only, never against project milestones. Cost and time changes should generally be separate variation claims.
-- Contractors can upload package documents, including materials vesting certificates, certificates of practical completion, site photos, and progress reports. Documents may include an optional package milestone reference for context.
-- Project Managers can request package documents from the assigned contractor.
-- Project Managers can approve or reject contractor invoices with review notes.
-- Project Managers can submit package-level variation requests. Those move to Finance approval, then to contractor agreement.
-- Project Managers can approve or reject contractor-submitted variation requests before Finance review.
-- A package moves to `Completed` only when no disputes, work, invoices, or payments remain open.
+Exit criteria:
 
-Backend mapping note: Project Manager package creation is mostly off-chain/project metadata until Finance approval. Finance approval should call the backend instructions that create/fund/lock the on-chain escrow state for the selected contractor and approved package budget.
+- Current UI can run against mock client.
+- No user-facing behavior has regressed.
+- `npm run test:frontend` passes.
 
-## Open Decisions
+### Phase 2: Backend Seed And Wallet Setup
 
-- What off-chain metadata store should V0 use?
-- When should the backendless `frontend-prototype/web/index.html` demo be retired or migrated into the React/Vite app?
-- How will local demo wallets be created and selected?
-- Where should generated IDL and TypeScript types live for frontend consumption?
-- What is the minimum audit trail for the first integrated demo?
-- Which prototype pages are in V0 scope versus later polish?
-- Which `dashboard2` task workflow screens should remain in the main demo path versus staying as secondary polish?
-- Should the first mock adapter seed data mirror the existing hospital fit-out demo exactly or be regenerated from backend test/seed scripts?
+- Add local/devnet seed script for mock USDC mint.
+- Create or document demo wallets for Finance, PM, HighApprover/Director, Contractor.
+- Create finance and contractor token accounts.
+- Add package/project ID mapping strategy.
+- Generate and commit IDL/types in a frontend-consumable location.
 
-## Known Landmines
+Exit criteria:
 
-- Do not map Finance Director to `HighApprover`; backend separates finance release authority from director approval.
-- Do not rely on package status `Locked` for holds; backend holds live on payment requests.
-- Do not store rich documents on-chain; only refs/hashes belong there.
-- Do not use frontend role switching as permission logic.
-- Do not keep two Anchor program copies.
-- Do not treat direct vault SPL transfers as budget; backend tracked funding is canonical.
-- Do not ship the current `SOLANA MAINNET` label in a local/devnet mock-USDC demo.
-- Do not let Finance release stand in for Director approval.
+- A script can prepare localnet/devnet demo state.
+- Frontend can derive expected PDAs from known IDs.
 
-## Update Log
+### Phase 3: Anchor Client Read Path
 
-- 2026-04-27: Created initial living merge plan from backend/frontend scan and agent analysis.
-- 2026-04-27: Updated scan for `ConstruktFrontend/Construkt-mar-dev`, including current static/Django functionality, local store mutation points, and frontend-specific merge tasks.
+- Fetch projects by known PDA/seed registry.
+- Fetch work packages for project.
+- Fetch role assignments.
+- Fetch payment requests and approval records.
+- Fetch vault and contractor token balances.
+- Merge fetched state with metadata adapter.
+
+Exit criteria:
+
+- UI renders from backend-shaped state.
+- Read-only dashboard/project/package views work.
+
+### Phase 4: Anchor Client Write Path
+
+Integrate write actions in this order:
+
+1. `initialize_project`
+2. `create_work_package`
+3. `assign_role`
+4. `fund_escrow`
+5. `submit_payment_request`
+6. `approve_request(Role::LowApprover)`
+7. `approve_request(Role::HighApprover)`
+8. `place_hold`
+9. `remove_hold`
+10. `reject_request`
+11. `add_document_reference`
+12. `release_payment`
+
+Exit criteria:
+
+- Every write action refreshes account state after confirmation.
+- UI shows transaction signature and resulting status.
+- Invalid signer actions are blocked or fail with readable errors.
+
+### Phase 5: Flow Polish
+
+- Update copy so package holds are request holds.
+- Update Finance release screen so high approval is explicit.
+- Add remove-hold UI.
+- Add separate high-approval task/action if using Option A.
+- Add disabled/readiness reasons for unavailable actions.
+- Keep variations and document requests clearly marked as off-chain metadata unless backend support is added.
+
+Exit criteria:
+
+- A user can understand why each action is available or blocked.
+- No UI implies off-chain metadata is on-chain truth.
+
+### Phase 6: Tests
+
+Add or update tests for:
+
+- frontend helper behavior
+- PDA derivation
+- money conversion
+- view model state mapping
+- mock client action sequencing
+- Anchor happy path
+- Anchor blocked paths
+
+Backend paths that must stay covered:
+
+- unauthorized project/package setup
+- unauthorized role assignment
+- contractor self-approval blocked
+- wrong approval order blocked
+- duplicate approval blocked
+- inactive role blocked
+- second active request blocked
+- empty document reference blocked
+- over-cap request blocked
+- exact remaining-cap request allowed
+- hold blocking approval/rejection/document update/release
+- remove hold restores action availability
+- wrong mint funding/release blocked
+- release before high approval blocked
+- successful release transfers funds and updates request/package state
+
+## First Integrated Demo Acceptance Criteria
+
+The demo is complete when:
+
+- Finance connects a demo wallet.
+- Finance creates a project or selects seeded project metadata.
+- Finance approves a frontend package into an on-chain `WorkPackageAccount`.
+- Finance assigns Contractor, PM/LowApprover, and HighApprover.
+- Finance funds escrow with mock USDC.
+- Contractor submits a request with a document reference.
+- PM approves.
+- HighApprover approves, or Finance approves as HighApprover under the documented demo simplification.
+- Finance can place and remove a request hold.
+- Finance releases funds only after high approval and no active hold.
+- Contractor token balance increases.
+- UI shows real status from Anchor accounts.
+- UI shows transaction signatures/account links instead of fake chain logs.
+- `npm run test:frontend` passes.
+- Anchor tests pass in WSL/localnet.
+
+## Commit-By-Commit Implementation Plan
+
+Each commit should leave the repo in a runnable state. Prefer small commits that either add a boundary, wire one backend operation, or update one frontend flow. Do not mix broad UI polish with Anchor behavior changes.
+
+### Commit 1: Lock The Integration Decision
+
+Purpose:
+
+- Choose the first-demo approval model.
+- Recommended: Finance acts as `HighApprover` for the first integrated demo, while still sending a separate high-approval transaction before release.
+
+Files likely touched:
+
+- `FrontBackMergePlan.md`
+- `AGENTS.md`
+- `V0MVP.md`
+
+Changes:
+
+- Record the chosen Finance/HighApprover model.
+- Update wording so Finance release never implies skipped high approval.
+- Make clear that a separate Director role can be added later.
+
+Verification:
+
+- Documentation review only.
+
+### Commit 2: Add Frontend Integration Types
+
+Purpose:
+
+- Create the stable frontend/backend contract before replacing UI behavior.
+
+Files likely added:
+
+- `frontend-prototype/src/lib/construkt/types.ts`
+- `frontend-prototype/src/lib/construkt/client.ts`
+
+Changes:
+
+- Define `ConstruktClient`.
+- Define view model types for projects, packages, requests, approvals, roles, documents, balances, and action readiness.
+- Define backend operation inputs such as `CreateProjectInput`, `ApprovePackageInput`, `SubmitRequestInput`, `ApproveRequestInput`, `ReleasePaymentInput`.
+
+Verification:
+
+- TypeScript compile or `npx tsc --noEmit` once the frontend TS structure exists.
+- `npm run test:frontend`.
+
+### Commit 3: Add PDA And ID Helpers
+
+Purpose:
+
+- Make frontend IDs deterministic and compatible with Anchor PDAs.
+
+Files likely added:
+
+- `frontend-prototype/src/lib/construkt/pda.ts`
+- `frontend-prototype/tests/construkt.pda.ts`
+
+Changes:
+
+- Add helpers for project, work package, vault authority, role assignment, payment request, and approval record PDAs.
+- Add `u64` ID allocation helpers for project/package/request IDs.
+- Add role byte mapping: Contractor=1, LowApprover=2, HighApprover=3.
+
+Verification:
+
+- Unit tests compare generated PDA addresses against backend test fixtures or known examples.
+- `npm run test:frontend`.
+
+### Commit 4: Add Token Amount Helpers
+
+Purpose:
+
+- Stop treating GBP-style display numbers as SPL token base units.
+
+Files likely added or changed:
+
+- `frontend-prototype/src/lib/construkt/money.ts`
+- `frontend-prototype/tests/construkt.frontend.ts`
+
+Changes:
+
+- Add display amount to base-unit conversion.
+- Add base-unit to display amount conversion.
+- Add mock USDC formatting helpers.
+- Keep display copy flexible so the UI can show GBP project values and mock USDC escrow values separately.
+
+Verification:
+
+- Unit tests for decimals, rounding, zero, large values, and invalid input.
+- `npm run test:frontend`.
+
+### Commit 5: Add Metadata Adapter
+
+Purpose:
+
+- Move rich frontend-only fields behind an explicit off-chain boundary.
+
+Files likely added:
+
+- `frontend-prototype/src/lib/construkt/metadataClient.ts`
+- `frontend-prototype/src/lib/construkt/demoMetadata.ts`
+
+Changes:
+
+- Store project client, dates, contract model, team display data, milestones, document metadata, variation data, and document request data off-chain.
+- Return compact refs suitable for `metadata_ref`, `scope_ref`, `document_ref`, `note_ref`, and `hold_ref`.
+- Keep first implementation local/seeded; do not add a real database yet.
+
+Verification:
+
+- Metadata save/read unit tests.
+- `npm run test:frontend`.
+
+### Commit 6: Add Mock Construkt Client
+
+Purpose:
+
+- Replace direct local mutation with a client interface while preserving the existing static frontend behavior.
+
+Files likely added or changed:
+
+- `frontend-prototype/src/lib/construkt/mockClient.ts`
+- `frontend-prototype/web/static/projects/js/construkt.js`
+
+Changes:
+
+- Implement `MockConstruktClient` with backend-shaped operations.
+- Keep current demo data, but reshape it around project/package/request/account concepts.
+- Update frontend mutation points to call the mock client instead of directly changing raw `store` wherever practical.
+
+Verification:
+
+- Current static demo still works.
+- `npm run test:frontend`.
+
+### Commit 7: Generate And Expose Anchor IDL/Types
+
+Purpose:
+
+- Make the frontend consume the real Anchor program interface.
+
+Files likely added or changed:
+
+- `target/idl/construkt.json` generated locally but do not commit generated target output unless intentionally placed elsewhere.
+- `frontend-prototype/src/lib/construkt/idl/construkt.json`
+- `frontend-prototype/src/lib/construkt/idl/construkt.ts`
+- package scripts as needed
+
+Changes:
+
+- Add a repeatable command/script to copy generated IDL/types into the frontend-consumable location.
+- Document that Anchor build commands run in WSL.
+
+Verification:
+
+- `anchor build` in WSL.
+- Frontend type import compiles.
+
+### Commit 8: Add Local/Devnet Demo Setup Script
+
+Purpose:
+
+- Prepare wallets, mint, and token accounts needed by the integrated flow.
+
+Files likely added:
+
+- `scripts/setup-demo.ts`
+- `scripts/demo-wallets.example.json`
+- docs update in `AGENTS.md` or this plan
+
+Changes:
+
+- Create or document Finance, PM/LowApprover, HighApprover, and Contractor wallets.
+- Create mock USDC mint.
+- Create finance and contractor token accounts.
+- Mint demo funds to Finance.
+- Print addresses needed by the frontend.
+
+Verification:
+
+- Script runs on localnet/devnet.
+- Token balances are visible.
+
+### Commit 9: Add Anchor Client Read Path
+
+Purpose:
+
+- Let the UI render from backend account state before writing transactions.
+
+Files likely added or changed:
+
+- `frontend-prototype/src/lib/construkt/anchorClient.ts`
+- `frontend-prototype/src/lib/construkt/viewModels.ts`
+
+Changes:
+
+- Fetch project, work package, role assignment, payment request, approval record, vault balance, and contractor token balance accounts.
+- Merge account state with metadata adapter output.
+- Add status and readiness selectors.
+
+Verification:
+
+- Read-only seeded demo renders project/package/request state.
+- Unit tests for view model mapping.
+- `npm run test:frontend`.
+
+### Commit 10: Wire Project Creation
+
+Purpose:
+
+- Make frontend project creation call `initialize_project`.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- `transactions.ts`
+- frontend modal handler around `createProject`
+
+Changes:
+
+- Save project metadata off-chain.
+- Send `initialize_project(project_id, name, metadata_ref)`.
+- Refresh backend state after confirmation.
+- Show transaction signature in UI audit surface.
+
+Verification:
+
+- Project account exists at expected PDA.
+- UI displays project from fetched account + metadata.
+- Anchor project tests still pass.
+
+### Commit 11: Wire Package Approval Into On-Chain Package Creation
+
+Purpose:
+
+- Turn "Approve package" into the backend creation point for escrow packages.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- `transactions.ts`
+- package approval modal/action code
+
+Changes:
+
+- Save package metadata and scope ref.
+- Call `create_work_package`.
+- Derive vault and vault authority.
+- Assign Contractor, LowApprover, and HighApprover roles.
+- Refresh package and role state.
+
+Verification:
+
+- Work package account exists.
+- Vault ATA exists.
+- Role assignment accounts exist.
+- UI shows package as backend-backed.
+
+### Commit 12: Wire Escrow Funding
+
+Purpose:
+
+- Make `fundPackage` call `fund_escrow`.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- funding modal/action code
+- view model balance selectors
+
+Changes:
+
+- Convert display amount to token base units.
+- Use finance token account as source.
+- Call `fund_escrow(amount)`.
+- Refresh funded amount and vault balance.
+
+Verification:
+
+- Vault balance increases.
+- `WorkPackageAccount.funded_amount` increases.
+- Over-cap funding fails with readable UI error.
+
+### Commit 13: Wire Contractor Payment Request
+
+Purpose:
+
+- Make `submitInvoice` call `submit_payment_request`.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- submit invoice modal/action code
+- request view models
+
+Changes:
+
+- Require connected signer to match assigned contractor.
+- Save document metadata and use returned `document_ref`.
+- Allocate next `request_id`.
+- Call `submit_payment_request`.
+- Render request status from `PaymentRequestAccount`.
+
+Verification:
+
+- Request PDA exists.
+- Package active request is set.
+- Missing document ref and over-funded requests fail correctly.
+
+### Commit 14: Wire PM Approval And Rejection
+
+Purpose:
+
+- Make PM review actions call backend approval/rejection.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- request review modal/action code
+- approval timeline view models
+
+Changes:
+
+- PM approve calls `approve_request(Role::LowApprover, note_ref)`.
+- PM reject calls `reject_request(Role::LowApprover, note_ref)`.
+- Save note text off-chain and pass note ref.
+- Refresh request and approval record state.
+
+Verification:
+
+- Request moves `Submitted -> LowApproved`.
+- Rejected request clears active request.
+- Contractor self-approval and wrong signer fail.
+
+### Commit 15: Wire High Approval
+
+Purpose:
+
+- Add the required high-approval step before release.
+
+Files likely changed:
+
+- request action UI
+- `anchorClient.ts`
+- readiness selectors
+
+Changes:
+
+- Add high approval button/task for chosen approval model.
+- If using Finance-as-HighApprover, label clearly as "Final approval" before "Release".
+- Call `approve_request(Role::HighApprover, note_ref)`.
+- Refresh approval timeline.
+
+Verification:
+
+- Request moves `LowApproved -> HighApproved`.
+- Release remains disabled before high approval.
+- Wrong approval order fails.
+
+### Commit 16: Wire Holds And Remove Hold
+
+Purpose:
+
+- Align frontend hold behavior with request-level backend holds.
+
+Files likely changed:
+
+- hold modal/action code
+- work package/request view models
+- copy in package views
+
+Changes:
+
+- Place hold on active request via `place_hold(hold_ref)`.
+- Add remove-hold action via `remove_hold()`.
+- Replace package status `Locked` logic with request hold state.
+- Show blocked reasons from account state.
+
+Verification:
+
+- Held request blocks approval/rejection/document update/release.
+- Remove hold restores action availability.
+- UI no longer treats package-level lock as backend truth.
+
+### Commit 17: Wire Payment Release
+
+Purpose:
+
+- Make Finance release funds through `release_payment`.
+
+Files likely changed:
+
+- `anchorClient.ts`
+- release modal/action code
+- balance selectors
+- audit/transaction display
+
+Changes:
+
+- Require request status `HighApproved`.
+- Use vault, vault authority, and contractor token account.
+- Call `release_payment`.
+- Refresh request status, package released amount, vault balance, and contractor balance.
+
+Verification:
+
+- Contractor token balance increases.
+- Request status becomes `Released`.
+- Package active request clears.
+- Release during hold or before high approval fails.
+
+### Commit 18: Wire Document Reference Updates
+
+Purpose:
+
+- Connect payment document ref changes to `add_document_reference`.
+
+Files likely changed:
+
+- document modal/action code
+- metadata adapter
+- request document selectors
+
+Changes:
+
+- Keep rich documents off-chain.
+- When the active payment request document ref changes, call `add_document_reference`.
+- Keep document version UI based on metadata.
+
+Verification:
+
+- Request `document_ref` updates on-chain.
+- Terminal or held requests reject document updates.
+
+### Commit 19: Replace Fake Chain Logs
+
+Purpose:
+
+- Make audit/chain display use real backend results.
+
+Files likely changed:
+
+- audit/chain feedback rendering
+- transaction result handling
+- explorer URL helper
+
+Changes:
+
+- Replace fake `logChainAction()` entries with real transaction signatures and account addresses.
+- Add localnet/devnet explorer link formatting.
+- Include emitted events or fetched account deltas where available.
+
+Verification:
+
+- Every backend write shows a real signature.
+- No fake "Mock USDC funded" chain message remains once actual funding is wired.
+
+### Commit 20: Keep Off-Chain-Only Features Honest
+
+Purpose:
+
+- Preserve current frontend richness without implying unsupported smart contract behavior.
+
+Files likely changed:
+
+- variation UI copy/action code
+- document request UI copy/action code
+- metadata adapter
+
+Changes:
+
+- Mark variations as off-chain metadata/tasks for V0.
+- Mark document requests as off-chain tasks for V0.
+- Ensure neither changes escrow math or on-chain package/request status.
+
+Verification:
+
+- Variation and document request actions do not call unsupported backend instructions.
+- UI copy does not claim these are on-chain.
+
+### Commit 21: End-To-End Demo Script And Tests
+
+Purpose:
+
+- Add repeatable evidence that frontend-triggered backend timing is correct.
+
+Files likely added or changed:
+
+- `tests/` Anchor integration tests
+- frontend integration/mock tests
+- demo script docs
+
+Changes:
+
+- Add happy-path test matching the frontend flow.
+- Add blocked-path tests for frontend-important failure states.
+- Add a short manual demo checklist.
+
+Verification:
+
+- `npm run test:frontend`.
+- Anchor tests pass in WSL/localnet.
+- Manual demo completes from package approval through release.
+
+### Commit 22: Cleanup And Migration Notes
+
+Purpose:
+
+- Remove stale labels, old assumptions, and temporary integration scaffolding that is no longer needed.
+
+Files likely changed:
+
+- `AGENTS.md`
+- `CLAUDE.md`
+- frontend copy/config
+- this plan
+
+Changes:
+
+- Ensure all docs point at `frontend-prototype/web/index.html` and the integration client path.
+- Remove any mainnet labels/config from the demo.
+- Document remaining V1 gaps: true Director role, variations, package-level holds, rich document backend, milestones/payment schedules.
+
+Verification:
+
+- Documentation review.
+- `npm run test:frontend`.
+
+## Landmines
+
+- Do not treat frontend role switching as authorization.
+- Do not let Finance release stand in for high approval unless the demo simplification is explicit and still sends the high approval transaction.
+- Do not model package holds as backend truth unless the smart contract adds package-level hold fields.
+- Do not store rich documents, files, or PII on-chain.
+- Do not treat direct vault SPL transfers as funding capacity.
+- Do not use GBP display numbers as token base units.
+- Do not ship a mainnet label or mainnet configuration in this demo.
+- Do not keep fake chain logs once Anchor transactions are wired.
+- Do not make variations part of escrow math until the backend explicitly supports them.
+
+## Immediate Next Work
+
+1. Decide Finance/HighApprover path: Option A separate Director, or Option B Finance-as-HighApprover for demo.
+2. Create the TypeScript client interface and mock implementation.
+3. Add PDA and money conversion helpers with tests.
+4. Build the package approval orchestration around `create_work_package`, `assign_role`, and `fund_escrow`.
+5. Split frontend `releaseFunds()` into high approval and release.
+6. Add request-level hold/remove-hold UI.
+7. Add an Anchor-backed read path for package/request status.

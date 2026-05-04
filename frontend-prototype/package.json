@@ -2,12 +2,13 @@
   "name": "construkt",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "UNLICENSED",
   "scripts": {
     "anchor:test": "anchor test",
     "test:frontend": "npx ts-mocha -p ./tsconfig.json -t 10000 \"tests/construkt.frontend.ts\"",
-    "lint": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" --check",
-    "lint:fix": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" -w"
+    "lint": "prettier \"tests/**/*.ts\" --check",
+    "lint:fix": "prettier \"tests/**/*.ts\" -w"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",

@@ -725,6 +725,15 @@ const store = {
       if (name === 'chart-fullscreen') {
         renderChartFullscreen();
       }
+      if (name === 'upload-task') {
+        renderUploadTask();
+      }
+      if (name === 'review-task') {
+        renderReviewTask();
+      }
+      if (name === 'response-task') {
+        renderResponseTask();
+      }
       if (name === 'projects') {
         renderProjectsList();
         applyRoleUI(store.currentRole);
@@ -1300,76 +1309,6 @@ const store = {
       renderPayments(projectId);
       applyRoleUI(store.currentRole);
       syncProjectDetailEmptyStates();
-    }
-
-    function renderPackageDetail(projectId, packageId) {
-      const project = projectFor(projectId);
-      const pkg = packageFor(project, packageId);
-      if (!project || !pkg) return;
-      store.currentProjectId = projectId;
-      store.currentPackageId = packageId;
-      store.activeProjectId = projectId;
-      store.activePackageId = packageId;
-      const request = pkg.requests[pkg.requests.length - 1] || null;
-      store.activeRequestId = request?.id || null;
-      const docs = store.documents.filter((doc) => doc.projectId === projectId && doc.packageId === packageId);
-      const variations = pkg.variationRequests || [];
-      const packageAudit = project.auditLog.filter((item) => item.event.includes(pkg.name) || item.event.toLowerCase().includes(pkg.name.split(' ')[0].toLowerCase()));
-
-      document.getElementById('package-title').innerHTML = `${pkg.name} ${statusChip(pkg.status)}`;
-      const packageBack = document.querySelector('[data-package-back]');
-      if (packageBack) {
-        packageBack.querySelector('span').textContent = `Back to ${project.name}`;
-        packageBack.onclick = () => showProjectDetail(project.id);
-      }
-      document.querySelector('#work-package-detail-page .back-link').textContent = `Projects → ${project.name} → ${pkg.name}`;
-      document.querySelector('#work-package-detail-page .back-link').setAttribute('onclick', `showProjectDetail('${projectId}'); return false;`);
-      document.querySelector('[data-package-contract-context]').textContent = `Contract type: ${modelLabel(pkg.contractModel || 'milestone')} · ${pkg.contractRef || project.contractRef}`;
-      document.getElementById('package-kpis').innerHTML = `
-        <article class="kpi-card"><span class="kpi-label">Budget</span><strong class="kpi-value">${formatGBP(pkg.cap)}</strong><span class="kpi-note">${financeApprovalStatus(pkg) === 'Approved' ? 'Finance-approved package cap' : 'Estimated package budget'}</span></article>
-        <article class="kpi-card"><span class="kpi-label">Escrow</span><strong class="kpi-value">${formatGBP(pkg.funded)}</strong><span class="kpi-note">${financeApprovalStatus(pkg) === 'Approved' ? 'Locked by smart contract flow' : 'Awaiting finance approval'}</span></article>
-        <article class="kpi-card"><span class="kpi-label">Released</span><strong class="kpi-value">${formatGBP(pkg.released)}</strong><span class="kpi-note">Paid to contractor</span></article>
-        <article class="kpi-card"><span class="kpi-label">Remaining</span><strong class="kpi-value">${formatGBP(pkg.cap - pkg.released)}</strong><span class="kpi-note">Cap less released</span></article>
-      `;
-
-      document.getElementById('package-request').innerHTML = request ? `
-        <div class="request-head"><span class="assignment-meta">Current Request</span><div class="chip-row"><span class="assignment-chip">${request.ref}</span><span class="assignment-chip">${formatDate(request.date)}</span></div></div>
-        <h2 class="request-title">${request.ref}</h2>
-        <strong class="request-amount">${formatGBP(request.amount)}</strong>
-        <span class="assignment-meta">Submitted by ${request.submittedBy}</span>
-        <p class="assignment-description">${statusChip(request.status)}</p>
-      ` : `
-        <div class="request-head"><span class="assignment-meta">Package Setup</span><div class="chip-row">${statusChip(financeApprovalStatus(pkg))}${statusChip(pkg.status)}</div></div>
-        <h2 class="request-title">${financeApprovalStatus(pkg) === 'Approved' ? 'Escrow locked and contractor work can proceed' : 'Estimated package awaiting contract readiness'}</h2>
-        <p class="assignment-description">Project Managers create estimated packages. Finance approves the package after contractor selection and budget agreement, which is where escrow locking will connect to the smart contract backend.</p>
-        ${store.currentRole === 'finance_director' && financeApprovalStatus(pkg) === 'Awaiting Finance Approval' ? `<button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${project.id}', '${pkg.id}')">Approve package and lock escrow</button>` : ''}
-      `;
-
-      document.getElementById('package-approval').innerHTML = request ? `
-        <div class="card-head"><h2>Approval Progress</h2></div>
-        <div class="approval-flow">
-          <div class="flow-step complete line-complete"><span class="flow-dot"></span><span class="flow-label">Submitted</span><span class="flow-meta">${request.submittedBy} · ${formatDate(request.date)}</span></div>
-          <div class="flow-step ${request.pmApproved ? 'complete line-complete' : 'current'}"><span class="flow-dot"></span><span class="flow-label">PM Review</span><span class="flow-meta">${request.pmApproved ? `${request.pmApprovedBy} · ${formatDate(request.pmApprovedDate)}` : 'Pending'}</span></div>
-          <div class="flow-step ${request.fdApproved ? 'complete line-complete' : request.pmApproved ? 'current' : ''}"><span class="flow-dot"></span><span class="flow-label">Finance Review</span><span class="flow-meta">${request.fdApproved ? `${request.fdApprovedBy} · ${formatDate(request.fdApprovedDate)}` : 'Pending'}</span></div>
-          <div class="flow-step ${request.status === 'Released' ? 'complete' : ''}"><span class="flow-dot"></span><span class="flow-label">Released</span><span class="flow-meta">${request.status}</span></div>
-        </div>
-      ` : `<div class="card-head"><h2>Approval Progress</h2></div><p class="assignment-description">Approval flow starts after an invoice is submitted.</p>`;
-
-      document.getElementById('package-docs').innerHTML = `
-        <div class="card-head"><h2>Supporting Documents</h2><button class="btn btn-primary small" data-visible-to="finance_director project_manager contractor" data-modal-target="add-document" data-document-scope="package" type="button">Add document</button></div>
-        ${docs.length ? `<div class="table-card"><table class="action-table"><thead><tr><th>Document</th><th>Type</th><th>Ref</th><th>Version</th><th>Chain</th></tr></thead><tbody>${docs.map((doc) => `<tr><td><a class="document-link" href="#">${doc.name}</a></td><td>${doc.type}</td><td>${doc.ref}</td><td><span class="version-badge">V${doc.version}</span></td><td><a class="doc-chain-link" href="#">View on chain ↗</a></td></tr>`).join('')}</tbody></table></div>` : `<div class="records-empty is-visible"><h3 class="records-empty__title">No documents uploaded</h3><p class="records-empty__body">Supporting documents will appear here once added.</p></div>`}
-      `;
-
-      document.getElementById('package-docs').insertAdjacentHTML('beforeend', `
-        <div class="card-head" style="margin-top:var(--space-4);"><h2>Variation Requests</h2></div>
-        ${variations.length ? `<div class="table-card"><table class="action-table"><thead><tr><th>Reference</th><th>Type</th><th>Amount</th><th>Time</th><th>Status</th></tr></thead><tbody>${variations.map((variation) => `<tr><td>${variation.ref}</td><td>${variation.type}</td><td>${formatGBP(variation.amountChange)}</td><td>${variation.timeChange ? `${variation.timeChange} days` : 'No change'}</td><td>${statusChip(variation.status)}</td></tr>`).join('')}</tbody></table></div>` : `<p class="assignment-description">No variation requests submitted for this package.</p>`}
-      `);
-
-      document.getElementById('package-audit').innerHTML = `
-        <div class="section-tabs"><div class="tab-buttons" role="tablist" aria-label="Package audit trail"><button class="section-tab is-active" type="button">Audit Trail</button></div><a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></div>
-        <ul class="timeline-list">${packageAudit.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.actor} · ${formatDateTime(item.date)}</span></div></li>`).join('')}</ul>
-      `;
-      applyRoleUI(store.currentRole);
     }
 
     function renderDashboard() {
@@ -3477,10 +3416,6 @@ const store = {
       window.location.hash = 'project-detail';
     }
 
-    function showPackageDetail(projectId, packageId) {
-      openWorkPackageView(projectId, packageId);
-    }
-
     function openPackageModal(projectId, packageId, modalName, requestId = '', variationId = '') {
       store.activeProjectId = projectId;
       store.currentProjectId = projectId;
@@ -3759,7 +3694,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Invoice submitted: ' + request.ref + ' for ' + formatGBP(request.amount), 'pending');
       logChainAction('Payment request account created', project, pkg, `${request.ref} opened for ${formatGBP(request.amount)} against package escrow.`, `request_${request.id}`);
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3789,8 +3723,8 @@ const store = {
       };
       pkg.variationRequests.push(variation);
       logAudit(project, 'Variation request submitted for ' + pkg.name + ': ' + variation.ref, 'pending');
-      renderPackageDetail(projectId, packageId);
       renderProjectDetail(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
       renderDashboard2();
     }
@@ -3812,7 +3746,6 @@ const store = {
       pkg.documentRequests.push(request);
       logAudit(project, 'Document requested from contractor for ' + pkg.name + ': ' + request.type, 'pending');
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard2();
     }
 
@@ -3844,7 +3777,6 @@ const store = {
         logAudit(project, 'Variation agreed by contractor: ' + variation.ref, 'released');
       }
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard();
       renderDashboard2();
     }
@@ -3860,7 +3792,6 @@ const store = {
       variation.rejectedDate = new Date().toISOString().split('T')[0];
       logAudit(project, 'Variation rejected: ' + variation.ref + ' — ' + variation.rejectionReason, 'rejected');
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard();
       renderDashboard2();
     }
@@ -3878,7 +3809,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Request approved by PM: ' + req.ref, 'released');
       logChainAction('Approval recorded', project, pkg, `Project Manager approval recorded for ${req.ref}.`, `approval_${req.id}_pm`);
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3895,8 +3825,8 @@ const store = {
       req.rejectionReason = reason;
       syncMilestoneStatuses(project);
       logAudit(project, 'Request rejected: ' + req.ref + ' — ' + reason, 'rejected');
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
     }
 
@@ -3913,7 +3843,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Funds released: ' + formatGBP(req.amount) + ' for ' + pkg.name, 'released');
       logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow to the contractor wallet.`, `release_${req.id}`);
-      renderPackageDetail(projectId, packageId);
       renderProjectDetail(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
@@ -3967,7 +3896,6 @@ const store = {
       renderDocuments(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
-      if (store.activePackageId) renderPackageDetail(projectId, store.activePackageId);
     }
 
     function editDocument(docId, formData) {
@@ -3983,7 +3911,7 @@ const store = {
       store.activeEditDocumentId = null;
       renderDocuments(doc.projectId);
       renderPayments(doc.projectId);
-      if (store.activePackageId) renderPackageDetail(doc.projectId, store.activePackageId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
     }
 
     function updateDocument(docId, newRef, note) {
