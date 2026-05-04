@@ -73,20 +73,41 @@ const store = {
               contractor: 'Daniel Okafor',
               requests: [
                 {
+                  id: 'req-fnd-000',
+                  ref: 'INV-FND-000',
+                  amount: 128000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2026-03-18',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-03-20',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-03-22',
+                  documents: [],
+                },
+                {
                   id: 'req-001',
                   ref: 'INV-FND-001',
                   amount: 92400,
                   submittedBy: 'Daniel Okafor',
                   date: '2026-04-08',
-                  status: 'Released',
-                  pmApproved: true,
-                  pmApprovedBy: 'Eleanor Lane',
-                  pmApprovedDate: '2026-04-09',
-                  fdApproved: true,
-                  fdApprovedBy: 'Maya Shah',
-                  fdApprovedDate: '2026-04-10',
-                  documents: ['doc-001', 'doc-002'],
+                  status: 'Submitted',
+                  pmApproved: false,
+                  pmApprovedBy: '',
+                  pmApprovedDate: '',
+                  fdApproved: false,
+                  fdApprovedBy: '',
+                  fdApprovedDate: '',
+                  documents: ['doc-001', 'doc-004', 'doc-005'],
                 },
+              ],
+              milestones: [
+                { name: 'Mobilisation', paymentDate: '22 Mar 2026', amount: 128000, status: 'paid' },
+                { name: 'Foundation pour', paymentDate: '8 Apr 2026', amount: 92400, status: 'invoiced' },
+                { name: 'Inspection sign-off', paymentDate: '20 Apr 2026', amount: 160000, status: 'uninvoiced' },
+                { name: 'Retention release', paymentDate: '1 Aug 2027', amount: 259600, status: 'uninvoiced' },
               ],
             },
             {
@@ -195,6 +216,185 @@ const store = {
           milestones: [],
           auditLog: [],
         },
+        {
+          id: 'proj-004',
+          name: 'Riverside School Extension',
+          client: 'Borough Education Partnership',
+          status: 'Completed',
+          contractModel: 'milestone',
+          contractRef: 'RSE-118',
+          startDate: '2025-03-03',
+          endDate: '2026-02-20',
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Daniel Okafor', role: 'contractor', org: 'Okafor Builders Ltd' },
+          ],
+          packages: [
+            {
+              id: 'wp-401',
+              name: 'Groundworks and Drainage',
+              cap: 280000,
+              funded: 280000,
+              released: 280000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              completionDate: '2025-07-18',
+              requests: [
+                {
+                  id: 'req-401',
+                  ref: 'INV-RSE-001',
+                  amount: 280000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2025-07-10',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2025-07-12',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2025-07-14',
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-402',
+              name: 'Classroom Block Fit-Out',
+              cap: 520000,
+              funded: 520000,
+              released: 520000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              completionDate: '2025-12-04',
+              requests: [],
+            },
+            {
+              id: 'wp-403',
+              name: 'MEP Commissioning',
+              cap: 310000,
+              funded: 310000,
+              released: 310000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              completionDate: '2026-02-14',
+              requests: [],
+            },
+          ],
+          milestones: [
+            { id: 'ms-401', name: 'Groundworks Complete', targetDate: '2025-07-18', status: 'complete', packageIds: ['wp-401'] },
+            { id: 'ms-402', name: 'Teaching Block Complete', targetDate: '2025-12-04', status: 'complete', packageIds: ['wp-402'] },
+            { id: 'ms-403', name: 'Handover', targetDate: '2026-02-20', status: 'complete', packageIds: ['wp-403'] },
+          ],
+          auditLog: [
+            { event: 'Final handover payment released', actor: 'Maya Shah', date: '2026-02-20T15:30:00', type: 'released' },
+            { event: 'MEP commissioning certificate approved', actor: 'Eleanor Lane', date: '2026-02-14T12:00:00', type: 'released' },
+            { event: 'Project marked complete', actor: 'Maya Shah', date: '2026-02-20T16:05:00', type: 'info' },
+          ],
+        },
+        {
+          id: 'proj-005',
+          name: 'Canal Bridge Repair',
+          client: 'City Highways Authority',
+          status: 'Completed',
+          contractModel: 'valuation',
+          contractRef: 'CBR-077',
+          startDate: '2025-06-16',
+          endDate: '2026-01-30',
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Daniel Okafor', role: 'contractor', org: 'Okafor Builders Ltd' },
+          ],
+          packages: [
+            {
+              id: 'wp-501',
+              name: 'Concrete Deck Repairs',
+              cap: 360000,
+              funded: 360000,
+              released: 360000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              completionDate: '2025-11-21',
+              requests: [
+                {
+                  id: 'req-501',
+                  ref: 'INV-CBR-001',
+                  amount: 360000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2025-11-14',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2025-11-17',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2025-11-19',
+                  documents: ['doc-501', 'doc-502'],
+                },
+              ],
+            },
+            {
+              id: 'wp-502',
+              name: 'Steel Bearing Replacement',
+              cap: 430000,
+              funded: 430000,
+              released: 430000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              completionDate: '2026-01-12',
+              requests: [
+                {
+                  id: 'req-502',
+                  ref: 'INV-CBR-002',
+                  amount: 430000,
+                  submittedBy: 'Northline Structures',
+                  date: '2026-01-05',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-01-07',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-01-09',
+                  documents: ['doc-503', 'doc-504'],
+                },
+              ],
+            },
+            {
+              id: 'wp-503',
+              name: 'Surfacing and Reopening',
+              cap: 190000,
+              funded: 190000,
+              released: 190000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              completionDate: '2026-01-30',
+              requests: [
+                {
+                  id: 'req-503',
+                  ref: 'INV-CBR-003',
+                  amount: 190000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2026-01-24',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-01-26',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-01-30',
+                  documents: ['doc-505', 'doc-506'],
+                },
+              ],
+            },
+          ],
+          milestones: [],
+          auditLog: [
+            { event: 'Final valuation released', actor: 'Maya Shah', date: '2026-01-30T11:25:00', type: 'released' },
+            { event: 'Bridge reopened after completion inspection', actor: 'Eleanor Lane', date: '2026-01-29T09:40:00', type: 'info' },
+          ],
+        },
       ],
       documents: [
         {
@@ -222,6 +422,30 @@ const store = {
           packageId: 'wp-001',
         },
         {
+          id: 'doc-004',
+          name: 'Cube Test Results',
+          type: 'Inspection Report',
+          ref: 'DOC-CUB-022',
+          uploadedBy: 'D. Okafor',
+          date: '2026-04-08',
+          version: 1,
+          linkedPayment: 'req-001',
+          projectId: 'proj-001',
+          packageId: 'wp-001',
+        },
+        {
+          id: 'doc-005',
+          name: 'Site Photos and QA Pack',
+          type: 'Photo Evidence',
+          ref: 'DOC-QA-027',
+          uploadedBy: 'D. Okafor',
+          date: '2026-04-08',
+          version: 1,
+          linkedPayment: 'req-001',
+          projectId: 'proj-001',
+          packageId: 'wp-001',
+        },
+        {
           id: 'doc-003',
           name: 'Site Inspection Photo Set',
           type: 'Photo Evidence',
@@ -232,6 +456,78 @@ const store = {
           linkedPayment: null,
           projectId: 'proj-001',
           packageId: null,
+        },
+        {
+          id: 'doc-501',
+          name: 'Deck Repair Completion Certificate',
+          type: 'Certificate',
+          ref: 'DOC-CBR-014',
+          uploadedBy: 'D. Okafor',
+          date: '2025-11-14',
+          version: 2,
+          linkedPayment: 'req-501',
+          projectId: 'proj-005',
+          packageId: 'wp-501',
+        },
+        {
+          id: 'doc-502',
+          name: 'Concrete Cube Test Results',
+          type: 'Inspection Report',
+          ref: 'DOC-CBR-015',
+          uploadedBy: 'E. Lane',
+          date: '2025-11-16',
+          version: 1,
+          linkedPayment: 'req-501',
+          projectId: 'proj-005',
+          packageId: 'wp-501',
+        },
+        {
+          id: 'doc-503',
+          name: 'Bearing Replacement Sign-Off',
+          type: 'Milestone Cert',
+          ref: 'DOC-CBR-021',
+          uploadedBy: 'Northline Structures',
+          date: '2026-01-05',
+          version: 3,
+          linkedPayment: 'req-502',
+          projectId: 'proj-005',
+          packageId: 'wp-502',
+        },
+        {
+          id: 'doc-504',
+          name: 'Approved Payment Notice - Bearings',
+          type: 'Payment Notice',
+          ref: 'DOC-CBR-022',
+          uploadedBy: 'M. Shah',
+          date: '2026-01-09',
+          version: 1,
+          linkedPayment: 'req-502',
+          projectId: 'proj-005',
+          packageId: 'wp-502',
+        },
+        {
+          id: 'doc-505',
+          name: 'Surfacing Completion Photos',
+          type: 'Photo Evidence',
+          ref: 'DOC-CBR-029',
+          uploadedBy: 'D. Okafor',
+          date: '2026-01-24',
+          version: 1,
+          linkedPayment: 'req-503',
+          projectId: 'proj-005',
+          packageId: 'wp-503',
+        },
+        {
+          id: 'doc-506',
+          name: 'Final Reopening Certificate',
+          type: 'Certificate',
+          ref: 'DOC-CBR-030',
+          uploadedBy: 'E. Lane',
+          date: '2026-01-30',
+          version: 2,
+          linkedPayment: 'req-503',
+          projectId: 'proj-005',
+          packageId: 'wp-503',
         },
       ],
     };
@@ -616,7 +912,7 @@ const store = {
     function chipTone(status) {
       const value = String(status || '').toLowerCase();
       if (/(held|partially funded|in progress)/.test(value)) return 'chip-tone-warning';
-      if (/(released|funded|approved|active)/.test(value)) return 'chip-tone-success';
+      if (/(released|funded|approved|active|complete|completed)/.test(value)) return 'chip-tone-success';
       if (/(submitted|pending|under review)/.test(value)) return 'chip-tone-primary';
       if (/(rejected|locked|blocked)/.test(value)) return 'chip-tone-danger';
       return 'chip-tone-neutral';
@@ -706,6 +1002,7 @@ const store = {
     }
 
     function buildValuationTimeline(project) {
+      const projectComplete = isProjectComplete(project);
       const nodes = [];
       const cursor = new Date(`${project.startDate}T00:00:00`);
       const end = new Date(`${project.endDate}T00:00:00`);
@@ -715,13 +1012,13 @@ const store = {
         nodes.push({
           name: `Quarter ${quarter}`,
           targetDate: iso,
-          status: new Date() >= cursor ? 'complete' : 'upcoming',
+          status: projectComplete || new Date() >= cursor ? 'complete' : 'upcoming',
         });
         cursor.setMonth(cursor.getMonth() + 3);
         quarter += 1;
       }
       if (!nodes.some((node) => node.targetDate === project.endDate)) {
-        nodes.push({ name: 'Final Valuation', targetDate: project.endDate, status: 'upcoming' });
+        nodes.push({ name: 'Final Valuation', targetDate: project.endDate, status: projectComplete || new Date() >= end ? 'complete' : 'upcoming' });
       }
       const firstUpcoming = nodes.find((node) => node.status === 'upcoming');
       if (firstUpcoming) firstUpcoming.status = 'in-progress';
@@ -732,7 +1029,7 @@ const store = {
       return project.packages.map((pkg) => ({
         name: pkg.name,
         targetDate: project.endDate,
-        status: pkg.status === 'Locked' ? 'blocked' : pkg.status === 'Released' ? 'complete' : pkg.requests.length ? 'in-progress' : 'upcoming',
+        status: pkg.status === 'Locked' ? 'blocked' : isPackageComplete(pkg) ? 'complete' : pkg.requests.length ? 'in-progress' : 'upcoming',
       }));
     }
 
@@ -805,6 +1102,19 @@ const store = {
       );
     }
 
+    function isProjectComplete(project) {
+      const statusComplete = /complete|completed|closed/i.test(project.status || '');
+      const packages = project.packages || [];
+      const packagesComplete = packages.length > 0 && packages.every((pkg) =>
+        /complete|completed|released/i.test(pkg.status || '') || ((pkg.released || 0) >= (pkg.cap || 0) && (pkg.cap || 0) > 0)
+      );
+      return statusComplete || packagesComplete;
+    }
+
+    function isPackageComplete(pkg) {
+      return /complete|completed|released/i.test(pkg?.status || '') || ((pkg?.released || 0) >= (pkg?.cap || 0) && (pkg?.cap || 0) > 0);
+    }
+
     function renderProjectsList() {
       const container = document.getElementById('projects-simple-list');
       if (!container) return;
@@ -827,35 +1137,70 @@ const store = {
         return { project, packageCount: relevantPackages.length, daysUntilTask };
       }).sort((a, b) => a.daysUntilTask - b.daysUntilTask);
 
-      container.innerHTML = projectsWithDueDates.map(({ project, packageCount, daysUntilTask }) => {
-        let dueText = store.currentRole === 'contractor'
-          ? `${packageCount} assigned package${packageCount !== 1 ? 's' : ''}`
-          : `${packageCount} work package${packageCount !== 1 ? 's' : ''}`;
-        let dueClass = '';
-
-        if (daysUntilTask === 0) {
-          dueText += ' · next due today';
-          dueClass = 'urgent';
-        } else if (daysUntilTask === 1) {
-          dueText += ' · next due in 1 day';
-          dueClass = 'urgent';
-        } else if (daysUntilTask > 1 && daysUntilTask <= 3) {
-          dueText += ` · next due in ${daysUntilTask} days`;
-          dueClass = 'soon';
-        } else if (daysUntilTask > 3) {
-          dueText += ` · next due in ${daysUntilTask} days`;
-        } else {
-          dueText += ' · overdue';
-          dueClass = 'urgent';
+      function renderProjectItems(items, completeGroup = false) {
+        if (!items.length) {
+          return `<div class="project-simple-empty">${completeGroup ? 'No completed projects yet.' : 'No ongoing projects right now.'}</div>`;
         }
 
-        return `
-          <div class="project-simple-item" onclick="showProjectDetail('${project.id}')">
-            <span class="project-simple-name">${project.name}</span>
-            <span class="project-simple-due ${dueClass}">${dueText}</span>
+        return items.map(({ project, packageCount, daysUntilTask }) => {
+          let dueText = store.currentRole === 'contractor'
+            ? `${packageCount} assigned package${packageCount !== 1 ? 's' : ''}`
+            : `${packageCount} work package${packageCount !== 1 ? 's' : ''}`;
+          let dueClass = '';
+
+          if (completeGroup) {
+            dueText += ` · completed ${formatDate(project.endDate)}`;
+            dueClass = 'complete';
+          } else if (daysUntilTask === 0) {
+            dueText += ' · next due today';
+            dueClass = 'urgent';
+          } else if (daysUntilTask === 1) {
+            dueText += ' · next due in 1 day';
+            dueClass = 'urgent';
+          } else if (daysUntilTask > 1 && daysUntilTask <= 3) {
+            dueText += ` · next due in ${daysUntilTask} days`;
+            dueClass = 'soon';
+          } else if (daysUntilTask > 3) {
+            dueText += ` · next due in ${daysUntilTask} days`;
+          } else {
+            dueText += ' · overdue';
+            dueClass = 'urgent';
+          }
+
+          return `
+            <div class="project-simple-item" onclick="showProjectDetail('${project.id}')">
+              <span class="project-simple-name">${project.name}</span>
+              <span class="project-simple-due ${dueClass}">${dueText}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const ongoingProjects = projectsWithDueDates.filter(({ project }) => !isProjectComplete(project));
+      const completedProjects = projectsWithDueDates
+        .filter(({ project }) => isProjectComplete(project))
+        .sort((a, b) => new Date(b.project.endDate || 0) - new Date(a.project.endDate || 0));
+
+      container.innerHTML = `
+        <section class="projects-simple-group">
+          <div class="projects-simple-group-head">
+            <h2>Ongoing Projects</h2>
+            <span>${ongoingProjects.length} project${ongoingProjects.length !== 1 ? 's' : ''}</span>
           </div>
-        `;
-      }).join('');
+          <div class="projects-simple-group-list">
+            ${renderProjectItems(ongoingProjects)}
+          </div>
+        </section>
+        <section class="projects-simple-group">
+          <div class="projects-simple-group-head">
+            <h2>Completed Projects</h2>
+            <span>${completedProjects.length} project${completedProjects.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="projects-simple-group-list">
+            ${renderProjectItems(completedProjects, true)}
+          </div>
+        </section>
+      `;
     }
 
     function renderProjectDetail(projectId) {
@@ -1124,13 +1469,14 @@ const store = {
         const percent = (pkg.amount / total) * 100;
         const statusClass = packageStatusClass(pkg.status);
         const label = packageStatusLabel(pkg.status);
-        const title = `${pkg.name}: ${formatGBP(pkg.amount)} (${label})`;
+        const tooltip = `${pkg.name} - ${formatGBP(pkg.amount)} - ${label}`;
+        const segmentAttrs = `style="width: ${percent}%" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tooltip)}"`;
 
         if (statusClass === 'unallocated') {
-          return `<div class="chart-bar-segment ${statusClass}" style="width: ${percent}%" title="${title}"></div>`;
+          return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs}></div>`;
         }
 
-        return `<div class="chart-bar-segment ${statusClass}" style="width: ${percent}%" title="${title}" onclick="showWorkPackage('${project.name}', '${pkg.name}', '${formatGBP(pkg.amount)}', '${label}', event)"></div>`;
+        return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs} onclick="showWorkPackage('${project.name}', '${pkg.name}', '${formatGBP(pkg.amount)}', '${label}', event)"></div>`;
       }).join('');
     }
 
@@ -1163,7 +1509,8 @@ const store = {
 
       return segments.map((segment) => {
         const width = Math.max((segment.amount / total) * 100, 6);
-        return `<div class="chart-bar-segment ${segment.className}" style="width: ${width}%" title="${segment.label}: ${formatGBP(segment.amount)}"></div>`;
+        const tooltip = `${segment.label} - ${pkg.name} - ${formatGBP(segment.amount)}`;
+        return `<div class="chart-bar-segment ${segment.className}" style="width: ${width}%" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tooltip)}"></div>`;
       }).join('');
     }
 
@@ -1193,6 +1540,56 @@ const store = {
           }).join('')}
         `;
       }).join('');
+    }
+
+    function initChartTooltips() {
+      if (document.querySelector('.chart-tooltip-floating')) return;
+
+      const tooltip = document.createElement('div');
+      tooltip.className = 'chart-tooltip-floating';
+      tooltip.hidden = true;
+      document.body.appendChild(tooltip);
+
+      function positionTooltip(event) {
+        const margin = 12;
+        tooltip.hidden = false;
+        const rect = tooltip.getBoundingClientRect();
+        let left = event.clientX + margin;
+        let top = event.clientY - rect.height - margin;
+
+        if (left + rect.width > window.innerWidth - margin) {
+          left = event.clientX - rect.width - margin;
+        }
+        if (top < margin) {
+          top = event.clientY + margin;
+        }
+
+        tooltip.style.left = `${Math.max(margin, left)}px`;
+        tooltip.style.top = `${Math.max(margin, top)}px`;
+      }
+
+      document.addEventListener('pointerover', (event) => {
+        const segment = event.target.closest('.chart-bar-segment[data-tooltip]');
+        if (!segment) return;
+        tooltip.textContent = segment.dataset.tooltip || '';
+        positionTooltip(event);
+      });
+
+      document.addEventListener('pointermove', (event) => {
+        if (tooltip.hidden) return;
+        if (!event.target.closest('.chart-bar-segment[data-tooltip]')) return;
+        positionTooltip(event);
+      });
+
+      document.addEventListener('pointerout', (event) => {
+        if (!event.target.closest('.chart-bar-segment[data-tooltip]')) return;
+        if (event.relatedTarget?.closest?.('.chart-bar-segment[data-tooltip]')) return;
+        tooltip.hidden = true;
+      });
+
+      document.addEventListener('click', () => {
+        tooltip.hidden = true;
+      });
     }
 
     function renderDashboard2() {
@@ -2123,10 +2520,10 @@ const store = {
 
     function milestoneStatusLabel(status) {
       const normalized = String(status || '').toLowerCase();
-      if (normalized === 'paid') return 'Paid';
-      if (normalized === 'invoiced') return 'Invoiced';
-      if (normalized === 'contested') return 'Contested';
-      return 'Uninvoiced';
+      if (normalized === 'paid') return 'Released';
+      if (normalized === 'invoiced') return 'Awaiting Review';
+      if (normalized === 'contested') return 'Locked';
+      return 'Upcoming';
     }
 
     function milestoneStatusClass(status) {
@@ -2203,6 +2600,13 @@ const store = {
 
       const milestones = buildPackageMilestones(pkg);
       const total = milestones.reduce((sum, milestone) => sum + (parsePackageAmount(milestone.amount) || 0), 0);
+      const released = milestones
+        .filter((milestone) => String(milestone.status || '').toLowerCase() === 'paid')
+        .reduce((sum, milestone) => sum + (parsePackageAmount(milestone.amount) || 0), 0);
+      const summary = document.getElementById('wp-milestone-summary');
+      if (summary) {
+        summary.innerHTML = `Cap ${formatGBP(total)} <span>Released ${formatGBP(released)}</span> <span>Remaining ${formatGBP(Math.max(total - released, 0))}</span>`;
+      }
 
       bar.innerHTML = milestones.map((milestone, index) => {
         const amount = parsePackageAmount(milestone.amount);
@@ -2362,6 +2766,458 @@ const store = {
       `).join('');
     }
 
+    function latestPackageRequest(pkg) {
+      return pkg?.requests?.[pkg.requests.length - 1] || null;
+    }
+
+    function packageDocs(project, pkg) {
+      if (!project || !pkg) return [];
+      return store.documents.filter((doc) => doc.projectId === project.id && doc.packageId === pkg.id);
+    }
+
+    function requestDocs(project, request) {
+      if (!project || !request) return [];
+      const refs = new Set(request.documents || []);
+      return store.documents.filter((doc) => doc.projectId === project.id && (refs.has(doc.id) || doc.linkedPayment === request.id));
+    }
+
+    function renderWorkPackageHeader(project, pkg) {
+      const title = document.getElementById('work-package-view-title');
+      const crumb = document.getElementById('wp-breadcrumb');
+      const meta = document.getElementById('wp-view-meta');
+      if (title) title.textContent = pkg?.name || 'Work Package';
+      if (crumb) crumb.textContent = `Projects -> ${project?.name || 'Project'} -> ${pkg?.name || 'Work Package'}`;
+      if (meta) {
+        meta.innerHTML = `
+          ${statusChip(pkg?.status || 'Pending')}
+          <span>${escapeHtml(project?.name || 'Project')}</span>
+          <span>${escapeHtml(pkg?.contractor || 'Unassigned contractor')}</span>
+          <span>${escapeHtml(pkg?.id?.toUpperCase() || 'WP')}</span>
+        `;
+      }
+    }
+
+    function workPackageCurrentAction(project, pkg) {
+      const request = latestPackageRequest(pkg);
+      const docRequest = (pkg.documentRequests || []).find((item) => item.status === 'Requested');
+      const variation = (pkg.variationRequests || []).find((item) =>
+        store.currentRole === 'project_manager'
+          ? item.status === 'Submitted'
+          : store.currentRole === 'finance_director'
+            ? item.status === 'Pending Finance Approval'
+            : item.status === 'Pending Contractor Agreement'
+      );
+
+      if (store.currentRole === 'project_manager' && request && !request.pmApproved && request.status === 'Submitted') {
+        return {
+          eyebrow: 'Project Manager',
+          title: 'Review submitted evidence',
+          body: `Invoice ${request.ref} is waiting for PM approval.`,
+          primary: { label: 'Approve request', modal: 'approve-request', requestId: request.id },
+          secondary: { label: 'Reject', modal: 'reject-request', requestId: request.id },
+          link: 'Open evidence pack ->',
+        };
+      }
+      if (store.currentRole === 'finance_director' && request && request.pmApproved && !request.fdApproved && request.status !== 'Rejected') {
+        return {
+          eyebrow: 'Finance Director',
+          title: 'Release-ready payment',
+          body: `${request.ref} has PM approval and can be checked for release.`,
+          primary: { label: 'Release funds', modal: 'release-funds', requestId: request.id },
+          secondary: { label: 'Place hold', modal: 'place-hold' },
+          link: 'Review chain state ->',
+        };
+      }
+      if (store.currentRole === 'finance_director' && (pkg.funded || 0) < (pkg.cap || 0)) {
+        return {
+          eyebrow: 'Finance Director',
+          title: 'Fund remaining escrow',
+          body: `${formatGBP(Math.max((pkg.cap || 0) - (pkg.funded || 0), 0))} remains to be locked for this package.`,
+          primary: { label: 'Fund escrow', modal: 'fund-package' },
+          secondary: { label: 'Place hold', modal: 'place-hold' },
+          link: 'View funding history ->',
+        };
+      }
+      if (store.currentRole === 'contractor' && docRequest) {
+        return {
+          eyebrow: 'Contractor',
+          title: `Upload ${docRequest.type}`,
+          body: docRequest.note || 'The project manager has requested supporting evidence.',
+          primary: { label: 'Add document', modal: 'add-document' },
+          secondary: { label: 'Submit variation', modal: 'submit-variation' },
+          link: docRequest.dueDate ? `Due ${formatDate(docRequest.dueDate)}` : 'Open request ->',
+        };
+      }
+      if (store.currentRole === 'contractor') {
+        return {
+          eyebrow: 'Contractor',
+          title: request ? 'Track payment request' : 'Prepare payment request',
+          body: request ? `${request.ref} is currently ${request.status.toLowerCase()}.` : 'Add evidence and submit an invoice when the package stage is ready.',
+          primary: { label: request ? 'Add document' : 'Submit invoice', modal: request ? 'add-document' : 'submit-invoice' },
+          secondary: { label: 'Submit variation', modal: 'submit-variation' },
+          link: 'Open evidence pack ->',
+        };
+      }
+      if (variation) {
+        return {
+          eyebrow: roleFullLabel(store.currentRole),
+          title: `Review variation ${variation.ref}`,
+          body: `${variation.type} request for ${formatGBP(variation.amountChange)} needs a decision.`,
+          primary: { label: store.currentRole === 'contractor' ? 'Agree variation' : 'Approve variation', modal: 'approve-variation', variationId: variation.id },
+          secondary: { label: 'Reject', modal: 'reject-variation', variationId: variation.id },
+          link: 'Open variation details ->',
+        };
+      }
+      return {
+        eyebrow: roleFullLabel(store.currentRole),
+        title: 'No blocking action',
+        body: 'This package is up to date for your current role.',
+        primary: store.currentRole === 'project_manager'
+          ? { label: 'Request documents', modal: 'request-documents' }
+          : { label: 'Add document', modal: 'add-document' },
+        secondary: null,
+        link: 'View audit trail ->',
+      };
+    }
+
+    function actionButtonHtml(project, pkg, action, tone = 'primary') {
+      if (!action) return '';
+      const variationArg = action.variationId ? `, '', '${action.variationId}'` : '';
+      const requestArg = action.requestId ? `, '${action.requestId}'` : '';
+      return `<button class="btn btn-${tone} small" onclick="openPackageModal('${project.id}', '${pkg.id}', '${action.modal}'${requestArg}${variationArg})" type="button">${escapeHtml(action.label)}</button>`;
+    }
+
+    function renderWorkPackageCurrentAction(project, pkg) {
+      const card = document.getElementById('wp-current-action-card');
+      if (!card || !project || !pkg) return;
+      const action = workPackageCurrentAction(project, pkg);
+      const actionLink = action.primary?.modal === 'approve-request'
+        ? `<button class="text-link evidence-action-link" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-request', '${action.primary.requestId || ''}')" type="button">${escapeHtml(action.link)}</button>`
+        : `<a class="text-link" href="#work-package-view">${escapeHtml(action.link)}</a>`;
+      card.innerHTML = `
+        <span class="work-package-action-eyebrow">${escapeHtml(action.eyebrow)}</span>
+        <h2>${escapeHtml(action.title)}</h2>
+        <p>${escapeHtml(action.body)}</p>
+        <div class="work-package-current-action-buttons">
+          ${actionButtonHtml(project, pkg, action.primary, 'primary')}
+          ${action.secondary ? actionButtonHtml(project, pkg, action.secondary, 'ghost') : ''}
+        </div>
+        ${actionLink}
+      `;
+    }
+
+    function buildWorkPackageTasks(project, pkg) {
+      const docs = packageDocs(project, pkg);
+      const request = latestPackageRequest(pkg);
+      const hasCert = docs.some((doc) => /cert|notice|sign-off/i.test(doc.type || doc.name));
+      const hasPhotos = docs.some((doc) => /photo|evidence/i.test(doc.type || doc.name));
+      const packageComplete = isPackageComplete(pkg);
+      const baseOwner = pkg.contractor || 'Site team';
+      const reviewStatus = request?.status === 'Released'
+        ? 'Released'
+        : request?.pmApproved
+          ? 'Pending Finance Review'
+          : request
+            ? 'In Review'
+            : 'Upcoming';
+      const requestNote = request
+        ? request.pmApproved
+          ? `${formatGBP(request.amount)} awaiting finance`
+          : `${formatGBP(request.amount)} awaiting PM review`
+        : 'Not invoiced yet';
+      return [
+        {
+          title: `${pkg.name.split(' ')[0]} inspection`,
+          owner: 'Eleanor Lane',
+          status: hasCert || packageComplete ? 'Complete' : request ? 'In Review' : 'Upcoming',
+          note: hasCert ? 'Evidence uploaded' : 'Requires certificate',
+        },
+        {
+          title: 'Works execution record',
+          owner: baseOwner,
+          status: (pkg.released || 0) > 0 || request ? 'Complete' : 'Upcoming',
+          note: request ? `Linked to ${request.ref}` : 'Before first invoice',
+        },
+        {
+          title: 'Test results and QA pack',
+          owner: baseOwner,
+          status: docs.length >= 2 ? 'Submitted' : 'In Review',
+          note: docs.length ? `${docs.length} document${docs.length === 1 ? '' : 's'} attached` : 'Upload required',
+        },
+        {
+          title: 'Payment request review',
+          owner: request?.pmApproved ? 'Maya Shah' : 'Eleanor Lane',
+          status: reviewStatus,
+          note: requestNote,
+        },
+        {
+          title: 'Snagging close-out',
+          owner: 'Site team',
+          status: packageComplete ? 'Complete' : hasPhotos ? 'Submitted' : 'Upcoming',
+          note: hasPhotos ? 'Photo evidence ready' : 'Before release',
+        },
+      ];
+    }
+
+    function renderWorkPackageTasks(project, pkg) {
+      const list = document.getElementById('wp-task-list');
+      const summary = document.getElementById('wp-task-summary');
+      if (!list || !project || !pkg) return;
+      const tasks = buildWorkPackageTasks(project, pkg);
+      if (summary) summary.textContent = `${tasks.filter((task) => /complete|submitted|released/i.test(task.status)).length} of ${tasks.length} moving`;
+      list.innerHTML = tasks.map((task) => `
+        <article class="work-package-task-item">
+          <span class="work-package-task-icon" aria-hidden="true"></span>
+          <div class="work-package-task-copy">
+            <strong>${escapeHtml(task.title)}</strong>
+            <span>${escapeHtml(task.owner)} &middot; ${escapeHtml(task.note)}</span>
+          </div>
+          ${statusChip(task.status)}
+        </article>
+      `).join('');
+    }
+
+    function approvalStepClass(request, step) {
+      if (!request) return step === 'submitted' ? 'current' : 'pending';
+      if (step === 'submitted') return 'complete';
+      if (step === 'pm') {
+        if (request.status === 'Rejected') return 'blocked';
+        return request.pmApproved ? 'complete' : 'current';
+      }
+      if (step === 'finance') {
+        if (request.fdApproved) return 'complete';
+        return request.pmApproved ? 'current' : 'pending';
+      }
+      if (step === 'released') return request.status === 'Released' ? 'complete' : 'pending';
+      return 'pending';
+    }
+
+    function renderWorkPackageRequest(project, pkg) {
+      const card = document.getElementById('wp-current-request-card');
+      if (!card || !project || !pkg) return;
+      const request = latestPackageRequest(pkg);
+      if (!request) {
+        card.innerHTML = `
+          <div class="card-head"><h2>Current Payment Request</h2>${statusChip('Not Submitted')}</div>
+          <div class="records-empty is-visible">
+            <h3 class="records-empty__title">No invoice submitted yet</h3>
+            <p class="records-empty__body">When the contractor submits a payment request, the approval flow will appear here.</p>
+          </div>
+        `;
+        return;
+      }
+      const docs = requestDocs(project, request);
+      card.innerHTML = `
+        <div class="work-package-request-head">
+          <div>
+            <span class="work-package-info-label">Current Payment Request</span>
+            <h2>${escapeHtml(request.ref)}</h2>
+          </div>
+          ${statusChip(request.status)}
+        </div>
+        <div class="work-package-request-amount">${formatGBP(request.amount)}</div>
+        <p class="assignment-description">Submitted by ${escapeHtml(request.submittedBy)} on ${formatDate(request.date)} for approved package works and supporting evidence.</p>
+        <div class="work-package-doc-chip-row">
+          ${docs.length ? docs.map((doc) => `<span class="document-chip">${escapeHtml(doc.name)}</span>`).join('') : '<span class="document-chip">No linked documents yet</span>'}
+        </div>
+        <div class="work-package-approval-flow" aria-label="Approval flow">
+          ${[
+            ['Submitted', 'submitted'],
+            ['PM Review', 'pm'],
+            ['Finance Review', 'finance'],
+            ['Released', 'released'],
+          ].map(([label, key]) => `<div class="work-package-approval-step is-${approvalStepClass(request, key)}"><span></span><strong>${label}</strong></div>`).join('')}
+        </div>
+      `;
+    }
+
+    function renderPackageSnapshot(project, pkg) {
+      const card = document.getElementById('wp-package-snapshot');
+      if (!card || !project || !pkg) return;
+      const remaining = Math.max((pkg.cap || 0) - (pkg.released || 0), 0);
+      card.innerHTML = `
+        <h2 class="work-package-info-heading">Package Snapshot</h2>
+        <div class="work-package-info-grid is-rows">
+          <div class="work-package-info-item"><span>Package cap</span><strong>${formatGBP(pkg.cap || 0)}</strong></div>
+          <div class="work-package-info-item"><span>Escrow funded</span><strong>${formatGBP(pkg.funded || 0)}</strong></div>
+          <div class="work-package-info-item"><span>Released</span><strong>${formatGBP(pkg.released || 0)}</strong></div>
+          <div class="work-package-info-item"><span>Remaining</span><strong>${formatGBP(remaining)}</strong></div>
+          <div class="work-package-info-item"><span>Contractor</span><strong>${escapeHtml(pkg.contractor || 'Unassigned')}</strong></div>
+          <div class="work-package-info-item"><span>PM</span><strong>${escapeHtml(project.team.find((member) => member.role === 'project_manager')?.name || 'Eleanor Lane')}</strong></div>
+          <div class="work-package-info-item"><span>Target completion</span><strong>${formatDate(pkg.completionDate || project.endDate)}</strong></div>
+        </div>
+      `;
+    }
+
+    function renderPaymentReadiness(project, pkg) {
+      const card = document.getElementById('wp-payment-readiness');
+      if (!card || !project || !pkg) return;
+      const docs = packageDocs(project, pkg);
+      const request = latestPackageRequest(pkg);
+      const packageEvents = store.chainEvents.filter((event) => event.packageId === pkg.id || event.packageName === pkg.name);
+      const blockers = [];
+      if ((pkg.funded || 0) < (request?.amount || 0)) blockers.push('Escrow underfunded');
+      if (docs.length < 3 && !isPackageComplete(pkg)) blockers.push('Supporting documents still light');
+      if (request && !request.pmApproved) blockers.push('PM review pending');
+      if (pkg.status === 'Locked') blockers.push('Hold is active');
+      card.innerHTML = `
+        <h2 class="work-package-info-heading">Payment Readiness</h2>
+        <div class="work-package-readiness-list">
+          <div><span>Escrow</span>${statusChip((pkg.funded || 0) >= (pkg.cap || 0) ? 'Funded' : 'Partially Funded')}</div>
+          <div><span>Documents</span><strong>${docs.length} uploaded</strong></div>
+          <div><span>Approval</span>${statusChip(request?.status || 'Not Submitted')}</div>
+          <div><span>Hold</span>${statusChip(pkg.status === 'Locked' ? 'Locked' : 'Active')}</div>
+          <div><span>Chain records</span><strong>${packageEvents.length} events recorded</strong></div>
+          <div><span>Release blocker</span><strong>${escapeHtml(blockers[0] || 'No blocker for your role')}</strong></div>
+        </div>
+      `;
+    }
+
+    function renderWorkPackageRecords(project, pkg) {
+      const content = document.getElementById('wp-tab-content');
+      if (!content || !project || !pkg) return;
+      const activeTab = store.activeWorkPackageTab || 'audit';
+      document.querySelectorAll('[data-wp-tab]').forEach((tab) => tab.classList.toggle('is-active', tab.dataset.wpTab === activeTab));
+      if (activeTab === 'documents') {
+        const docs = packageDocs(project, pkg);
+        content.innerHTML = docs.length ? `
+          <div class="work-package-docs-list">
+            ${docs.map((doc) => `
+              <div class="wp-doc-item">
+                <div class="wp-doc-icon">${escapeHtml((doc.type || 'Doc').slice(0, 3).toUpperCase())}</div>
+                <div class="wp-doc-details">
+                  <div class="wp-doc-name">${escapeHtml(doc.name)}</div>
+                  <div class="wp-doc-meta">${escapeHtml(doc.type)} &middot; ${formatDate(doc.date)} &middot; ${escapeHtml(doc.ref)} &middot; V${doc.version}</div>
+                </div>
+                <a class="text-link" href="#">View</a>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<div class="records-empty is-visible"><h3 class="records-empty__title">No documents uploaded</h3><p class="records-empty__body">Package evidence and certificates will appear here.</p></div>';
+        return;
+      }
+      if (activeTab === 'payments') {
+        const payments = pkg.requests || [];
+        content.innerHTML = payments.length ? `
+          <div class="table-card"><table class="action-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Submitted</th><th>Status</th><th>Chain</th></tr></thead><tbody>
+            ${payments.map((request) => `<tr><td>${escapeHtml(request.ref)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td>${statusChip(request.status)}</td><td><a class="text-link" href="#">View on chain -></a></td></tr>`).join('')}
+          </tbody></table></div>
+        ` : '<div class="records-empty is-visible"><h3 class="records-empty__title">No payments recorded</h3><p class="records-empty__body">Payment history will appear as invoices are approved.</p></div>';
+        return;
+      }
+      const packageAudit = project.auditLog.filter((item) => item.event.includes(pkg.name) || item.event.toLowerCase().includes(pkg.name.split(' ')[0].toLowerCase()));
+      const rows = packageAudit.length ? packageAudit : [
+        { event: `${pkg.name} created`, actor: project.team[0]?.name || 'Construkt', date: project.startDate, type: 'info' },
+        latestPackageRequest(pkg) ? { event: `Invoice ${latestPackageRequest(pkg).ref} submitted`, actor: latestPackageRequest(pkg).submittedBy, date: latestPackageRequest(pkg).date, type: 'pending' } : null,
+      ].filter(Boolean);
+      content.innerHTML = `<ul class="work-package-timeline-list">${rows.map((item) => `
+        <li class="wp-timeline-item">
+          <span class="wp-timeline-dot ${timelineDot(item.type) || 'pending'}"></span>
+          <div class="wp-timeline-content">
+            <span class="wp-timeline-title">${escapeHtml(item.event)}</span>
+            <span class="wp-timeline-meta">${escapeHtml(item.actor || 'Construkt')} &middot; ${formatDateTime(item.date)}</span>
+          </div>
+        </li>
+      `).join('')}</ul>`;
+    }
+
+    function activeRequestContext() {
+      const project = projectFor(store.activeProjectId || store.currentProjectId);
+      const pkg = packageFor(project, store.activePackageId || store.currentPackageId);
+      const request = pkg?.requests.find((item) => item.id === store.activeRequestId) || latestPackageRequest(pkg);
+      return { project, pkg, request };
+    }
+
+    function evidenceDocStatus(doc) {
+      if (/cube|test|inspection/i.test(`${doc?.name || ''} ${doc?.type || ''}`)) return 'Needs check';
+      return 'Ready';
+    }
+
+    function renderEvidenceReviewModal() {
+      const container = document.querySelector('[data-evidence-review]');
+      if (!container) return;
+      const { project, pkg, request } = activeRequestContext();
+      if (!project || !pkg || !request) {
+        container.innerHTML = '<p class="assignment-description">Open a payment request to review its evidence pack.</p>';
+        return;
+      }
+      const linkedDocs = requestDocs(project, request);
+      const docs = linkedDocs.length ? linkedDocs : packageDocs(project, pkg);
+      const activeDoc = docs.find((doc) => doc.id === store.activeEvidenceDocId) || docs[1] || docs[0] || null;
+      store.activeEvidenceDocId = activeDoc?.id || null;
+      container.innerHTML = `
+        <div class="evidence-summary-strip">
+          <div><span>Invoice</span><strong>${escapeHtml(request.ref)}</strong></div>
+          <div><span>Package</span><strong>${escapeHtml(pkg.name)}</strong></div>
+          <div><span>Contractor</span><strong>${escapeHtml(pkg.contractor || request.submittedBy)}</strong></div>
+          <div><span>Amount</span><strong>${formatGBP(request.amount)}</strong></div>
+          <div><span>Status</span>${statusChip('Awaiting PM Review')}</div>
+        </div>
+        <div class="evidence-review-grid">
+          <section class="evidence-pack-panel">
+            <div class="evidence-panel-head">
+              <div>
+                <h3>Evidence Pack</h3>
+                <p>${docs.length} linked document${docs.length === 1 ? '' : 's'} for this request</p>
+              </div>
+            </div>
+            <div class="evidence-list">
+              ${docs.map((doc) => {
+                const isOpen = doc.id === store.activeEvidenceDocId;
+                return `
+                  <article class="evidence-item ${isOpen ? 'is-open' : ''}">
+                    <button class="evidence-item-toggle" data-evidence-doc="${doc.id}" type="button">
+                      <span class="evidence-chevron">${isOpen ? '⌄' : '›'}</span>
+                      <span>
+                        <strong>${escapeHtml(doc.name)}</strong>
+                        <small>${escapeHtml(doc.type)} · ${escapeHtml(doc.ref)} · V${doc.version} · ${escapeHtml(doc.uploadedBy)} · ${formatDate(doc.date)}</small>
+                      </span>
+                      ${statusChip(evidenceDocStatus(doc))}
+                    </button>
+                    ${isOpen ? `
+                      <div class="evidence-expanded">
+                        <div class="evidence-preview-card">
+                          <span class="wp-doc-icon">${escapeHtml((doc.type || 'Doc').slice(0, 3).toUpperCase())}</span>
+                          <strong>Preview unavailable in MVP</strong>
+                          <p>Use the stored reference while backend file preview is connected.</p>
+                          <a class="btn btn-ghost small" href="#" target="_blank" rel="noreferrer">Open reference</a>
+                        </div>
+                        <div class="evidence-meta-card">
+                          <div class="info-row"><span>Reference</span><strong>${escapeHtml(doc.ref)}</strong></div>
+                          <div class="info-row"><span>Version</span><strong>V${doc.version}</strong></div>
+                          <div class="info-row"><span>Linked payment</span><strong>${escapeHtml(request.ref)}</strong></div>
+                          <div class="info-row"><span>Linked package</span><strong>${escapeHtml(pkg.name)}</strong></div>
+                          <div class="info-row"><span>Chain record</span><strong>demoTx_${escapeHtml(doc.id)}</strong></div>
+                        </div>
+                        <div class="evidence-comments">
+                          <h4>Reviewer comments</h4>
+                          <p><strong>${escapeHtml(doc.uploadedBy)}:</strong> ${/cube|test/i.test(doc.name) ? 'Cube samples taken after Bay A pour, lab report attached.' : 'Evidence uploaded for this payment request.'}</p>
+                          <label class="form-field"><span>PM draft comment</span><input type="text" placeholder="Add PM review comment..."></label>
+                        </div>
+                      </div>
+                    ` : ''}
+                  </article>
+                `;
+              }).join('') || '<div class="records-empty is-visible"><h3 class="records-empty__title">No evidence linked</h3><p class="records-empty__body">Ask the contractor to attach supporting documents before approval.</p></div>'}
+            </div>
+          </section>
+          <aside class="approval-checklist-panel">
+            <h3>Approval Checklist</h3>
+            <label><input type="checkbox" checked> Work matches package scope</label>
+            <label><input type="checkbox" checked> Evidence pack reviewed</label>
+            <label><input type="checkbox" checked> Amount matches milestone schedule</label>
+            <label><input type="checkbox" checked> No active hold</label>
+            <label><input type="checkbox"> Site inspection complete</label>
+            <div class="form-field">
+              <label>Review Note</label>
+              <textarea data-approve-review-note rows="4" placeholder="Add approval note for audit trail"></textarea>
+            </div>
+            <div class="evidence-audit-note">Approval will be recorded against the payment request account and visible in the audit trail.</div>
+          </aside>
+        </div>
+      `;
+    }
+
     function renderWorkPackageView() {
       const backBtn = document.getElementById('work-package-back-btn');
       const titleElement = document.getElementById('work-package-view-title');
@@ -2409,6 +3265,21 @@ const store = {
           type: storePackage.status,
           paymentDate: storePackage.completionDate,
           milestones: storePackage.milestones,
+        });
+      }
+      if (project && storePackage) {
+        renderWorkPackageHeader(project, storePackage);
+        renderWorkPackageCurrentAction(project, storePackage);
+        renderWorkPackageTasks(project, storePackage);
+        renderWorkPackageRequest(project, storePackage);
+        renderPackageSnapshot(project, storePackage);
+        renderPaymentReadiness(project, storePackage);
+        renderWorkPackageRecords(project, storePackage);
+        document.querySelectorAll('[data-wp-tab]').forEach((tab) => {
+          tab.onclick = () => {
+            store.activeWorkPackageTab = tab.dataset.wpTab;
+            renderWorkPackageRecords(project, storePackage);
+          };
         });
       }
       renderWorkPackageActions(project, storePackage);
@@ -2634,6 +3505,7 @@ const store = {
       store.currentPackageId = pkg.id;
       store.activeRequestId = pkg.requests[pkg.requests.length - 1]?.id || null;
       store.activeVariationId = pkg.variationRequests?.[pkg.variationRequests.length - 1]?.id || null;
+      store.activeWorkPackageTab = 'audit';
       const packageData = {
         project: project.name,
         projectId: project.id,
@@ -2753,7 +3625,7 @@ const store = {
         const packages = milestone.packageIds.map((id) => packageFor(project, id)).filter(Boolean);
         if (packages.some((pkg) => pkg.status === 'Locked')) {
           milestone.status = 'blocked';
-        } else if (packages.length && packages.every((pkg) => pkg.status === 'Released' || pkg.requests.some((request) => request.status === 'Released'))) {
+        } else if (packages.length && packages.every((pkg) => isPackageComplete(pkg) || pkg.requests.some((request) => request.status === 'Released'))) {
           milestone.status = 'complete';
         } else if (packages.some((pkg) => pkg.requests.length > 0 || pkg.status === 'In Progress')) {
           milestone.status = 'in-progress';
@@ -3653,7 +4525,7 @@ const store = {
       }
 
       if (modalName === 'approve-request') {
-        approveRequest(context.projectId, context.packageId, context.requestId, modalFieldValue(modal, 0));
+        approveRequest(context.projectId, context.packageId, context.requestId, modalScopedValue(modal, '[data-approve-review-note]') || modalFieldValue(modal, 0));
       }
 
       if (modalName === 'reject-request') {
@@ -3780,6 +4652,7 @@ const store = {
       document.querySelectorAll('[data-modal].is-open').forEach(closeModal);
       modal.hidden = false;
       modal.classList.add('is-open');
+      if (name === 'approve-request') renderEvidenceReviewModal();
       if (name === 'new-project') {
         renderMilestoneBuilder();
         renderNewProjectStep(1);
@@ -3804,10 +4677,25 @@ const store = {
     document.addEventListener('click', (event) => {
       const modal = event.target.closest('[data-modal]');
       const button = event.target.closest('.modal-footer .btn');
-      if (!modal || !button || button.matches('[data-modal-close], [data-new-project-next], [data-new-project-back]')) return;
+      if (!modal || !button || button.matches('[data-modal-close], [data-modal-target], [data-new-project-next], [data-new-project-back]')) return;
       event.preventDefault();
       event.stopPropagation();
       handleModalSubmit(modal);
+    });
+
+    document.addEventListener('click', (event) => {
+      const evidenceToggle = event.target.closest('[data-evidence-doc]');
+      if (!evidenceToggle) return;
+      store.activeEvidenceDocId = store.activeEvidenceDocId === evidenceToggle.dataset.evidenceDoc ? null : evidenceToggle.dataset.evidenceDoc;
+      renderEvidenceReviewModal();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('[data-open-wp-documents]')) return;
+      store.activeWorkPackageTab = 'documents';
+      const project = activeProject();
+      const pkg = activePackage(project);
+      if (project && pkg) requestAnimationFrame(() => renderWorkPackageRecords(project, pkg));
     });
 
     document.querySelector('[data-add-document-file]')?.addEventListener('change', (event) => {
@@ -3839,6 +4727,7 @@ const store = {
     window.addEventListener('hashchange', renderRoute);
 
     applyInitialTheme();
+    initChartTooltips();
     renderRole();
     renderDashboard();
     renderProjectsList();

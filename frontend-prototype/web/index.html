@@ -799,13 +799,18 @@
       <section id="work-package-view-page" data-app-page="work-package-view">
         <div class="work-package-view-container">
           <div class="work-package-view-header">
-            <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Back to Chart
-            </button>
-            <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+            <div class="work-package-view-heading">
+              <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to project
+              </button>
+              <div class="work-package-view-breadcrumb" id="wp-breadcrumb">Projects -> Demo Hospital Fit-Out -> Work Package</div>
+              <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+              <div class="work-package-view-meta" id="wp-view-meta"></div>
+            </div>
+            <aside class="work-package-current-action-card" id="wp-current-action-card"></aside>
           </div>
 
           <div class="work-package-view-content">
@@ -844,6 +849,7 @@
             <div class="work-package-milestone-card">
               <div class="work-package-milestone-head">
                 <h2 class="work-package-milestone-heading">Milestone Payment Schedule</h2>
+                <span class="work-package-milestone-summary" id="wp-milestone-summary"></span>
                 <div class="work-package-milestone-legend" aria-label="Milestone status legend">
                   <span><i class="milestone-legend-dot is-uninvoiced"></i>Uninvoiced</span>
                   <span><i class="milestone-legend-dot is-invoiced"></i>Invoiced</span>
@@ -853,6 +859,36 @@
               </div>
               <div class="milestone-payment-bar" id="wp-milestone-bar" aria-label="Work package milestone payment status"></div>
               <div class="milestone-payment-details" id="wp-milestone-details"></div>
+            </div>
+
+            <div class="work-package-tasks-card">
+              <div class="work-package-card-head">
+                <h2 class="work-package-docs-heading">Package Tasks</h2>
+                <span class="work-package-info-label" id="wp-task-summary">Construction controls</span>
+              </div>
+              <div class="work-package-task-list" id="wp-task-list"></div>
+            </div>
+
+            <div class="work-package-view-grid">
+              <main class="work-package-view-main">
+                <section class="work-package-request-card" id="wp-current-request-card"></section>
+              </main>
+              <aside class="work-package-view-side">
+                <section class="work-package-info-card" id="wp-package-snapshot"></section>
+                <section class="work-package-readiness-card" id="wp-payment-readiness"></section>
+              </aside>
+            </div>
+
+            <div class="work-package-tabs-card">
+              <div class="section-tabs">
+                <div class="tab-buttons" role="tablist" aria-label="Work package records">
+                  <button class="section-tab is-active" type="button" data-wp-tab="audit">Audit Trail</button>
+                  <button class="section-tab" type="button" data-wp-tab="documents">Documents</button>
+                  <button class="section-tab" type="button" data-wp-tab="payments">Payments</button>
+                </div>
+                <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain -></a>
+              </div>
+              <div id="wp-tab-content"></div>
             </div>
 
             <!-- Actions Card -->
@@ -1034,7 +1070,6 @@
         </section>
 
         <div class="project-detail-layout">
-          <main class="project-detail-main">
             <section class="assignment-card project-packages">
               <div class="card-head">
                 <h2>Work Packages</h2>
@@ -1493,8 +1528,6 @@
                 </div>
               </div>
             </section>
-          </main>
-
           <aside class="project-detail-side">
             <section class="activity-panel">
               <div class="card-head">
@@ -2078,7 +2111,7 @@
       </form>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-success" type="button">Approve</button>
+        <button class="btn btn-primary" type="button">Approve</button>
       </div>
     </section>
   </div>
@@ -2100,11 +2133,15 @@
   </div>
 
   <div class="modal-overlay" data-modal="approve-request" hidden>
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="approve-request-title">
+    <section class="modal-card evidence-review-modal" role="dialog" aria-modal="true" aria-labelledby="approve-request-title">
       <div class="modal-header">
-        <h2 id="approve-request-title">Approve Payment Request</h2>
+        <div>
+          <h2 id="approve-request-title">Review Evidence &amp; Approve Request</h2>
+          <p class="modal-subtitle">Open linked evidence, leave an audit note, then record your decision.</p>
+        </div>
         <button class="modal-close" data-modal-close type="button">×</button>
       </div>
+      <div class="evidence-review" data-evidence-review></div>
       <div class="modal-summary">
         <div class="modal-summary-row"><span>Invoice ref</span><strong>INV-FND-001</strong></div>
         <div class="modal-summary-row"><span>Contractor</span><strong>Okafor Builders Ltd.</strong></div>
@@ -2115,8 +2152,11 @@
         <div class="form-field"><label>Review note</label><textarea rows="3" placeholder="Add review note"></textarea></div>
       </form>
       <div class="modal-footer">
+        <a class="text-link evidence-full-docs-link" href="#work-package-view" data-open-wp-documents data-modal-close>Open full documents tab →</a>
+        <span class="modal-footer-spacer"></span>
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-success" type="button">Approve</button>
+        <button class="btn btn-ghost evidence-reject-btn" data-modal-target="reject-request" type="button">Reject</button>
+        <button class="btn btn-success" type="button">Approve Request</button>
       </div>
     </section>
   </div>
