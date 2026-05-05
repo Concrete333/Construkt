@@ -615,7 +615,6 @@ const store = {
 
     const routes = {
       home: { layout: 'public', page: 'home' },
-      signin: { layout: 'public', page: 'signin' },
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
       'work-package-view': { layout: 'app', page: 'work-package-view', nav: 'dashboard2' },
@@ -683,6 +682,12 @@ const store = {
     let roleIndex = 0;
     let currentRole = 'finance_director';
 
+    const landingRoleToAppRole = {
+      finance: 'finance_director',
+      pm: 'project_manager',
+      contractor: 'contractor',
+    };
+
     function applyInitialTheme() {
       const storedTheme = localStorage.getItem('construkt-theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -708,8 +713,8 @@ const store = {
       publicScreen.classList.toggle('is-active', route.layout === 'public');
       appScreen.classList.toggle('is-active', route.layout === 'app');
 
-      document.getElementById('home-page').hidden = route.page !== 'home';
-      document.getElementById('signin-page').hidden = route.page !== 'signin';
+      const homePage = document.getElementById('home-page');
+      if (homePage) homePage.hidden = route.page !== 'home';
 
       document.querySelectorAll('[data-app-page]').forEach((page) => {
         page.hidden = page.dataset.appPage !== route.page;
@@ -4045,6 +4050,14 @@ const store = {
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
     }
 
+    function setAppRole(roleKey) {
+      const nextIndex = roles.findIndex((role) => roleKeyFromLabel(role.label) === roleKey);
+      if (nextIndex < 0 || nextIndex === roleIndex) return;
+      roleIndex = nextIndex;
+      renderRole();
+      maybeAnimateDashboardKpis();
+    }
+
     function applyProjectContractModel(project) {
       const model = project.dataset.projectModel || 'Milestone';
       const name = project.dataset.projectName || 'Demo Hospital Fit-Out';
@@ -4660,6 +4673,53 @@ const store = {
       if (name === 'new-project') syncProjectClientMode();
     }
 
+    function setLandingRole(role) {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+      home.dataset.selectedRole = role;
+      setAppRole(landingRoleToAppRole[role] || 'finance_director');
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        const isActive = button.dataset.landingRole === role;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+      });
+      document.querySelectorAll('[data-role-story]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleStory === role);
+      });
+      document.querySelectorAll('[data-role-board]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleBoard === role);
+      });
+    }
+
+    function initLandingPage() {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        button.addEventListener('click', () => setLandingRole(button.dataset.landingRole));
+      });
+      document.querySelectorAll('[data-demo-role-link]').forEach((link) => {
+        link.addEventListener('click', () => setLandingRole(link.dataset.demoRoleLink));
+      });
+      setLandingRole(home.dataset.selectedRole || 'finance');
+
+      const reveals = Array.from(document.querySelectorAll('.landing-reveal'));
+      if (!('IntersectionObserver' in window)) {
+        reveals.forEach((section) => section.classList.add('is-visible'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        });
+      }, { threshold: 0.18 });
+
+      reveals.forEach((section) => observer.observe(section));
+    }
+
     document.querySelectorAll('[data-modal-target]').forEach((trigger) => {
       trigger.addEventListener('click', () => {
         prepareAddDocumentModal(trigger);
@@ -4718,16 +4778,19 @@ const store = {
       maybeAnimateDashboardKpis();
     });
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = nextTheme;
-      localStorage.setItem('construkt-theme', nextTheme);
+    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('construkt-theme', nextTheme);
+      });
     });
 
     window.addEventListener('hashchange', renderRoute);
 
     applyInitialTheme();
     initChartTooltips();
+    initLandingPage();
     renderRole();
     renderDashboard();
     renderProjectsList();

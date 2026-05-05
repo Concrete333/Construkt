@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&family=Geist:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/projects/css/construkt.css">
+  <link rel="stylesheet" href="static/projects/css/construkt.css?v=landing-20260505c">
 </head>
 <body>
   <div id="public-screen" class="screen">
@@ -21,62 +21,252 @@
         <span class="wordmark">Construkt</span>
       </a>
       <div class="header-actions">
-        <a class="btn btn-ghost" href="#signin">Sign in</a>
-        <a class="btn btn-primary" href="#signin">Get access</a>
+        <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+        <button class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v2"></path>
+            <path d="M12 19v2"></path>
+            <path d="M5.6 5.6l1.4 1.4"></path>
+            <path d="M17 17l1.4 1.4"></path>
+            <path d="M3 12h2"></path>
+            <path d="M19 12h2"></path>
+            <path d="M5.6 18.4l1.4-1.4"></path>
+            <path d="M17 7l1.4-1.4"></path>
+            <circle cx="12" cy="12" r="4"></circle>
+          </svg>
+        </button>
       </div>
     </header>
 
-    <main id="home-page" class="public-main">
-      <section class="home-grid">
-        <div>
-          <p class="eyebrow">Construction payment control</p>
-          <h1>Clean approvals for work-package payments.</h1>
-          <p class="lead">Construkt keeps finance, site teams, and contractors aligned on package funding, request status, approval progress, and release readiness.</p>
+    <main id="home-page" class="public-main landing-main" data-selected-role="finance">
+      <section class="landing-hero landing-reveal">
+        <div class="landing-hero-copy">
+          <p class="eyebrow">Solana-backed construction payment control</p>
+          <h1><span>Construction payments,</span><span>clearly controlled.</span></h1>
+          <p class="lead">Construkt gives finance teams, project managers, and contractors one clean flow for funding packages, submitting evidence, approving work, and releasing escrow.</p>
           <div class="public-actions">
-            <a class="btn btn-primary" href="#dashboard">Open dashboard</a>
-            <a class="btn btn-ghost" href="#signin">Sign in</a>
+            <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+            <a class="btn btn-ghost" href="#role-walkthrough">Choose your role</a>
           </div>
         </div>
-        <aside class="process-panel" aria-label="Payment process">
-          <div class="process-row">
-            <span class="process-index">1</span>
-            <div><strong>Package funded</strong><span>Finance sets cap and escrow funding.</span></div>
-            <span class="status-pill chip-tone-success">Ready</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">2</span>
-            <div><strong>Request submitted</strong><span>Contractor adds amount and document ref.</span></div>
-            <span class="status-pill chip-tone-primary">Open</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">3</span>
-            <div><strong>PM review</strong><span>Approval or rejection is logged.</span></div>
-            <span class="status-pill chip-tone-primary">Next</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">4</span>
-            <div><strong>Finance release</strong><span>Funds release after rules pass.</span></div>
-            <span class="status-pill chip-tone-danger">Blocked</span>
+        <aside class="landing-hero-visual" aria-label="Construkt approval flow preview">
+          <div class="landing-device-shell">
+            <div class="landing-device-top">
+              <span>Demo Hospital Fit-Out</span>
+              <span class="status-pill chip-tone-primary">Live package</span>
+            </div>
+            <div class="landing-payment-line">
+              <span class="is-paid"></span>
+              <span class="is-paid"></span>
+              <span class="is-active"></span>
+              <span></span>
+            </div>
+            <div class="landing-mini-grid">
+              <div><span>Escrow funded</span><strong>&pound;410k</strong></div>
+              <div><span>Requested</span><strong>&pound;92.4k</strong></div>
+              <div><span>Documents</span><strong>4 linked</strong></div>
+              <div><span>Release</span><strong>Blocked</strong></div>
+            </div>
+            <div class="landing-approval-card">
+              <span class="process-index">3</span>
+              <div>
+                <strong>PM evidence review</strong>
+                <span>Cube tests, photos, and certificate ready for approval.</span>
+              </div>
+              <span class="status-pill chip-tone-warning">Current</span>
+            </div>
           </div>
         </aside>
       </section>
-    </main>
 
-    <main id="signin-page" class="public-main">
-      <section class="signin-panel">
-        <p class="eyebrow">Secure access</p>
-        <h1>Sign in to your project workspace.</h1>
-        <form class="form-stack">
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" type="email" value="finance.director@construkt.local">
+      <section class="landing-how landing-reveal" aria-labelledby="landing-how-title">
+        <div class="landing-how-head">
+          <p class="eyebrow">How Construkt works</p>
+          <h2 id="landing-how-title">One controlled path from package funding to payment release.</h2>
+          <p>Construkt is not a full construction ERP. It is the payment-control layer that makes every work-package request visible, approved, and auditable before funds move.</p>
+        </div>
+        <div class="landing-flow-steps">
+          <article>
+            <span>01</span>
+            <strong>Fund package escrow</strong>
+            <p>Finance creates the work package, sets the cap, and locks package funding.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Submit request</strong>
+            <p>The contractor submits an invoice against the package, not a vague project total.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Attach evidence</strong>
+            <p>Certificates, photos, QA packs, and document references sit with the request.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <strong>Approve or reject</strong>
+            <p>Project managers review evidence and record the decision with an audit note.</p>
+          </article>
+          <article>
+            <span>05</span>
+            <strong>Release from escrow</strong>
+            <p>Finance releases funds only when approval and hold rules are satisfied.</p>
+          </article>
+        </div>
+        <p class="landing-chain-note">On-chain records are used for payment state, approvals, releases, and audit references. Documents themselves stay off-chain as hashes or references.</p>
+      </section>
+
+      <section id="role-walkthrough" class="landing-role-picker landing-role-cta landing-reveal" aria-labelledby="landing-role-title">
+        <div class="landing-role-intro">
+          <p class="eyebrow">Choose your view</p>
+          <h2 id="landing-role-title">Follow the product from the role that matters to you.</h2>
+          <p>Pick a role and the walkthrough below changes to show what that person actually does inside Construkt.</p>
+        </div>
+        <div class="landing-role-cards" role="tablist" aria-label="Landing page role view">
+          <button class="landing-role-card is-active" type="button" data-landing-role="finance" role="tab" aria-selected="true">
+            <span>Finance Director</span>
+            <strong>Control escrow and release only when rules pass.</strong>
+          </button>
+          <button class="landing-role-card" type="button" data-landing-role="pm" role="tab" aria-selected="false">
+            <span>Project Manager</span>
+            <strong>Review evidence and record site approval decisions.</strong>
+          </button>
+          <button class="landing-role-card" type="button" data-landing-role="contractor" role="tab" aria-selected="false">
+            <span>Contractor</span>
+            <strong>Submit requests, attach proof, and track payment status.</strong>
+          </button>
+        </div>
+      </section>
+
+      <section class="landing-story landing-guided-walkthrough landing-reveal">
+        <div class="landing-story-copy">
+          <p class="eyebrow">Workflow walkthrough</p>
+          <div class="landing-role-story is-active" data-role-story="finance">
+            <h2>Finance builds the payment controls before money moves.</h2>
+            <p>Create the project, define work packages, lock escrow, then release only when evidence, approvals, and hold checks are clear.</p>
           </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" type="password" value="ConstruktDemo123!">
+          <div class="landing-role-story" data-role-story="pm">
+            <h2>Project managers review the work, not payment admin.</h2>
+            <p>Open the review task, inspect the evidence pack, add a site note, then approve or reject with context attached to the payment record.</p>
           </div>
-          <a class="btn btn-primary" href="#dashboard">Continue</a>
-        </form>
+          <div class="landing-role-story" data-role-story="contractor">
+            <h2>Contractors see exactly what to submit next.</h2>
+            <p>Track assigned packages, submit the request, attach proof, and follow approval progress without chasing finance or site teams.</p>
+          </div>
+        </div>
+        <div class="landing-product-demo" aria-label="Role workflow preview">
+          <div class="landing-demo-frame is-active" data-role-board="finance">
+            <div class="landing-demo-topbar">
+              <span>Finance Director</span>
+              <strong>Project setup and release control</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Create payment structure</span>
+                <h3>Demo Hospital Fit-Out</h3>
+                <div class="landing-demo-steps">
+                  <div><span>1</span><strong>Create project</strong><small>Contract ref MH-402A</small></div>
+                  <div><span>2</span><strong>Add work package</strong><small>Foundation Pour - Bay A</small></div>
+                  <div><span>3</span><strong>Fund escrow</strong><small>&pound;410k locked</small></div>
+                </div>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-warning">Blocked</span>
+                <strong>Release readiness</strong>
+                <p>Waiting for PM evidence review before finance can release.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="finance">Open finance dashboard -></a>
+              </aside>
+            </div>
+          </div>
+
+          <div class="landing-demo-frame" data-role-board="pm">
+            <div class="landing-demo-topbar">
+              <span>Project Manager</span>
+              <strong>Evidence review and site approval</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Outstanding task</span>
+                <h3>Review submitted evidence</h3>
+                <div class="landing-evidence-list">
+                  <div><strong>Foundation Pour Certificate</strong><span>DOC-FND-014 - V3 - ready</span></div>
+                  <div><strong>Cube Test Results</strong><span>DOC-CUBE-021 - linked to invoice</span></div>
+                  <div><strong>Site Photos and QA Pack</strong><span>4 images - contractor note attached</span></div>
+                </div>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-primary">Current step</span>
+                <strong>PM review</strong>
+                <p>Approve or reject with an audit note that stays with the request.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="pm">Open review queue -></a>
+              </aside>
+            </div>
+          </div>
+
+          <div class="landing-demo-frame" data-role-board="contractor">
+            <div class="landing-demo-topbar">
+              <span>Contractor</span>
+              <strong>Submission and payment tracking</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Assigned package</span>
+                <h3>Foundation Pour - Bay A</h3>
+                <div class="landing-contractor-track">
+                  <span class="is-done">Submitted</span>
+                  <span class="is-done">Evidence attached</span>
+                  <span class="is-current">PM review</span>
+                  <span>Release</span>
+                </div>
+                <p>Invoice INV-FND-001 for &pound;92.4k is waiting for site approval.</p>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-warning">Action needed</span>
+                <strong>Add supporting proof</strong>
+                <p>Upload certificates, photos, and document references against the payment request.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="contractor">Open contractor view -></a>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-showcase landing-reveal">
+        <div class="landing-showcase-head">
+          <p class="eyebrow">Inside the app</p>
+          <h2>The same story continues in the real dashboard.</h2>
+          <p>Use the landing page to understand the flow, then jump into the working prototype to explore dashboards, projects, work packages, documents, payments, and audit trails.</p>
+        </div>
+        <div class="landing-showcase-grid">
+          <article class="landing-screen-card">
+            <span>01</span>
+            <strong>Dashboard</strong>
+            <p>Outstanding tasks sit beside on-chain feedback so users know what needs action and what has already been recorded in the demo session.</p>
+          </article>
+          <article class="landing-screen-card">
+            <span>02</span>
+            <strong>Project page</strong>
+            <p>Contract totals, milestone timeline, team roles, packages, documents, payments, and audit records stay tied to one project.</p>
+          </article>
+          <article class="landing-screen-card">
+            <span>03</span>
+            <strong>Work package page</strong>
+            <p>Package tasks, payment schedule, evidence, readiness checks, and approval status come together before release.</p>
+          </article>
+          <article class="landing-screen-card">
+            <span>04</span>
+            <strong>Audit trail</strong>
+            <p>Approvals, releases, holds, document references, and transaction records stay attached to the project and package.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="landing-final-cta landing-reveal">
+        <p class="eyebrow">Ready to explore</p>
+        <h2>Walk through the demo as finance, PM, or contractor.</h2>
+        <div class="public-actions">
+          <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+          <a class="btn btn-ghost" href="#projects">Browse projects</a>
+        </div>
       </section>
     </main>
 
@@ -120,7 +310,7 @@
       <div class="nav-right">
         <span class="network"><span class="network-dot"></span>SOLANA DEVNET DEMO</span>
         <button id="role-toggle" class="btn role-badge" type="button">Finance Director</button>
-        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+        <button id="theme-toggle" class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3v2"></path>
             <path d="M12 19v2"></path>
@@ -2246,6 +2436,6 @@
     </section>
   </div>
 
-  <script src="static/projects/js/construkt.js"></script>
+  <script src="static/projects/js/construkt.js?v=landing-20260505c"></script>
 </body>
 </html>
