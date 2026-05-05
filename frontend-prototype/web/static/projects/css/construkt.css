@@ -583,6 +583,7 @@
     .landing-role-picker,
     .landing-story,
     .landing-showcase,
+    .landing-appendix,
     .landing-final-cta {
       width: min(1180px, calc(100% - var(--space-12)));
       margin: 0 auto;
@@ -635,6 +636,7 @@
     .landing-scroll-board,
     .landing-role-card,
     .landing-screen-card,
+    .landing-appendix,
     .landing-final-cta {
       border: 1px solid var(--color-border);
       border-radius: calc(var(--radius-lg) + var(--space-1));
@@ -791,6 +793,7 @@
     .landing-how h2,
     .landing-story h2,
     .landing-showcase h2,
+    .landing-appendix h2,
     .landing-final-cta h2 {
       font-size: clamp(2rem, 4.2vw, 4rem);
       letter-spacing: -0.045em;
@@ -952,7 +955,8 @@
     }
 
     .landing-role-story p,
-    .landing-showcase-head p {
+    .landing-showcase-head p,
+    .landing-appendix-head p {
       margin: var(--space-5) 0 0;
       color: var(--color-text-muted);
       font-size: var(--text-md);
@@ -1238,6 +1242,74 @@
       margin-top: var(--space-6);
     }
 
+    .landing-appendix {
+      display: grid;
+      grid-template-columns: minmax(0, 0.55fr) minmax(0, 1.45fr);
+      gap: var(--space-8);
+      padding: var(--space-8);
+      margin-top: var(--space-4);
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--color-primary-light) 36%, transparent), transparent 42%),
+        var(--color-surface-2);
+    }
+
+    .landing-appendix-head {
+      position: sticky;
+      top: var(--space-8);
+      align-self: start;
+    }
+
+    .landing-appendix-list {
+      display: grid;
+      gap: var(--space-3);
+    }
+
+    .landing-appendix details {
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-lg);
+      background: color-mix(in srgb, var(--color-surface) 94%, transparent);
+      overflow: hidden;
+    }
+
+    .landing-appendix summary {
+      cursor: pointer;
+      padding: var(--space-4) var(--space-5);
+      color: var(--color-text);
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: 600;
+      line-height: 1.15;
+      list-style: none;
+    }
+
+    .landing-appendix summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .landing-appendix summary::after {
+      content: "+";
+      float: right;
+      color: var(--color-primary);
+      font-family: var(--font-body);
+      font-weight: 700;
+    }
+
+    .landing-appendix details[open] summary::after {
+      content: "-";
+    }
+
+    .landing-appendix details p {
+      margin: 0;
+      padding: 0 var(--space-5) var(--space-4);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      line-height: 1.58;
+    }
+
+    .landing-appendix details p + p {
+      padding-top: 0;
+    }
+
     .landing-final-cta {
       display: grid;
       justify-items: center;
@@ -1283,6 +1355,7 @@
       .landing-role-picker,
       .landing-story,
       .landing-showcase,
+      .landing-appendix,
       .landing-final-cta {
         width: min(100% - var(--space-8), 720px);
       }
@@ -1292,6 +1365,7 @@
       .landing-story,
       .landing-flow-steps,
       .landing-showcase-grid,
+      .landing-appendix,
       .landing-demo-layout {
         grid-template-columns: 1fr;
       }
@@ -1311,6 +1385,10 @@
       .landing-story-copy {
         position: static;
         padding-top: 0;
+      }
+
+      .landing-appendix-head {
+        position: static;
       }
 
       .landing-role-cards {
@@ -1338,6 +1416,7 @@
       .landing-role-picker,
       .landing-story,
       .landing-showcase,
+      .landing-appendix,
       .landing-final-cta {
         width: min(100% - var(--space-6), 100%);
       }
@@ -1385,6 +1464,10 @@
 
       .landing-final-cta {
         padding: var(--space-8) var(--space-5);
+      }
+
+      .landing-appendix {
+        padding: var(--space-5);
       }
     }
 

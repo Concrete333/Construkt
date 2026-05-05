@@ -615,7 +615,6 @@ const store = {
 
     const routes = {
       home: { layout: 'public', page: 'home' },
-      signin: { layout: 'public', page: 'signin' },
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
       'work-package-view': { layout: 'app', page: 'work-package-view', nav: 'dashboard2' },

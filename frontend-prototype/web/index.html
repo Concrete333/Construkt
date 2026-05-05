@@ -255,6 +255,58 @@
         </div>
       </section>
 
+      <section class="landing-appendix landing-reveal" aria-labelledby="landing-appendix-title">
+        <div class="landing-appendix-head">
+          <p class="eyebrow">For judges</p>
+          <h2 id="landing-appendix-title">Why smart contracts fit this workflow.</h2>
+          <p>Construkt uses blockchain for the payment rules and audit record, not as a place to store every project file or replace human review.</p>
+        </div>
+        <div class="landing-appendix-list">
+          <details open>
+            <summary>What are smart contracts?</summary>
+            <p>Smart contracts are programs that run on a blockchain and enforce agreed rules. In Construkt, they are designed to act as a payment controller for construction work packages: funds can be locked, payment requests can be submitted, approvals can be recorded, and release can be blocked until the required conditions are met.</p>
+            <p>The aim is to turn contract terms, milestones, document references, and approval steps into a workflow that is clear to follow and harder to bypass.</p>
+          </details>
+          <details>
+            <summary>Why are smart contracts useful for construction payments?</summary>
+            <p>Construction payments often involve more than a simple invoice. Payment may depend on milestones, evidence of completed work, variations, budget checks, and several approvals.</p>
+            <p>Construkt uses smart contracts for the parts of that process where rules matter most. A payment request is submitted against a work package, the required stakeholders approve it in sequence, and funds become eligible for release only when the agreed conditions are satisfied.</p>
+          </details>
+          <details>
+            <summary>Why blockchain?</summary>
+            <p>Blockchain is useful when several parties need to rely on the same payment record but do not all use the same internal system.</p>
+            <p>For construction payments, that means clients, contractors, project managers, directors, and payment teams can refer to one verifiable record of key events: who approved what, when it happened, which document reference was linked, and whether a payment was released, held, or disputed.</p>
+            <p>Construkt uses blockchain for the trust-critical parts of the workflow: package state, approval records, payment status, document references, holds, and release decisions.</p>
+          </details>
+          <details>
+            <summary>Why Solana?</summary>
+            <p>Solana is fast and low cost, which makes it a good fit for workflows with frequent approval and payment-state updates.</p>
+            <p>Construkt uses Solana so package funding, approvals, holds, and release decisions can be recorded without making the user experience slow or expensive. For this MVP, Solana also works well with Anchor, the framework used to build the approval and escrow program.</p>
+          </details>
+          <details>
+            <summary>Are documents stored on-chain?</summary>
+            <p>No. Full contracts, drawings, invoices, and supporting files should stay off-chain in systems built for document storage.</p>
+            <p>Construkt is designed to store document references and hashes. That lets the platform prove which version of a document was linked to a payment request or approval without putting sensitive files on-chain.</p>
+            <p>If a document changes, its hash changes. That gives teams document integrity without unnecessary storage cost or privacy risk.</p>
+          </details>
+          <details>
+            <summary>Does blockchain replace human review?</summary>
+            <p>No. People still review the work, evidence, and commercial context.</p>
+            <p>The smart contract enforces the payment rules after those decisions are made. Humans make the judgement. The system makes the approval path and release conditions clear, consistent, and auditable.</p>
+          </details>
+          <details>
+            <summary>Does this replace existing payment systems?</summary>
+            <p>Not necessarily. In a full escrow model, funds can be locked and released through the smart contract. In an enterprise setting, Construkt could also act as a payment-control layer: it confirms whether a release is eligible, while the existing payment system executes the actual payment.</p>
+            <p>That gives organisations a practical path between smart-contract automation and existing payment operations.</p>
+          </details>
+          <details>
+            <summary>What makes Construkt different?</summary>
+            <p>Most construction software focuses on documents, tasks, or project progress. Construkt focuses on payment control.</p>
+            <p>It connects work packages, payment requests, supporting evidence, approvals, holds, and release decisions into one auditable workflow. The core idea is simple: construction funds should move only when the agreed conditions are met, and every party should be able to see the status, responsibility, and history behind each payment.</p>
+          </details>
+        </div>
+      </section>
+
       <section class="landing-final-cta landing-reveal">
         <p class="eyebrow">Ready to explore</p>
         <h2>Open the demo dashboard or browse the project list.</h2>
@@ -262,23 +314,6 @@
           <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
           <a class="btn btn-ghost" href="#projects">Browse projects</a>
         </div>
-      </section>
-    </main>
-    <main id="signin-page" class="public-main">
-      <section class="signin-panel">
-        <p class="eyebrow">Secure access</p>
-        <h1>Sign in to your project workspace.</h1>
-        <form class="form-stack">
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" type="email" value="finance.director@construkt.local">
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" type="password" value="ConstruktDemo123!">
-          </div>
-          <a class="btn btn-primary" href="#dashboard">Continue</a>
-        </form>
       </section>
     </main>
 
