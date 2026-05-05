@@ -683,6 +683,12 @@ const store = {
     let roleIndex = 0;
     let currentRole = 'finance_director';
 
+    const landingRoleToAppRole = {
+      finance: 'finance_director',
+      pm: 'project_manager',
+      contractor: 'contractor',
+    };
+
     function applyInitialTheme() {
       const storedTheme = localStorage.getItem('construkt-theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -708,8 +714,10 @@ const store = {
       publicScreen.classList.toggle('is-active', route.layout === 'public');
       appScreen.classList.toggle('is-active', route.layout === 'app');
 
-      document.getElementById('home-page').hidden = route.page !== 'home';
-      document.getElementById('signin-page').hidden = route.page !== 'signin';
+      const homePage = document.getElementById('home-page');
+      const signinPage = document.getElementById('signin-page');
+      if (homePage) homePage.hidden = route.page !== 'home';
+      if (signinPage) signinPage.hidden = route.page !== 'signin';
 
       document.querySelectorAll('[data-app-page]').forEach((page) => {
         page.hidden = page.dataset.appPage !== route.page;
@@ -947,7 +955,7 @@ const store = {
       if (store.currentRole === 'finance_director' && approval === 'Awaiting Finance Approval') {
         return `<button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${project.id}', '${pkg.id}')">Approve escrow</button>`;
       }
-      return `<a class="text-link" href="#work-package-view" onclick="openWorkPackageView('${project.id}', '${pkg.id}'); return false;">View</a>`;
+      return `<a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">View</a>`;
     }
 
     function timelineDot(type) {
@@ -1247,8 +1255,8 @@ const store = {
       const modelHeader = document.querySelector('[data-model-column-label]');
       if (modelHeader) modelHeader.textContent = modelColumn;
       const packageRow = (pkg, index) => `
-        <tr>
-          <td>${pkg.name}</td>
+        <tr class="clickable-row" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" tabindex="0" role="link" aria-label="Open ${pkg.name} work package">
+          <td><a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">${pkg.name}</a></td>
           <td>${formatGBP(pkg.cap)}</td>
           <td>${modelLabel(pkg.contractModel || project.contractModel || 'milestone')}</td>
           <td data-visible-to="finance_director project_manager">${formatGBP(pkg.funded)}</td>
@@ -3430,7 +3438,10 @@ const store = {
     }
 
     function openWorkPackageView(projectId, packageId, event) {
-      if (event) event.stopPropagation();
+      if (event) {
+        event.preventDefault?.();
+        event.stopPropagation?.();
+      }
       const project = projectFor(projectId);
       const pkg = packageFor(project, packageId);
       if (!project || !pkg) return;
@@ -3455,7 +3466,11 @@ const store = {
       };
       sessionStorage.setItem('currentWorkPackage', JSON.stringify(packageData));
       sessionStorage.setItem('workPackagePreviousPage', currentRoute() || 'dashboard2');
-      window.location.hash = 'work-package-view';
+      if (currentRoute() === 'work-package-view') {
+        renderWorkPackageView();
+      } else {
+        window.location.hash = 'work-package-view';
+      }
     }
 
     function showWorkPackage(projectName, packageName, amount, type, event) {
@@ -3971,6 +3986,14 @@ const store = {
       renderDashboard2();
       renderProjectsList();
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
+    }
+
+    function setAppRole(roleKey) {
+      const nextIndex = roles.findIndex((role) => roleKeyFromLabel(role.label) === roleKey);
+      if (nextIndex < 0 || nextIndex === roleIndex) return;
+      roleIndex = nextIndex;
+      renderRole();
+      maybeAnimateDashboardKpis();
     }
 
     function applyProjectContractModel(project) {
@@ -4588,6 +4611,53 @@ const store = {
       if (name === 'new-project') syncProjectClientMode();
     }
 
+    function setLandingRole(role) {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+      home.dataset.selectedRole = role;
+      setAppRole(landingRoleToAppRole[role] || 'finance_director');
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        const isActive = button.dataset.landingRole === role;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+      });
+      document.querySelectorAll('[data-role-story]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleStory === role);
+      });
+      document.querySelectorAll('[data-role-board]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleBoard === role);
+      });
+    }
+
+    function initLandingPage() {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        button.addEventListener('click', () => setLandingRole(button.dataset.landingRole));
+      });
+      document.querySelectorAll('[data-demo-role-link]').forEach((link) => {
+        link.addEventListener('click', () => setLandingRole(link.dataset.demoRoleLink));
+      });
+      setLandingRole(home.dataset.selectedRole || 'finance');
+
+      const reveals = Array.from(document.querySelectorAll('.landing-reveal'));
+      if (!('IntersectionObserver' in window)) {
+        reveals.forEach((section) => section.classList.add('is-visible'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        });
+      }, { threshold: 0.18 });
+
+      reveals.forEach((section) => observer.observe(section));
+    }
+
     document.querySelectorAll('[data-modal-target]').forEach((trigger) => {
       trigger.addEventListener('click', () => {
         prepareAddDocumentModal(trigger);
@@ -4619,6 +4689,22 @@ const store = {
     });
 
     document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-open-work-package]');
+      if (!trigger) return;
+      const nestedControl = event.target.closest('a, button, input, select, textarea, label');
+      if (nestedControl && nestedControl !== trigger) return;
+      openWorkPackageView(trigger.dataset.projectId, trigger.dataset.packageId, event);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const trigger = event.target.closest('tr[data-open-work-package]');
+      if (!trigger) return;
+      event.preventDefault();
+      openWorkPackageView(trigger.dataset.projectId, trigger.dataset.packageId, event);
+    });
+
+    document.addEventListener('click', (event) => {
       if (!event.target.closest('[data-open-wp-documents]')) return;
       store.activeWorkPackageTab = 'documents';
       const project = activeProject();
@@ -4646,16 +4732,19 @@ const store = {
       maybeAnimateDashboardKpis();
     });
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = nextTheme;
-      localStorage.setItem('construkt-theme', nextTheme);
+    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('construkt-theme', nextTheme);
+      });
     });
 
     window.addEventListener('hashchange', renderRoute);
 
     applyInitialTheme();
     initChartTooltips();
+    initLandingPage();
     renderRole();
     renderDashboard();
     renderProjectsList();
