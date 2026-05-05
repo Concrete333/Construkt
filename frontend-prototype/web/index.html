@@ -43,7 +43,7 @@
         <div class="landing-hero-copy">
           <p class="eyebrow">Solana-backed construction payment control</p>
           <h1><span>Construction payments,</span><span>clearly controlled.</span></h1>
-          <p class="lead">Construkt gives finance teams, project managers, and contractors one clean flow for funding packages, submitting evidence, approving work, and releasing escrow.</p>
+          <p class="lead">Construkt gives each project a clear workflow for creating work packages, funding escrow, submitting evidence, approving work, and releasing payments.</p>
           <div class="public-actions">
             <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
             <a class="btn btn-ghost" href="#role-walkthrough">Choose your role</a>
@@ -89,12 +89,12 @@
           <article>
             <span>01</span>
             <strong>Fund package escrow</strong>
-            <p>Finance creates the work package, sets the cap, and locks package funding.</p>
+            <p>Create the project, divide it into work packages, set the cap, and lock package funding.</p>
           </article>
           <article>
             <span>02</span>
             <strong>Submit request</strong>
-            <p>The contractor submits an invoice against the package, not a vague project total.</p>
+            <p>Submit the invoice against the relevant work package.</p>
           </article>
           <article>
             <span>03</span>
@@ -104,12 +104,12 @@
           <article>
             <span>04</span>
             <strong>Approve or reject</strong>
-            <p>Project managers review evidence and record the decision with an audit note.</p>
+            <p>Review the evidence and record the decision with an audit note.</p>
           </article>
           <article>
             <span>05</span>
             <strong>Release from escrow</strong>
-            <p>Finance releases funds only when approval and hold rules are satisfied.</p>
+            <p>Funds are released only when approval and hold rules are satisfied.</p>
           </article>
         </div>
         <p class="landing-chain-note">On-chain records are used for payment state, approvals, releases, and audit references. Documents themselves stay off-chain as hashes or references.</p>
@@ -117,40 +117,40 @@
 
       <section id="role-walkthrough" class="landing-role-picker landing-role-cta landing-reveal" aria-labelledby="landing-role-title">
         <div class="landing-role-intro">
-          <p class="eyebrow">Choose your view</p>
-          <h2 id="landing-role-title">Follow the product from the role that matters to you.</h2>
-          <p>Pick a role and the walkthrough below changes to show what that person actually does inside Construkt.</p>
+          <p class="eyebrow">Demo role previews</p>
+          <h2 id="landing-role-title">See how configurable roles work together.</h2>
+          <p>These are example roles for the demo. In a real project, roles and permissions can be configured around the approval process you need.</p>
         </div>
         <div class="landing-role-cards" role="tablist" aria-label="Landing page role view">
           <button class="landing-role-card is-active" type="button" data-landing-role="finance" role="tab" aria-selected="true">
             <span>Finance Director</span>
-            <strong>Control escrow and release only when rules pass.</strong>
+            <strong>Preview escrow setup and release controls.</strong>
           </button>
           <button class="landing-role-card" type="button" data-landing-role="pm" role="tab" aria-selected="false">
             <span>Project Manager</span>
-            <strong>Review evidence and record site approval decisions.</strong>
+            <strong>Preview evidence review and approval decisions.</strong>
           </button>
           <button class="landing-role-card" type="button" data-landing-role="contractor" role="tab" aria-selected="false">
             <span>Contractor</span>
-            <strong>Submit requests, attach proof, and track payment status.</strong>
+            <strong>Preview request submission and payment tracking.</strong>
           </button>
         </div>
       </section>
 
       <section class="landing-story landing-guided-walkthrough landing-reveal">
         <div class="landing-story-copy">
-          <p class="eyebrow">Workflow walkthrough</p>
+          <p class="eyebrow">Workflow preview</p>
           <div class="landing-role-story is-active" data-role-story="finance">
-            <h2>Finance builds the payment controls before money moves.</h2>
+            <h2>Build the payment controls before money moves.</h2>
             <p>Create the project, define work packages, lock escrow, then release only when evidence, approvals, and hold checks are clear.</p>
           </div>
           <div class="landing-role-story" data-role-story="pm">
-            <h2>Project managers review the work, not payment admin.</h2>
+            <h2>Review the work with the evidence beside it.</h2>
             <p>Open the review task, inspect the evidence pack, add a site note, then approve or reject with context attached to the payment record.</p>
           </div>
           <div class="landing-role-story" data-role-story="contractor">
-            <h2>Contractors see exactly what to submit next.</h2>
-            <p>Track assigned packages, submit the request, attach proof, and follow approval progress without chasing finance or site teams.</p>
+            <h2>Submit the request and track what happens next.</h2>
+            <p>Track assigned packages, submit the request, attach proof, and follow approval progress without chasing other teams.</p>
           </div>
         </div>
         <div class="landing-product-demo" aria-label="Role workflow preview">
@@ -172,8 +172,8 @@
               <aside class="landing-demo-side-panel">
                 <span class="status-pill chip-tone-warning">Blocked</span>
                 <strong>Release readiness</strong>
-                <p>Waiting for PM evidence review before finance can release.</p>
-                <a href="#dashboard2" class="text-link" data-demo-role-link="finance">Open finance dashboard -></a>
+                <p>Waiting for evidence review before release is available.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="finance">Open dashboard view -></a>
               </aside>
             </div>
           </div>
@@ -233,36 +233,31 @@
       <section class="landing-showcase landing-reveal">
         <div class="landing-showcase-head">
           <p class="eyebrow">Inside the app</p>
-          <h2>The same story continues in the real dashboard.</h2>
-          <p>Use the landing page to understand the flow, then jump into the working prototype to explore dashboards, projects, work packages, documents, payments, and audit trails.</p>
+          <h2>Start from the dashboard.</h2>
+          <p>Your projects live there. From the dashboard, you can open a project, check work package progress, review supporting records, and follow the audit trail.</p>
         </div>
         <div class="landing-showcase-grid">
           <article class="landing-screen-card">
             <span>01</span>
-            <strong>Dashboard</strong>
-            <p>Outstanding tasks sit beside on-chain feedback so users know what needs action and what has already been recorded in the demo session.</p>
+            <strong>Projects</strong>
+            <p>Start with the projects you are responsible for and see where attention is needed.</p>
           </article>
           <article class="landing-screen-card">
             <span>02</span>
-            <strong>Project page</strong>
-            <p>Contract totals, milestone timeline, team roles, packages, documents, payments, and audit records stay tied to one project.</p>
+            <strong>Work packages</strong>
+            <p>Open a project to track package caps, funding, requests, evidence, approvals, and release status.</p>
           </article>
           <article class="landing-screen-card">
             <span>03</span>
-            <strong>Work package page</strong>
-            <p>Package tasks, payment schedule, evidence, readiness checks, and approval status come together before release.</p>
-          </article>
-          <article class="landing-screen-card">
-            <span>04</span>
             <strong>Audit trail</strong>
-            <p>Approvals, releases, holds, document references, and transaction records stay attached to the project and package.</p>
+            <p>Keep approvals, holds, document references, release actions, and transaction records attached to the right project and package.</p>
           </article>
         </div>
       </section>
 
       <section class="landing-final-cta landing-reveal">
         <p class="eyebrow">Ready to explore</p>
-        <h2>Walk through the demo as finance, PM, or contractor.</h2>
+        <h2>Open the demo dashboard or browse the project list.</h2>
         <div class="public-actions">
           <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
           <a class="btn btn-ghost" href="#projects">Browse projects</a>
