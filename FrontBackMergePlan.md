@@ -270,10 +270,9 @@ Resolved 2026-05-06:
 - ✅ Phase 1 cleanup executed: duplicate Anchor workspace, frozen HTML archives, and Django shell deleted from `frontend-prototype/`.
 - ✅ `app/` scaffolded at the repo root (Vite + React 19 + TypeScript + ESLint flat config + Prettier 3). Base folder structure (`src/lib/`, `src/selectors/`, `src/components/`, `src/pages/`) seeded with `.gitkeep` placeholders. `npm run build` and `npm run lint` both green.
 - ✅ Frontend PDA helpers ported to `app/src/lib/pda.ts` (project, work_package, vault_authority, role, payment_request, approval) plus `ROLE_BYTES` constants and a `u64Seed` helper. Vitest added; `npm test` runs 14 cases including six golden-PDA regressions.
+- ✅ Typed `ConstruktClient` interface in `app/src/lib/program.ts` with all 12 instructions, all 5 account fetches (single + per-parent), and a typed `ConstruktClientError` mirroring on-chain error codes. `MockConstruktClient` in `app/src/lib/mockClient.ts` enforces status flow, hold blocking, single-active-request, contractor-cannot-approve, finance-only release, and approver-role conflict. `app/src/lib/anchorClient.ts` is a Phase 4 stub that throws on construction. 28 vitest cases cover happy path + invariants.
 
-Open / not yet executed:
-
-- Add a typed client interface that can be backed by mock data first and Anchor later.
+Phase 1 is now fully closed.
 
 ### Phase 1 Cleanup (executed 2026-05-06)
 
@@ -417,3 +416,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: Phase 1 cleanup executed on the `Frontback-integration` branch. Deleted the duplicate Anchor workspace, both frozen `construkt.html` archives, and the Django shell from `frontend-prototype/`. The prototype is now a pure static demo plus the frontend unit test suite.
 - 2026-05-06: `app/` scaffolded with Vite + React 19 + TypeScript on the `Frontback-integration` branch. ESLint flat config (Vite default) and Prettier 3 wired into `npm run lint` / `lint:fix`. Empty `src/{lib,selectors,components,pages}/` stubs created for upcoming PDA helpers, client, selectors, and ported UI.
 - 2026-05-06: PDA helpers ported into `app/src/lib/pda.ts` — six derivers, `ROLE_BYTES` constants, `u64Seed` (Uint8Array, browser-ready). Vitest wired in; 14 tests cover golden-PDA regressions (computed offline) plus invariants like determinism and seed sensitivity.
+- 2026-05-06: `ConstruktClient` interface, `MockConstruktClient` mock, and `createAnchorClient` Phase 4 stub added under `app/src/lib/`. Mock enforces the status flow, hold blocking, single-active-request, contractor-cannot-approve, finance-only release, and approver-role conflict invariants. 28 vitest cases now cover the full app library.
