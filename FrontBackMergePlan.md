@@ -312,6 +312,14 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 - Used `bigint` for all `u64`/`i64` fields instead of Anchor `BN`, so `bn.js` never leaks into the UI layer. The future Anchor adapter at `app/src/lib/anchorClient.ts` will translate at its boundary.
 - Mock limitations to remember when reading mock-driven tests: no real SPL token mechanics — no mint matching, no ATA ownership checks, no vault balance independent of `funded_amount`. The mock cannot reproduce `WrongMint` / `WrongTokenOwner` failures. Phase 4 must add integration tests that exercise those paths against localnet.
 
+**Step 10 — Mock seed (Demo Hospital Fit-Out)**
+
+- Demo wallets are derived via `Keypair.fromSeed(new Uint8Array(32).fill(N))` so they're deterministic across runs but obviously demo-only. The fill byte doubles as a label (1 = finance, 2 = PM, 3 = director, 4 = contractor, 10 = mint). Never use this pattern for production keys.
+- The seed exports `Keypair` (not just `PublicKey`) for the demo wallets so Phase 4's localnet path can fund and sign as them without a second derivation. The mock itself only consumes the public keys.
+- Off-chain rich fields (org names, milestone copy, contract model, contractor full name) are intentionally excluded from the seed — they belong to the metadata adapter (Step 12). The seed only stores opaque ref strings (`metadata://demo/...`).
+- All amounts are `bigint` and use mock-USDC base units (6 decimals): `200_000_000n` = $200.00. Cap and funding are equal per package so the demo never trips `InsufficientRemainingCap` accidentally.
+- Status coverage was deliberately spread across six packages (released, highApproved, lowApproved, submitted-on-hold, no-request, rejected) so Phase 2 surfaces have one canonical example of every UI state without needing additional fixtures.
+
 ### Phase 2: Port Prototype UX
 
 - Port useful layout, visual language, and page concepts from the Django/static prototype.
@@ -323,7 +331,8 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 
 ### Phase 3: Data Adapter
 
-- Build mock adapter with backend-shaped data.
+- ✅ Mock client adapter with backend-shaped data — `app/src/lib/mockClient.ts` (Step 4) plus `app/src/lib/mockSeed.ts` (Step 10).
+- ✅ Seed-data source decision (2026-05-06): **mirror the prototype's "Demo Hospital Fit-Out" narrative**. Backend test fixtures are minimal and aimed at correctness, not demo continuity; the prototype already has stakeholder-recognizable copy and a known-good UX shape against the same data. The seed builds one project plus six work packages spanning the full status spectrum (released, highApproved, lowApproved, submitted-on-hold, funded-only, rejected) so Phase 2 surfaces have material to render.
 - Build selector layer from backend-shaped data to UI view models.
 - Add off-chain metadata adapter for rich project/document/team/milestone display data.
 - Map prototype rich fields into metadata refs:
@@ -423,7 +432,8 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - What is the minimum audit trail for the first integrated demo?
 - Which prototype pages are in V0 scope versus later polish?
 - Which `dashboard2` task workflow screens should remain in the main demo path versus staying as secondary polish?
-- Should the first mock adapter seed data mirror the existing hospital fit-out demo exactly or be regenerated from backend test/seed scripts?
+- ~~Should the first mock adapter seed data mirror the existing hospital fit-out demo exactly or be regenerated from backend test/seed scripts?~~ Resolved 2026-05-06 (Step 10): mirror the prototype narrative; see `app/src/lib/mockSeed.ts`.
+- Demo wallets in `mockSeed.ts` are deterministic via `Keypair.fromSeed`. Open question: do the same demo wallets become the funded localnet test wallets in Phase 4, or should Phase 4 generate fresh keypairs and only reuse the labels?
 
 ## Known Landmines
 
@@ -445,3 +455,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: `app/` scaffolded with Vite + React 19 + TypeScript on the `Frontback-integration` branch. ESLint flat config (Vite default) and Prettier 3 wired into `npm run lint` / `lint:fix`. Empty `src/{lib,selectors,components,pages}/` stubs created for upcoming PDA helpers, client, selectors, and ported UI.
 - 2026-05-06: PDA helpers ported into `app/src/lib/pda.ts` — six derivers, `ROLE_BYTES` constants, `u64Seed` (Uint8Array, browser-ready). Vitest wired in; 14 tests cover golden-PDA regressions (computed offline) plus invariants like determinism and seed sensitivity.
 - 2026-05-06: `ConstruktClient` interface, `MockConstruktClient` mock, and `createAnchorClient` Phase 4 stub added under `app/src/lib/`. Mock enforces the status flow, hold blocking, single-active-request, contractor-cannot-approve, finance-only release, and approver-role conflict invariants. 28 vitest cases now cover the full app library.
+- 2026-05-06: `seedHospitalFitOut` added at `app/src/lib/mockSeed.ts`. Builds the demo world (one project, six work packages spanning released / highApproved / lowApproved / submitted-on-hold / no-request / rejected) on top of a `MockConstruktClient`. Resolves the Phase 3 open-decision on seed source in favour of mirroring the prototype's Demo Hospital Fit-Out narrative. 13 new vitest cases cover seed shape, per-package final state, approval records, and determinism. App test suite is now at 41 cases.
