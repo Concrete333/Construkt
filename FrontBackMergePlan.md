@@ -320,6 +320,15 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 - All amounts are `bigint` and use mock-USDC base units (6 decimals): `200_000_000n` = $200.00. Cap and funding are equal per package so the demo never trips `InsufficientRemainingCap` accidentally.
 - Status coverage was deliberately spread across six packages (released, highApproved, lowApproved, submitted-on-hold, no-request, rejected) so Phase 2 surfaces have one canonical example of every UI state without needing additional fixtures.
 
+**Step 11 — Selector layer**
+
+- Selectors are placed under `app/src/selectors/` per the plan's proposed architecture; money helpers stay in `app/src/lib/format.ts`. Selectors do **not** import the client — they take `Fetched<…>` data as plain arguments. UI composition is responsible for fetching the right inputs and feeding them in.
+- `paymentRequestDisplayStatus` collapses on-chain `status` + `holdActive` into eight UI-relevant values. Terminal statuses (`released`, `rejected`) ignore `holdActive` so the UI doesn't accidentally show "on-hold released" — matches the on-chain rule that holds can't be placed on terminal requests.
+- `selectReleaseReadiness` mirrors the runtime guards in `release_payment` exactly (cap, funded-remaining, status === HighApproved, hold, package active). When this selector reports `ready: true` and the Anchor adapter still rejects, it's a token/ATA mismatch — the mock cannot detect those, so flag any divergence as a Phase 4 integration bug, not a selector bug.
+- `formatMockUsdc` truncates rather than rounds. Finance demos showing rounded-up amounts caused confusion when the on-chain release amount was lower than the displayed value; truncation guarantees the displayed amount is always ≤ the on-chain amount. `parseMockUsdc` rejects too many fraction digits (more than the mint's decimals) instead of silently truncating, so form validation can surface user-visible errors at the boundary.
+- `selectAuditTimeline` is best-effort over current account state. Known limitations (documented in source): no funding-history, no document-ref edit history, no past-hold visibility, no package-creation event. Phase 4 must capture program events (`PaymentRequestSubmitted`, `EscrowFunded`, `HoldRemoved`, etc.) to fill these gaps; until then the audit log is structurally incomplete and any "audit completeness" claim should defer to Phase 4.
+- `filterProjectsByContractor` uses a `Map<string, Fetched<WorkPackageAccount>[]>` keyed by base58 project address rather than nested loops — selector callers should pre-build the map once per render to keep the dashboard cheap as the project count grows.
+
 ### Phase 2: Port Prototype UX
 
 - Port useful layout, visual language, and page concepts from the Django/static prototype.
@@ -333,7 +342,7 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 
 - ✅ Mock client adapter with backend-shaped data — `app/src/lib/mockClient.ts` (Step 4) plus `app/src/lib/mockSeed.ts` (Step 10).
 - ✅ Seed-data source decision (2026-05-06): **mirror the prototype's "Demo Hospital Fit-Out" narrative**. Backend test fixtures are minimal and aimed at correctness, not demo continuity; the prototype already has stakeholder-recognizable copy and a known-good UX shape against the same data. The seed builds one project plus six work packages spanning the full status spectrum (released, highApproved, lowApproved, submitted-on-hold, funded-only, rejected) so Phase 2 surfaces have material to render.
-- Build selector layer from backend-shaped data to UI view models.
+- ✅ Selector layer at `app/src/selectors/` (Step 11) — `paymentSelectors.ts`, `projectSelectors.ts`, `auditSelectors.ts` — plus money helpers at `app/src/lib/format.ts`. Selectors are pure functions over `Fetched<…>` account data; the UI composes them, the client never appears in selector code.
 - Add off-chain metadata adapter for rich project/document/team/milestone display data.
 - Map prototype rich fields into metadata refs:
   - project client, contract model, dates, and milestones -> `metadata_ref`
@@ -456,3 +465,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: PDA helpers ported into `app/src/lib/pda.ts` — six derivers, `ROLE_BYTES` constants, `u64Seed` (Uint8Array, browser-ready). Vitest wired in; 14 tests cover golden-PDA regressions (computed offline) plus invariants like determinism and seed sensitivity.
 - 2026-05-06: `ConstruktClient` interface, `MockConstruktClient` mock, and `createAnchorClient` Phase 4 stub added under `app/src/lib/`. Mock enforces the status flow, hold blocking, single-active-request, contractor-cannot-approve, finance-only release, and approver-role conflict invariants. 28 vitest cases now cover the full app library.
 - 2026-05-06: `seedHospitalFitOut` added at `app/src/lib/mockSeed.ts`. Builds the demo world (one project, six work packages spanning released / highApproved / lowApproved / submitted-on-hold / no-request / rejected) on top of a `MockConstruktClient`. Resolves the Phase 3 open-decision on seed source in favour of mirroring the prototype's Demo Hospital Fit-Out narrative. 13 new vitest cases cover seed shape, per-package final state, approval records, and determinism. App test suite is now at 41 cases.
+- 2026-05-06: Selector layer landed at `app/src/selectors/` — `paymentSelectors.ts` (display status, approval tracker, release readiness, summary), `projectSelectors.ts` (package + project rollups, contractor visibility filter), `auditSelectors.ts` (chronological audit timeline). Money helpers `formatMockUsdc` / `parseMockUsdc` added at `app/src/lib/format.ts`. 48 new vitest cases bring the app suite to 89 passing.
