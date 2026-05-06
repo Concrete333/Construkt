@@ -268,10 +268,10 @@ Resolved 2026-05-06:
 - ✅ Keep `frontend-prototype/web/index.html` as the backendless demo surface until its UX is intentionally migrated.
 - ✅ Authoritative visual source = `frontend-prototype/web/index.html`. The two stale `construkt.html` copies were deleted (see Phase 1 Cleanup below).
 - ✅ Phase 1 cleanup executed: duplicate Anchor workspace, frozen HTML archives, and Django shell deleted from `frontend-prototype/`.
+- ✅ `app/` scaffolded at the repo root (Vite + React 19 + TypeScript + ESLint flat config + Prettier 3). Base folder structure (`src/lib/`, `src/selectors/`, `src/components/`, `src/pages/`) seeded with `.gitkeep` placeholders. `npm run build` and `npm run lint` both green.
 
 Open / not yet executed:
 
-- Create `app/` at the repo root.
 - Add frontend PDA helpers from the backend tests.
 - Add a typed client interface that can be backed by mock data first and Anchor later.
 
@@ -415,3 +415,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-04-27: Updated scan for `ConstruktFrontend/Construkt-mar-dev`, including current static/Django functionality, local store mutation points, and frontend-specific merge tasks.
 - 2026-05-06: Phase 1 boundary decisions resolved. Updated path references (`ConstruktDev/` → repo root, `ConstruktFrontend/Construkt-mar-dev/` → `frontend-prototype/`). Authoritative visual source set to `frontend-prototype/web/index.html`; both `construkt.html` copies frozen. Duplicate Anchor workspace inside `frontend-prototype/` confirmed stale and listed as a cleanup candidate pending owner approval.
 - 2026-05-06: Phase 1 cleanup executed on the `Frontback-integration` branch. Deleted the duplicate Anchor workspace, both frozen `construkt.html` archives, and the Django shell from `frontend-prototype/`. The prototype is now a pure static demo plus the frontend unit test suite.
+- 2026-05-06: `app/` scaffolded with Vite + React 19 + TypeScript on the `Frontback-integration` branch. ESLint flat config (Vite default) and Prettier 3 wired into `npm run lint` / `lint:fix`. Empty `src/{lib,selectors,components,pages}/` stubs created for upcoming PDA helpers, client, selectors, and ported UI.
