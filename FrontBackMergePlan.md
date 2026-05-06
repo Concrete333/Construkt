@@ -284,6 +284,34 @@ Removed from `frontend-prototype/` on the `Frontback-integration` branch — rec
 
 Intentionally kept: `frontend-prototype/tests/construkt.frontend.ts` (the active 75-test frontend unit suite, run from the repo root via `npm run test:frontend`), plus `frontend-prototype/package.json` / `tsconfig.json` (still useful for editor/test tooling inside the prototype tree).
 
+### Phase 1 Implementation Notes
+
+Issues, decisions, and limitations recorded per step so future phases inherit the context.
+
+**Step 1 — Stabilize boundaries**
+
+- The plan was originally written when `ConstruktDev/` and `ConstruktFrontend/Construkt-mar-dev/` were separate sibling repos. Both have since been consolidated into this single repo, so every path in the plan had to be rewritten (`ConstruktDev/` → repo root, `ConstruktFrontend/Construkt-mar-dev/` → `frontend-prototype/`). Always re-check path references against the repo before acting on plan instructions.
+- The plan asked us to choose between `web/templates/projects/construkt.html` and `website/construkt.html`, but a third file — `frontend-prototype/web/index.html` — had quietly become the active visual source. Both `construkt.html` copies were demoted/deleted instead of one being kept.
+- `frontend-prototype/tests/` could not be blanket-deleted. It held both the dead Anchor test (`construkt.ts`) and the live frontend unit suite (`construkt.frontend.ts`) which root `package.json` runs directly. Only the dead file was removed.
+- The duplicate Anchor program at `frontend-prototype/programs/construkt/src/lib.rs` was 537 lines vs the canonical 1381 — significantly stale, not a small drift. Treat any future "duplicate workspace" as definitionally not canonical.
+
+**Step 2 — Scaffold `app/`**
+
+- Vite's scaffolded boilerplate uses formatting that doesn't match Prettier 3 defaults (mostly single vs double quotes), so the freshly generated files failed `npm run lint` immediately and had to be auto-formatted. Same will happen on any future Vite upgrade.
+- Plan §2.3 says "match the existing repo's Prettier conventions". The repo uses Prettier `^2.6.2`, but the React 19 / TS 6 / TSX ecosystem inside `app/` is much better served by Prettier 3.x. We diverged inside `app/` — each package gets its own deps. Backend-only paths still run on Prettier 2.
+
+**Step 3 — Port PDA helpers**
+
+- Used `Uint8Array` instead of `Buffer` for seed building so the module is browser-ready without a Vite polyfill plugin. The on-chain test setup at `tests/setup.ts` uses `Buffer`; functional behavior is identical, but the diff is intentional, not stylistic.
+- The "golden PDA" tests are computed by the same `@solana/web3.js` library the port uses, so they catch our regressions and library-version drift but do **not** independently verify the port matches the on-chain program. True cross-verification needs a localnet integration test (WSL only). Deferred to Step 14 (Anchor wiring).
+
+**Step 4 — Client interface, mock, anchor stub**
+
+- TypeScript `verbatimModuleSyntax` (Vite scaffolding's default) requires `import type` for type-only imports. Runtime classes (`ConstruktClientError`) and runtime values (`ROLE_BYTES`, `derive*`) had to be separated from interface/type imports. New files in `app/src/` should follow the same pattern.
+- TS `noUnusedParameters` and ESLint `no-unused-vars` both fire on the Phase 4 stub's unused `opts` arg. Resolved project-wide by adding `argsIgnorePattern: '^_'` to `app/eslint.config.js`. Future stubs/placeholders should prefix unused args with `_`.
+- Used `bigint` for all `u64`/`i64` fields instead of Anchor `BN`, so `bn.js` never leaks into the UI layer. The future Anchor adapter at `app/src/lib/anchorClient.ts` will translate at its boundary.
+- Mock limitations to remember when reading mock-driven tests: no real SPL token mechanics — no mint matching, no ATA ownership checks, no vault balance independent of `funded_amount`. The mock cannot reproduce `WrongMint` / `WrongTokenOwner` failures. Phase 4 must add integration tests that exercise those paths against localnet.
+
 ### Phase 2: Port Prototype UX
 
 - Port useful layout, visual language, and page concepts from the Django/static prototype.
