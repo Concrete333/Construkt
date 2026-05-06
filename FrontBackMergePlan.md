@@ -329,6 +329,14 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 - `selectAuditTimeline` is best-effort over current account state. Known limitations (documented in source): no funding-history, no document-ref edit history, no past-hold visibility, no package-creation event. Phase 4 must capture program events (`PaymentRequestSubmitted`, `EscrowFunded`, `HoldRemoved`, etc.) to fill these gaps; until then the audit log is structurally incomplete and any "audit completeness" claim should defer to Phase 4.
 - `filterProjectsByContractor` uses a `Map<string, Fetched<WorkPackageAccount>[]>` keyed by base58 project address rather than nested loops — selector callers should pre-build the map once per render to keep the dashboard cheap as the project count grows.
 
+**Step 12 — Off-chain metadata adapter**
+
+- Read and write surfaces are split into `MetadataClient` and `MetadataWriter`. The UI imports `MetadataClient` only; `MetadataWriter` is for the demo seed today and a real backend's mutation path tomorrow. Splitting now means the UI never accidentally gains a write path it shouldn't have.
+- `MockMetadataClient` deep-clones on both read and write. Without this, mutating a returned object would silently edit the underlying seed — a subtle source of cross-test bleed since selectors and components hold onto these objects across renders.
+- The on-chain seed (`mockSeed.ts`) and the metadata seed (`metadataSeed.ts`) **both** derive `metadata://demo/...` ref strings from the same slug rule rather than importing one from the other. The `metadataSeed.test.ts` round-trip tests verify that every on-chain `documentRef` and `holdRef` actually resolves through the metadata client — if the slug rule drifts in either file, those tests fail loudly. Do not collapse the duplication without keeping that round-trip check.
+- All metadata timestamps are ISO-8601 strings, not on-chain `bigint` Unix seconds. The on-chain side uses `bigint` for `i64` fields; the UI converts at the boundary. Tests use a fixed `now` so seeded values are reproducible.
+- The Director demo wallet's display name (`Lin Park`) was added at the metadata layer because the prototype's hardcoded store conflated finance and director. Do not assume `Maya Shah` plays both roles — the integrated UI must treat finance authority and director approver as distinct identities even when only one of them is rendered on a given screen.
+
 ### Phase 2: Port Prototype UX
 
 - Port useful layout, visual language, and page concepts from the Django/static prototype.
@@ -343,12 +351,13 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 - ✅ Mock client adapter with backend-shaped data — `app/src/lib/mockClient.ts` (Step 4) plus `app/src/lib/mockSeed.ts` (Step 10).
 - ✅ Seed-data source decision (2026-05-06): **mirror the prototype's "Demo Hospital Fit-Out" narrative**. Backend test fixtures are minimal and aimed at correctness, not demo continuity; the prototype already has stakeholder-recognizable copy and a known-good UX shape against the same data. The seed builds one project plus six work packages spanning the full status spectrum (released, highApproved, lowApproved, submitted-on-hold, funded-only, rejected) so Phase 2 surfaces have material to render.
 - ✅ Selector layer at `app/src/selectors/` (Step 11) — `paymentSelectors.ts`, `projectSelectors.ts`, `auditSelectors.ts` — plus money helpers at `app/src/lib/format.ts`. Selectors are pure functions over `Fetched<…>` account data; the UI composes them, the client never appears in selector code.
-- Add off-chain metadata adapter for rich project/document/team/milestone display data.
-- Map prototype rich fields into metadata refs:
-  - project client, contract model, dates, and milestones -> `metadata_ref`
-  - package descriptions, contractor display names, and milestone grouping -> `scope_ref` or metadata adapter
-  - document names, versions, file names, and URLs -> `document_ref`
-  - approval/rejection/hold notes -> `note_ref` and `hold_ref`
+- ✅ Off-chain metadata adapter at `app/src/lib/metadataClient.ts` (Step 12). `MetadataClient` (read) and `MetadataWriter` (write) are split interfaces; `MockMetadataClient` satisfies both. `seedDemoMetadata` in `app/src/lib/metadataSeed.ts` populates the Demo Hospital Fit-Out narrative (Northstar Health Trust, Maya Shah / Eleanor Lane / Lin Park / Daniel Okafor) keyed off the same ref strings the on-chain seed produces.
+- ✅ Prototype rich fields are mapped onto metadata categories per the table below; refs stay opaque on chain.
+  - project client, contract model, dates, team -> `metadata_ref` → `MetadataClient.resolveProject`
+  - package descriptions, contractor display names, package contract model, internal milestones -> `scope_ref` → `resolvePackageScope`
+  - document filenames, versions, uploader, type, URLs -> `document_ref` → `resolveDocument`
+  - approval/rejection notes -> `note_ref` → `resolveNote`
+  - hold reasons -> `hold_ref` → `resolveHold`
 
 ### Phase 4: Anchor Integration
 
@@ -434,7 +443,7 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 
 ## Open Decisions
 
-- What off-chain metadata store should V0 use?
+- ~~What off-chain metadata store should V0 use?~~ Resolved 2026-05-06 (Step 12): in-memory `MockMetadataClient` for V0 demo. The `MetadataClient` / `MetadataWriter` interfaces are the contract; Phase 4+ can swap in Supabase / IPFS / S3 by satisfying them. Selectors and components must always go through `MetadataClient`, never a concrete impl.
 - When should the backendless `frontend-prototype/web/index.html` demo be retired or migrated into the React/Vite app?
 - How will local demo wallets be created and selected?
 - Where should generated IDL and TypeScript types live for frontend consumption?
@@ -466,3 +475,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: `ConstruktClient` interface, `MockConstruktClient` mock, and `createAnchorClient` Phase 4 stub added under `app/src/lib/`. Mock enforces the status flow, hold blocking, single-active-request, contractor-cannot-approve, finance-only release, and approver-role conflict invariants. 28 vitest cases now cover the full app library.
 - 2026-05-06: `seedHospitalFitOut` added at `app/src/lib/mockSeed.ts`. Builds the demo world (one project, six work packages spanning released / highApproved / lowApproved / submitted-on-hold / no-request / rejected) on top of a `MockConstruktClient`. Resolves the Phase 3 open-decision on seed source in favour of mirroring the prototype's Demo Hospital Fit-Out narrative. 13 new vitest cases cover seed shape, per-package final state, approval records, and determinism. App test suite is now at 41 cases.
 - 2026-05-06: Selector layer landed at `app/src/selectors/` — `paymentSelectors.ts` (display status, approval tracker, release readiness, summary), `projectSelectors.ts` (package + project rollups, contractor visibility filter), `auditSelectors.ts` (chronological audit timeline). Money helpers `formatMockUsdc` / `parseMockUsdc` added at `app/src/lib/format.ts`. 48 new vitest cases bring the app suite to 89 passing.
+- 2026-05-06: Off-chain metadata adapter landed at `app/src/lib/metadataClient.ts` (`MetadataClient` read interface, `MetadataWriter` write interface, `MockMetadataClient` impl). Demo seed `seedDemoMetadata` at `app/src/lib/metadataSeed.ts` populates the Demo Hospital Fit-Out narrative (project metadata, six package scopes, five invoices, six approval/rejection notes, one hold). Resolves the Phase 1 open-decision on V0 metadata storage in favour of an in-memory mock with a Supabase / IPFS / S3-swap-ready interface. 16 new vitest cases bring the app suite to 105 passing.
