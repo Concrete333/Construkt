@@ -1,14 +1,16 @@
 # Front/Back Merge Plan
 
-Living plan for merging the canonical Construkt Anchor backend in `ConstruktDev/` with the frontend prototype now staged at `ConstruktDev/frontend-prototype/`.
+Living plan for merging the canonical Construkt Anchor backend (top of this repo) with the frontend prototype staged at `frontend-prototype/`.
 
 This document should be updated as the frontend develops. Its job is to keep the team aligned on source of truth, data ownership, schema mapping, and integration steps.
 
+> **Path note (2026-05-06):** Earlier revisions of this plan referenced `ConstruktDev/` and `ConstruktFrontend/Construkt-mar-dev/` as separate sibling repos. Those have been consolidated into this single repo. Read `ConstruktDev/` as **the repo root**, and read `ConstruktFrontend/Construkt-mar-dev/` as **`frontend-prototype/`**.
+
 ## Current State
 
-### Backend: `ConstruktDev/`
+### Backend (repo root)
 
-`ConstruktDev/` is the canonical backend.
+The repo root is the canonical backend.
 
 It is a Solana Anchor program, not a traditional web backend. There is no REST API, Django API, database, or off-chain application server in V0.
 
@@ -21,13 +23,13 @@ The on-chain accounts are the backend data layer:
 - `ApprovalRecord`
 - SPL Token mint/accounts for mock USDC escrow
 
-### Frontend Prototype: `ConstruktDev/frontend-prototype/`
+### Frontend Prototype: `frontend-prototype/`
 
-The Django/static frontend prototype has been moved out of `ConstruktFrontend/` and into `ConstruktDev/frontend-prototype/` so the working frontend and backend now live under the same development tree.
+The Django/static frontend prototype lives in `frontend-prototype/`, so the working frontend and backend share one development tree.
 
-The backendless demo entry point is `ConstruktDev/frontend-prototype/web/index.html`. Treat this as the canonical standalone static demo for product-flow walkthroughs and UX iteration before Anchor integration. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Mocked/local-only state is acceptable in this file, but it must not be treated as on-chain truth.
+The backendless demo entry point is `frontend-prototype/web/index.html`. Treat this as the canonical standalone static demo for product-flow walkthroughs and UX iteration before Anchor integration. It should run without Django, a REST API, wallet connection, localnet/devnet, or an Anchor client. Mocked/local-only state is acceptable in this file, but it must not be treated as on-chain truth.
 
-Run any remaining Django/static prototype surfaces from `ConstruktDev/frontend-prototype/web` only when intentionally working on those legacy/static assets.
+Run any remaining Django/static prototype surfaces from `frontend-prototype/web` only when intentionally working on those legacy/static assets.
 
 The implemented instruction set currently includes:
 
@@ -46,17 +48,18 @@ The implemented instruction set currently includes:
 
 The source of truth is `programs/construkt/src/lib.rs`, with tests under `tests/`.
 
-### Frontend Prototype: `ConstruktFrontend/Construkt-mar-dev/`
+### Visual Source of Truth Inside `frontend-prototype/`
 
-`ConstruktFrontend/Construkt-mar-dev/` is the current frontend prototype and design reference.
-
-It is currently a Django shell serving one static HTML page from `web/templates/projects/construkt.html`, with UI behavior driven by a hardcoded JavaScript object in `web/static/projects/js/construkt.js`.
+The active visual source of truth is `frontend-prototype/web/index.html` — a pure static demo (no Django) that links directly to `static/projects/css/construkt.css` and `static/projects/js/construkt.js`. UI behavior is driven by a hardcoded JavaScript `store` object in `construkt.js`.
 
 There are no meaningful Django models, no app database, no API layer, no fetch/axios calls, and no wallet or Anchor client integration.
 
-`website/construkt.html` appears to be a standalone/exported copy of the same prototype and should be treated as a visual reference only unless it is intentionally chosen as the working source.
+Two older HTML copies exist alongside it and are now considered **stale archives — do not edit, do not maintain**:
 
-`ConstruktFrontend/Construkt-mar-dev/` also contains a duplicate Anchor workspace and program under `programs/construkt`. That duplicate program is not canonical and should not be merged into the backend.
+- `frontend-prototype/web/templates/projects/construkt.html` — the Django-templated version (still wired through `web/projects/views.py`, but no longer kept in sync with `index.html`).
+- `frontend-prototype/website/construkt.html` — a standalone/exported copy with inlined CSS.
+
+`frontend-prototype/` previously contained a duplicate Anchor workspace and a Django shell. Those were removed on 2026-05-06 (see Phase 1 Cleanup below); the prototype now contains only the static demo (`web/index.html`, `web/static/`) and the frontend unit test suite (`tests/construkt.frontend.ts`).
 
 ## Current Frontend Functionality Scan
 
@@ -98,13 +101,15 @@ Important implementation anchors in `web/static/projects/js/construkt.js`:
 
 ## Canonical Repo Decision
 
-`ConstruktDev/` is the canonical repo for the merged product.
+This repo (root of `Construkt/`) is the canonical repo for the merged product.
 
-The recommended frontend target remains:
+The recommended frontend target is:
 
 ```text
-ConstruktDev/app/
+app/
 ```
+
+(at the repo root, sibling to `programs/` and `frontend-prototype/`.)
 
 Use the prototype as a UX/design source, not as the runtime architecture.
 
@@ -256,13 +261,29 @@ This keeps React components clean and avoids scattering Anchor-specific shapes t
 
 ### Phase 1: Stabilize Boundaries
 
-- Keep `ConstruktDev/` as canonical.
-- Do not merge `ConstruktFrontend/Construkt-mar-dev/programs/construkt`.
-- Keep `frontend-prototype/web/index.html` as the backendless demo surface until its UX is intentionally migrated.
-- Create `ConstruktDev/app/`.
+Resolved 2026-05-06:
+
+- ✅ Repo root is canonical. The on-chain program at `programs/construkt/` and the tests at `tests/` are the source of truth.
+- ✅ Do not merge `frontend-prototype/programs/construkt/`. It is a stale snapshot (~537 lines vs canonical ~1381) and must not flow back into the canonical program.
+- ✅ Keep `frontend-prototype/web/index.html` as the backendless demo surface until its UX is intentionally migrated.
+- ✅ Authoritative visual source = `frontend-prototype/web/index.html`. The two stale `construkt.html` copies were deleted (see Phase 1 Cleanup below).
+- ✅ Phase 1 cleanup executed: duplicate Anchor workspace, frozen HTML archives, and Django shell deleted from `frontend-prototype/`.
+
+Open / not yet executed:
+
+- Create `app/` at the repo root.
 - Add frontend PDA helpers from the backend tests.
 - Add a typed client interface that can be backed by mock data first and Anchor later.
-- Decide whether `web/templates/projects/construkt.html` or `website/construkt.html` is the authoritative visual source; avoid maintaining both during the merge.
+
+### Phase 1 Cleanup (executed 2026-05-06)
+
+Removed from `frontend-prototype/` on the `Frontback-integration` branch — recoverable from git history if needed:
+
+- Duplicate Anchor workspace: `Anchor.toml`, `Cargo.toml`, `Cargo.lock`, `programs/`, `migrations/`, `tests/construkt.ts` (old single-file test), `scripts/wsl-anchor-test.sh`. Canonical Anchor program and tests at the repo root are unaffected.
+- Frozen HTML archives: `web/templates/projects/construkt.html`, `website/construkt.html`. `web/index.html` is now the only HTML entry point.
+- Django shell: `web/manage.py`, `web/construkt_web/`, `web/projects/`, `web/requirements.txt`. The prototype is now pure static.
+
+Intentionally kept: `frontend-prototype/tests/construkt.frontend.ts` (the active 75-test frontend unit suite, run from the repo root via `npm run test:frontend`), plus `frontend-prototype/package.json` / `tsconfig.json` (still useful for editor/test tooling inside the prototype tree).
 
 ### Phase 2: Port Prototype UX
 
@@ -392,3 +413,5 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 
 - 2026-04-27: Created initial living merge plan from backend/frontend scan and agent analysis.
 - 2026-04-27: Updated scan for `ConstruktFrontend/Construkt-mar-dev`, including current static/Django functionality, local store mutation points, and frontend-specific merge tasks.
+- 2026-05-06: Phase 1 boundary decisions resolved. Updated path references (`ConstruktDev/` → repo root, `ConstruktFrontend/Construkt-mar-dev/` → `frontend-prototype/`). Authoritative visual source set to `frontend-prototype/web/index.html`; both `construkt.html` copies frozen. Duplicate Anchor workspace inside `frontend-prototype/` confirmed stale and listed as a cleanup candidate pending owner approval.
+- 2026-05-06: Phase 1 cleanup executed on the `Frontback-integration` branch. Deleted the duplicate Anchor workspace, both frozen `construkt.html` archives, and the Django shell from `frontend-prototype/`. The prototype is now a pure static demo plus the frontend unit test suite.
