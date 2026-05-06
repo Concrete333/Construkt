@@ -269,10 +269,10 @@ Resolved 2026-05-06:
 - ✅ Authoritative visual source = `frontend-prototype/web/index.html`. The two stale `construkt.html` copies were deleted (see Phase 1 Cleanup below).
 - ✅ Phase 1 cleanup executed: duplicate Anchor workspace, frozen HTML archives, and Django shell deleted from `frontend-prototype/`.
 - ✅ `app/` scaffolded at the repo root (Vite + React 19 + TypeScript + ESLint flat config + Prettier 3). Base folder structure (`src/lib/`, `src/selectors/`, `src/components/`, `src/pages/`) seeded with `.gitkeep` placeholders. `npm run build` and `npm run lint` both green.
+- ✅ Frontend PDA helpers ported to `app/src/lib/pda.ts` (project, work_package, vault_authority, role, payment_request, approval) plus `ROLE_BYTES` constants and a `u64Seed` helper. Vitest added; `npm test` runs 14 cases including six golden-PDA regressions.
 
 Open / not yet executed:
 
-- Add frontend PDA helpers from the backend tests.
 - Add a typed client interface that can be backed by mock data first and Anchor later.
 
 ### Phase 1 Cleanup (executed 2026-05-06)
@@ -416,3 +416,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: Phase 1 boundary decisions resolved. Updated path references (`ConstruktDev/` → repo root, `ConstruktFrontend/Construkt-mar-dev/` → `frontend-prototype/`). Authoritative visual source set to `frontend-prototype/web/index.html`; both `construkt.html` copies frozen. Duplicate Anchor workspace inside `frontend-prototype/` confirmed stale and listed as a cleanup candidate pending owner approval.
 - 2026-05-06: Phase 1 cleanup executed on the `Frontback-integration` branch. Deleted the duplicate Anchor workspace, both frozen `construkt.html` archives, and the Django shell from `frontend-prototype/`. The prototype is now a pure static demo plus the frontend unit test suite.
 - 2026-05-06: `app/` scaffolded with Vite + React 19 + TypeScript on the `Frontback-integration` branch. ESLint flat config (Vite default) and Prettier 3 wired into `npm run lint` / `lint:fix`. Empty `src/{lib,selectors,components,pages}/` stubs created for upcoming PDA helpers, client, selectors, and ported UI.
+- 2026-05-06: PDA helpers ported into `app/src/lib/pda.ts` — six derivers, `ROLE_BYTES` constants, `u64Seed` (Uint8Array, browser-ready). Vitest wired in; 14 tests cover golden-PDA regressions (computed offline) plus invariants like determinism and seed sensitivity.
