@@ -7,7 +7,14 @@
 .project-list__head {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
+}
+
+.project-list__head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 .project-list__head h1 {
@@ -109,4 +116,133 @@
 
 .project-list__held {
   margin-top: var(--space-1);
+}
+
+/* ── Inline create-project form ───────────────────────────────────── */
+
+.project-list__create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.project-list__form-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.project-list__form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.project-list__form-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.project-list__form-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.project-list__form-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.project-list__form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-list__create-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ── Feedback ─────────────────────────────────────────────────────── */
+
+.project-list__feedback {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.project-list__feedback--success {
+  background: color-mix(
+    in srgb,
+    var(--color-success, #22c55e) 12%,
+    transparent
+  );
+  color: var(--color-success, #15803d);
+}
+
+.project-list__feedback--error {
+  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
+  color: var(--color-error, #b91c1c);
+}
+
+/* ── Buttons (matching WorkPackageViewPage pattern) ───────────────── */
+
+.project-list__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.project-list__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.project-list__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-color: var(--color-primary);
+}
+
+.project-list__btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.project-list__btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.project-list__btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }

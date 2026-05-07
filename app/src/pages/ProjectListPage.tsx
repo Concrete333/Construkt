@@ -3,6 +3,10 @@ import { useClients } from "../components/clientsContext";
 import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
+import { walletForRole } from "../lib/clients";
+import { shortAddress } from "../lib/format";
+import { friendlyClientError } from "../lib/program";
+import type { TxResult } from "../lib/program";
 import {
   filterProjectsByContractor,
   projectStatusLabel,
@@ -22,6 +26,11 @@ import type { DemoRole } from "../lib/theme";
 import type { ProjectMetadata } from "../lib/metadataClient";
 import "./ProjectListPage.css";
 
+interface ActionFeedback {
+  kind: "success" | "error";
+  message: string;
+}
+
 interface LoadedProject {
   rollup: ProjectRollup;
   metadata: ProjectMetadata | null;
@@ -34,8 +43,33 @@ interface ProjectListPageProps {
 }
 
 export const ProjectListPage = ({ role }: ProjectListPageProps) => {
-  const { client, metadata, world } = useClients();
+  const { client, metadata, metadataWriter, world } = useClients();
   const [loaded, setLoaded] = useState<LoadedProject[] | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [nameText, setNameText] = useState("");
+  const [clientText, setClientText] = useState("");
+
+  const wallet = walletForRole(world, role);
+
+  const onAct = async (op: () => Promise<TxResult>) => {
+    setPending(true);
+    setFeedback(null);
+    try {
+      const result = await op();
+      setFeedback({
+        kind: "success",
+        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+      });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setFeedback({ kind: "error", message: friendlyClientError(err) });
+    } finally {
+      setPending(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -83,41 +117,138 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
     return () => {
       cancelled = true;
     };
-  }, [client, metadata, world, role]);
+  }, [client, metadata, world, role, refreshKey]);
+
+  const onCreateSubmit = () => {
+    const name = nameText.trim();
+    if (!name) return;
+    const projectId = BigInt(Date.now());
+    const metadataRef = `metadata://demo/project-${Date.now()}`;
+    metadataWriter?.putProject(metadataRef, {
+      client: clientText.trim() || name,
+      contractModel: "milestone",
+      team: [],
+    });
+    void onAct(() =>
+      client.initializeProject({
+        authority: wallet,
+        projectId,
+        name,
+        metadataRef,
+      }),
+    ).then(() => {
+      setCreateOpen(false);
+      setNameText("");
+      setClientText("");
+    });
+  };
 
   if (loaded === null) {
     return <div className="project-list__empty">Loading projects…</div>;
   }
 
-  if (loaded.length === 0) {
-    return (
-      <div className="project-list__empty">
-        {role === "contractor"
-          ? "No projects assigned to this wallet yet."
-          : "No projects yet."}
-      </div>
-    );
-  }
-
   return (
     <section className="project-list">
       <header className="project-list__head">
-        <h1>Projects</h1>
-        <p className="project-list__lead">
-          {role === "contractor"
-            ? "Projects with at least one work package assigned to you."
-            : "All active projects under your authority."}
-        </p>
+        <div className="project-list__head-row">
+          <div>
+            <h1>Projects</h1>
+            <p className="project-list__lead">
+              {role === "contractor"
+                ? "Projects with at least one work package assigned to you."
+                : "All active projects under your authority."}
+            </p>
+          </div>
+          {role === "financeDirector" && (
+            <button
+              type="button"
+              className="project-list__btn project-list__btn--primary"
+              onClick={() => setCreateOpen((v) => !v)}
+              disabled={pending}
+            >
+              + New project
+            </button>
+          )}
+        </div>
+
+        {createOpen && (
+          <div className="project-list__create-form">
+            <div className="project-list__form-field">
+              <label className="project-list__form-label">Name</label>
+              <input
+                className="project-list__form-input"
+                type="text"
+                value={nameText}
+                onChange={(e) => setNameText(e.target.value)}
+                placeholder="Project name"
+                disabled={pending}
+              />
+            </div>
+            <div className="project-list__form-field">
+              <label className="project-list__form-label">
+                Client (optional)
+              </label>
+              <input
+                className="project-list__form-input"
+                type="text"
+                value={clientText}
+                onChange={(e) => setClientText(e.target.value)}
+                placeholder="Client name"
+                disabled={pending}
+              />
+            </div>
+            <div className="project-list__create-actions">
+              <button
+                type="button"
+                className="project-list__btn project-list__btn--ghost"
+                onClick={() => {
+                  setCreateOpen(false);
+                  setNameText("");
+                  setClientText("");
+                }}
+                disabled={pending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="project-list__btn project-list__btn--primary"
+                onClick={onCreateSubmit}
+                disabled={pending || nameText.trim().length === 0}
+              >
+                Create project
+              </button>
+            </div>
+          </div>
+        )}
+
+        {feedback && (
+          <p
+            className={`project-list__feedback project-list__feedback--${feedback.kind}`}
+            role="status"
+            aria-live="polite"
+          >
+            {feedback.message}
+          </p>
+        )}
       </header>
 
-      <ul className="project-list__items">
-        {loaded.map((entry) => (
-          <ProjectListItem
-            key={entry.rollup.address.toBase58()}
-            entry={entry}
-          />
-        ))}
-      </ul>
+      {loaded.length === 0 ? (
+        <div className="project-list__empty">
+          {role === "contractor"
+            ? "No projects assigned to this wallet yet."
+            : "No projects yet."}
+        </div>
+      ) : (
+        <ul className="project-list__items">
+          {loaded.map((entry) => (
+            <ProjectListItem
+              key={entry.rollup.address.toBase58()}
+              entry={entry}
+            />
+          ))}
+        </ul>
+      )}
     </section>
   );
 };

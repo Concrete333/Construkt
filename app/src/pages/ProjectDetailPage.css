@@ -127,6 +127,13 @@
   margin: 0;
 }
 
+.project-detail__section-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
 .project-detail__packages {
   list-style: none;
   margin: 0;
@@ -190,6 +197,10 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+.project-detail__package-fund {
+  padding: 0 var(--space-5) var(--space-4);
 }
 
 .project-detail__timeline {
@@ -301,4 +312,138 @@
 .project-detail__team-empty {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+/* ── Inline forms ─────────────────────────────────────────────────── */
+
+.project-detail__create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.project-detail__form-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.project-detail__form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.project-detail__form-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.project-detail__form-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.project-detail__form-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.project-detail__form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-detail__form-error {
+  font-size: var(--text-xs);
+  color: var(--color-error, #b91c1c);
+}
+
+.project-detail__create-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ── Feedback ─────────────────────────────────────────────────────── */
+
+.project-detail__feedback {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.project-detail__feedback--success {
+  background: color-mix(
+    in srgb,
+    var(--color-success, #22c55e) 12%,
+    transparent
+  );
+  color: var(--color-success, #15803d);
+}
+
+.project-detail__feedback--error {
+  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
+  color: var(--color-error, #b91c1c);
+}
+
+/* ── Buttons (matching WorkPackageViewPage pattern) ───────────────── */
+
+.project-detail__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.project-detail__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.project-detail__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-color: var(--color-primary);
+}
+
+.project-detail__btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.project-detail__btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.project-detail__btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
 }

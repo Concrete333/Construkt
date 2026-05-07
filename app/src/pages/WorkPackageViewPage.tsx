@@ -5,7 +5,7 @@ import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
-import { formatTimestamp, shortAddress } from "../lib/format";
+import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
 import { friendlyClientError } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
 import {
@@ -30,6 +30,7 @@ import type {
   Fetched,
   PaymentRequestAccount,
   ProjectAccount,
+  Role,
   WorkPackageAccount,
 } from "../lib/program";
 import type {
@@ -69,6 +70,7 @@ interface LoadedDetail {
   projectMetadata: ProjectMetadata | null;
   requests: RequestRow[];
   activeRequest: PaymentRequestAccount | null;
+  activeRequestAddress: PublicKey | null;
   releaseReadiness: ReleaseReadiness | null;
   timeline: EnrichedAuditEvent[];
   teamMembers: TeamMember[];
@@ -105,10 +107,6 @@ export const WorkPackageViewPage = ({
   useEffect(() => {
     if (!packageKey) return;
     let cancelled = false;
-    // See ProjectDetailPage for why we don't synchronously reset to null on
-    // address change (react-hooks/set-state-in-effect rule). Mock fetches
-    // are instant; if Phase 4 introduces flicker, swap to a `key`-on-address
-    // remount.
     void (async () => {
       const pkg = await client.fetchWorkPackage(packageKey);
       if (!pkg) {
@@ -139,7 +137,6 @@ export const WorkPackageViewPage = ({
 
       const allApprovals: Fetched<ApprovalRecord>[] = [];
       const requestRows: RequestRow[] = [];
-      // Sort requests newest-submitted first for display
       const sortedRequests = [...requests].sort((a, b) => {
         const aAt = a.account.submittedAt;
         const bAt = b.account.submittedAt;
@@ -162,9 +159,9 @@ export const WorkPackageViewPage = ({
         });
       }
 
-      const activeRequest = pkg.hasActiveRequest
-        ? (requestRows.find((r) => r.isActive)?.request.account ?? null)
-        : null;
+      const activeRequestRow = requestRows.find((r) => r.isActive) ?? null;
+      const activeRequest = activeRequestRow?.request.account ?? null;
+      const activeRequestAddress = activeRequestRow?.request.address ?? null;
       const releaseReadiness = activeRequest
         ? selectReleaseReadiness(activeRequest, pkg)
         : null;
@@ -175,14 +172,12 @@ export const WorkPackageViewPage = ({
         paymentRequests: requests,
         approvals: allApprovals,
       });
-      // Filter timeline to events for this package only.
       const scopedTimeline = baseTimeline.filter((event) => {
         if (event.kind === "projectCreated") return false;
         if (!event.workPackageAddress) return false;
         return event.workPackageAddress.equals(packageKey);
       });
 
-      // Build wallet → display name map from project team metadata.
       const teamByWallet = new Map<string, string>();
       const teamMembers: TeamMember[] = [];
       for (const member of projectMetadata?.team ?? []) {
@@ -216,6 +211,7 @@ export const WorkPackageViewPage = ({
           projectMetadata,
           requests: requestRows,
           activeRequest,
+          activeRequestAddress,
           releaseReadiness,
           timeline: enriched,
           teamMembers,
@@ -258,6 +254,7 @@ export const WorkPackageViewPage = ({
     projectMetadata,
     requests,
     activeRequest,
+    activeRequestAddress,
     releaseReadiness,
     timeline,
     teamMembers,
@@ -270,6 +267,34 @@ export const WorkPackageViewPage = ({
   const heading =
     scope?.description?.split(".")[0] ??
     `Package #${rollup.package.packageId.toString()}`;
+
+  const onAct = async (op: () => Promise<{ signature: string }>) => {
+    setPending(true);
+    setFeedback(null);
+    try {
+      const result = await op();
+      setFeedback({
+        kind: "success",
+        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+      });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        message: friendlyClientError(err),
+      });
+    } finally {
+      setPending(false);
+    }
+  };
+
+  const walletDisplayName =
+    teamMembers.find((m) => m.wallet === wallet.toBase58())?.displayName ??
+    null;
+
+  const existingDocsCount = requests.filter(
+    (r) => r.request.account.documentRef,
+  ).length;
 
   return (
     <section className="work-package-view">
@@ -336,7 +361,22 @@ export const WorkPackageViewPage = ({
                 Linked to active or past requests
               </span>
             </div>
-            <DocumentPanel rows={requests} />
+            <DocumentPanel
+              rows={requests}
+              role={role}
+              wallet={wallet}
+              walletDisplayName={walletDisplayName}
+              contractor={rollup.package.contractor}
+              activeRequest={activeRequest}
+              activeRequestAddress={activeRequestAddress}
+              project={loaded.project.address}
+              workPackage={loaded.packageAddress}
+              existingDocsCount={existingDocsCount}
+              pending={pending}
+              onAct={onAct}
+              client={client}
+              metadataWriter={metadataWriter}
+            />
           </section>
 
           <section className="work-package-view__panel">
@@ -393,37 +433,18 @@ export const WorkPackageViewPage = ({
           <ActionPanel
             role={role}
             wallet={wallet}
-            walletDisplayName={
-              teamMembers.find((m) => m.wallet === wallet.toBase58())
-                ?.displayName ?? null
-            }
+            walletDisplayName={walletDisplayName}
             project={loaded.project.address}
             workPackage={loaded.packageAddress}
             packageStatus={rollup.package.status}
             contractor={rollup.package.contractor}
             activeRequest={requests.find((r) => r.isActive) ?? null}
+            activeRequestAddress={activeRequestAddress}
+            requestCounter={rollup.package.requestCounter}
             releaseReadiness={releaseReadiness}
             pending={pending}
             feedback={feedback}
-            onAct={async (op) => {
-              setPending(true);
-              setFeedback(null);
-              try {
-                const result = await op();
-                setFeedback({
-                  kind: "success",
-                  message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
-                });
-                setRefreshKey((k) => k + 1);
-              } catch (err) {
-                setFeedback({
-                  kind: "error",
-                  message: friendlyClientError(err),
-                });
-              } finally {
-                setPending(false);
-              }
-            }}
+            onAct={onAct}
             client={client}
             metadataWriter={metadataWriter}
           />
@@ -438,6 +459,14 @@ export const WorkPackageViewPage = ({
           <RolesPanel
             assignments={teamMembers}
             workPackageContractor={rollup.package.contractor.toBase58()}
+            isFinance={role === "financeDirector"}
+            onAct={onAct}
+            pending={pending}
+            client={client}
+            project={loaded.project.address}
+            workPackage={loaded.packageAddress}
+            wallet={wallet}
+            world={world}
           />
         </aside>
       </div>
@@ -547,7 +576,6 @@ const BalancePanel = ({ rollup }: { rollup: PackageRollup }) => {
 
 const pctOf = (part: bigint, whole: bigint): number => {
   if (whole <= 0n) return 0;
-  // Multiply by 10000 to get one decimal place of precision before dividing.
   const ratio = Number((part * 10000n) / whole) / 100;
   if (Number.isNaN(ratio)) return 0;
   if (ratio < 0) return 0;
@@ -657,10 +685,10 @@ const ApprovalTrackerPanel = ({
       </section>
     );
   }
-  const renderName = (wallet: PublicKey | null): string => {
-    if (!wallet) return "—";
-    const m = teamByWallet.get(wallet.toBase58());
-    return m?.displayName ?? shortAddress(wallet.toBase58());
+  const renderName = (walletPk: PublicKey | null): string => {
+    if (!walletPk) return "—";
+    const m = teamByWallet.get(walletPk.toBase58());
+    return m?.displayName ?? shortAddress(walletPk.toBase58());
   };
   return (
     <section className="work-package-view__aside-panel">
@@ -753,53 +781,213 @@ const ReleaseReadinessPanel = ({
   );
 };
 
+interface RolesPanelProps {
+  assignments: TeamMember[];
+  workPackageContractor: string;
+  isFinance: boolean;
+  onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
+  pending: boolean;
+  client: ReturnType<typeof useClients>["client"];
+  project: PublicKey;
+  workPackage: PublicKey;
+  wallet: PublicKey;
+  world: ReturnType<typeof useClients>["world"];
+}
+
 const RolesPanel = ({
   assignments,
   workPackageContractor,
-}: {
-  assignments: TeamMember[];
-  workPackageContractor: string;
-}) => {
-  if (assignments.length === 0) {
-    return (
-      <section className="work-package-view__aside-panel">
-        <h2>Team</h2>
-        <p className="work-package-view__empty">No team metadata available.</p>
-      </section>
-    );
-  }
+  isFinance,
+  onAct,
+  pending,
+  client,
+  project,
+  workPackage,
+  wallet,
+  world,
+}: RolesPanelProps) => {
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [assignWalletText, setAssignWalletText] = useState(
+    world.pm.publicKey.toBase58(),
+  );
+  const [assignWalletError, setAssignWalletError] = useState<string | null>(
+    null,
+  );
+  const [assignRole, setAssignRole] = useState<
+    "lowApprover" | "highApprover" | "contractor"
+  >("lowApprover");
+
+  const onAssignSubmit = () => {
+    let assignedWallet: PublicKey;
+    try {
+      assignedWallet = new PublicKey(assignWalletText.trim());
+    } catch {
+      setAssignWalletError("Invalid wallet address");
+      return;
+    }
+    setAssignWalletError(null);
+    void onAct(() =>
+      client.assignRole({
+        authority: wallet,
+        project,
+        workPackage,
+        role: assignRole as Role,
+        wallet: assignedWallet,
+      }),
+    ).then(() => {
+      setAssignOpen(false);
+      setAssignWalletText(world.pm.publicKey.toBase58());
+      setAssignRole("lowApprover");
+    });
+  };
+
   return (
     <section className="work-package-view__aside-panel">
       <h2>Team</h2>
-      <ul className="work-package-view__roles">
-        {assignments.map((member) => {
-          const isPackageContractor = member.wallet === workPackageContractor;
-          return (
-            <li key={member.wallet} className="work-package-view__role">
-              <div>
-                <p className="work-package-view__role-name">
-                  {member.displayName}
+      {isFinance && (
+        <div className="work-package-view__assign">
+          {!assignOpen ? (
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={() => setAssignOpen(true)}
+              disabled={pending}
+            >
+              Assign role…
+            </button>
+          ) : (
+            <div className="work-package-view__reject-form">
+              <label className="work-package-view__reject-label">
+                Wallet address
+              </label>
+              <input
+                className="work-package-view__reject-input"
+                type="text"
+                value={assignWalletText}
+                onChange={(e) => {
+                  setAssignWalletText(e.target.value);
+                  setAssignWalletError(null);
+                }}
+                disabled={pending}
+                placeholder="base58 public key"
+              />
+              {assignWalletError && (
+                <p className="work-package-view__form-error">
+                  {assignWalletError}
                 </p>
-                <p className="work-package-view__role-org">{member.org}</p>
+              )}
+              <label className="work-package-view__reject-label">Role</label>
+              <select
+                className="work-package-view__reject-input"
+                value={assignRole}
+                onChange={(e) =>
+                  setAssignRole(
+                    e.target.value as
+                      | "lowApprover"
+                      | "highApprover"
+                      | "contractor",
+                  )
+                }
+                disabled={pending}
+              >
+                <option value="lowApprover">PM (Low Approver)</option>
+                <option value="highApprover">Director (High Approver)</option>
+                <option value="contractor">Contractor</option>
+              </select>
+              <div className="work-package-view__reject-actions">
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--ghost"
+                  onClick={() => {
+                    setAssignOpen(false);
+                    setAssignWalletText(world.pm.publicKey.toBase58());
+                    setAssignRole("lowApprover");
+                    setAssignWalletError(null);
+                  }}
+                  disabled={pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--primary"
+                  onClick={onAssignSubmit}
+                  disabled={pending || assignWalletText.trim().length === 0}
+                >
+                  Assign
+                </button>
               </div>
-              <div className="work-package-view__role-pills">
-                <StatusPill tone="info">
-                  {teamRoleLabel(member.role)}
-                </StatusPill>
-                {isPackageContractor && (
-                  <StatusPill tone="neutral">Assigned</StatusPill>
-                )}
-              </div>
-            </li>
-          );
-        })}
-      </ul>
+            </div>
+          )}
+        </div>
+      )}
+
+      {assignments.length === 0 ? (
+        <p className="work-package-view__empty">No team metadata available.</p>
+      ) : (
+        <ul className="work-package-view__roles">
+          {assignments.map((member) => {
+            const isPackageContractor = member.wallet === workPackageContractor;
+            return (
+              <li key={member.wallet} className="work-package-view__role">
+                <div>
+                  <p className="work-package-view__role-name">
+                    {member.displayName}
+                  </p>
+                  <p className="work-package-view__role-org">{member.org}</p>
+                </div>
+                <div className="work-package-view__role-pills">
+                  <StatusPill tone="info">
+                    {teamRoleLabel(member.role)}
+                  </StatusPill>
+                  {isPackageContractor && (
+                    <StatusPill tone="neutral">Assigned</StatusPill>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </section>
   );
 };
 
-const DocumentPanel = ({ rows }: { rows: RequestRow[] }) => {
-  // Build the list of unique documents linked across requests, freshest first.
+interface DocumentPanelProps {
+  rows: RequestRow[];
+  role: DemoRole;
+  wallet: PublicKey;
+  walletDisplayName: string | null;
+  contractor: PublicKey;
+  activeRequest: PaymentRequestAccount | null;
+  activeRequestAddress: PublicKey | null;
+  project: PublicKey;
+  workPackage: PublicKey;
+  existingDocsCount: number;
+  pending: boolean;
+  onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
+  client: ReturnType<typeof useClients>["client"];
+  metadataWriter: MetadataWriter | null;
+}
+
+const DocumentPanel = ({
+  rows,
+  role,
+  wallet,
+  walletDisplayName,
+  contractor,
+  activeRequest,
+  activeRequestAddress,
+  project,
+  workPackage,
+  existingDocsCount,
+  pending,
+  onAct,
+  client,
+  metadataWriter,
+}: DocumentPanelProps) => {
+  const [docText, setDocText] = useState("");
+
   const seen = new Set<string>();
   const docs: Array<{
     requestId: bigint;
@@ -818,36 +1006,111 @@ const DocumentPanel = ({ rows }: { rows: RequestRow[] }) => {
       submittedAt: row.request.account.submittedAt,
     });
   }
-  if (docs.length === 0) {
-    return (
-      <p className="work-package-view__empty">
-        No documents linked yet. Documents are attached when contractors submit
-        invoices or update document references on the active request.
-      </p>
-    );
-  }
+
+  const contractorIsSelf = wallet.equals(contractor);
+  const isContractor = role === "contractor";
+  const activeStatus = activeRequest
+    ? paymentRequestDisplayStatus(activeRequest)
+    : null;
+  const isTerminal = activeStatus === "released" || activeStatus === "rejected";
+  const showAddDoc =
+    isContractor &&
+    contractorIsSelf &&
+    activeRequest != null &&
+    !isTerminal &&
+    activeRequestAddress != null;
+
+  const onAddDoc = () => {
+    if (!activeRequestAddress) return;
+    const filename = docText.trim();
+    if (!filename) return;
+    const docRef = `metadata://demo/doc-${Date.now()}`;
+    metadataWriter?.putDocument(docRef, {
+      filename,
+      version: existingDocsCount + 1,
+      uploaderDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
+      uploaderRole: "contractor",
+      uploadedAt: new Date().toISOString(),
+      documentType: "invoice",
+    });
+    void onAct(() =>
+      client.addDocumentReference({
+        contractor: wallet,
+        project,
+        workPackage,
+        paymentRequest: activeRequestAddress,
+        documentRef: docRef,
+      }),
+    ).then(() => {
+      setDocText("");
+    });
+  };
+
   return (
-    <ul className="work-package-view__documents">
-      {docs.map((d) => (
-        <li key={d.documentRef} className="work-package-view__document">
-          <div className="work-package-view__document-icon">
-            {d.document?.filename?.split(".").pop()?.toUpperCase() ?? "DOC"}
+    <>
+      {docs.length === 0 ? (
+        <p className="work-package-view__empty">
+          No documents linked yet. Documents are attached when contractors
+          submit invoices or update document references on the active request.
+        </p>
+      ) : (
+        <ul className="work-package-view__documents">
+          {docs.map((d) => (
+            <li key={d.documentRef} className="work-package-view__document">
+              <div className="work-package-view__document-icon">
+                {d.document?.filename?.split(".").pop()?.toUpperCase() ?? "DOC"}
+              </div>
+              <div className="work-package-view__document-body">
+                <p className="work-package-view__document-name">
+                  {d.document?.filename ?? d.documentRef}
+                </p>
+                <p className="work-package-view__document-meta">
+                  Request #{d.requestId.toString()} ·{" "}
+                  {d.document
+                    ? `v${d.document.version} · ${d.document.uploaderDisplayName}`
+                    : "Unknown uploader"}{" "}
+                  · {formatTimestamp(d.submittedAt)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {showAddDoc && (
+        <div className="work-package-view__add-doc-form">
+          <label className="work-package-view__reject-label">
+            Add / update document
+          </label>
+          <input
+            className="work-package-view__reject-input"
+            type="text"
+            value={docText}
+            onChange={(e) => setDocText(e.target.value)}
+            placeholder="Filename or description (e.g. Invoice-v2.pdf)"
+            disabled={pending}
+          />
+          <div className="work-package-view__reject-actions">
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={() => setDocText("")}
+              disabled={pending}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--primary"
+              onClick={onAddDoc}
+              disabled={pending || docText.trim().length === 0}
+            >
+              Upload ref
+            </button>
           </div>
-          <div className="work-package-view__document-body">
-            <p className="work-package-view__document-name">
-              {d.document?.filename ?? d.documentRef}
-            </p>
-            <p className="work-package-view__document-meta">
-              Request #{d.requestId.toString()} ·{" "}
-              {d.document
-                ? `v${d.document.version} · ${d.document.uploaderDisplayName}`
-                : "Unknown uploader"}{" "}
-              · {formatTimestamp(d.submittedAt)}
-            </p>
-          </div>
-        </li>
-      ))}
-    </ul>
+        </div>
+      )}
+    </>
   );
 };
 
@@ -873,6 +1136,8 @@ interface ActionPanelProps {
   packageStatus: WorkPackageAccount["status"];
   contractor: PublicKey;
   activeRequest: RequestRow | null;
+  activeRequestAddress: PublicKey | null;
+  requestCounter: bigint;
   releaseReadiness: ReleaseReadiness | null;
   pending: boolean;
   feedback: ActionFeedback | null;
@@ -890,6 +1155,8 @@ const ActionPanel = ({
   packageStatus,
   contractor,
   activeRequest,
+  activeRequestAddress,
+  requestCounter,
   releaseReadiness,
   pending,
   feedback,
@@ -902,8 +1169,15 @@ const ActionPanel = ({
   const [holdOpen, setHoldOpen] = useState(false);
   const [holdText, setHoldText] = useState("");
 
+  const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [invoiceAmountError, setInvoiceAmountError] = useState<string | null>(
+    null,
+  );
+  const [invoiceDoc, setInvoiceDoc] = useState("");
+
   const status = activeRequest?.displayStatus ?? null;
-  const requestAddr = activeRequest?.request.address ?? null;
+  const requestAddr = activeRequestAddress;
 
   const isFinance = role === "financeDirector";
   const isOnHold =
@@ -915,7 +1189,6 @@ const ActionPanel = ({
     status === "lowApproved" ||
     status === "highApproved";
 
-  // Per-role action affordances.
   const canPmApprove = role === "projectManager" && status === "submitted";
   const canDirectorApprove = role === "director" && status === "lowApproved";
   const canRelease =
@@ -929,7 +1202,6 @@ const ActionPanel = ({
   const isContractorAction = role === "contractor";
   const contractorIsSelf = wallet.equals(contractor);
 
-  // Note ref factory (V0 demo only — Phase 4 backends own this).
   const composeNoteRef = (kind: "approve" | "reject"): string =>
     `metadata://demo/note/${requestAddr?.toBase58() ?? "unknown"}-${role}-${kind}-${Date.now()}`;
 
@@ -1001,9 +1273,6 @@ const ActionPanel = ({
         project,
         workPackage,
         paymentRequest: requestAddr,
-        // Mock client doesn't enforce a real ATA; pass the contractor
-        // wallet itself as a stand-in. Phase 4 must derive the actual
-        // contractor token account for the package mint.
         contractorTokenAccount: contractor,
       }),
     );
@@ -1041,6 +1310,41 @@ const ActionPanel = ({
     );
   };
 
+  const onSubmitInvoice = () => {
+    let parsedAmount: bigint;
+    try {
+      parsedAmount = parseMockUsdc(invoiceAmount);
+    } catch (e) {
+      setInvoiceAmountError(e instanceof Error ? e.message : "Invalid amount");
+      return;
+    }
+    setInvoiceAmountError(null);
+    const requestId = requestCounter + 1n;
+    const docRef = `metadata://demo/doc-${Date.now()}`;
+    metadataWriter?.putDocument(docRef, {
+      filename: invoiceDoc.trim() || "Invoice.pdf",
+      version: 1,
+      uploaderDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
+      uploaderRole: "contractor",
+      uploadedAt: new Date().toISOString(),
+      documentType: "invoice",
+    });
+    void onAct(() =>
+      client.submitPaymentRequest({
+        contractor: wallet,
+        project,
+        workPackage,
+        requestId,
+        amount: parsedAmount,
+        documentRef: docRef,
+      }),
+    ).then(() => {
+      setInvoiceOpen(false);
+      setInvoiceAmount("");
+      setInvoiceDoc("");
+    });
+  };
+
   const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(wallet.toBase58())}`;
 
   return (
@@ -1048,7 +1352,7 @@ const ActionPanel = ({
       <h2>Actions</h2>
       <p className="work-package-view__aside-eyebrow">{eyebrow}</p>
 
-      {!activeRequest && (
+      {!activeRequest && !isContractorAction && (
         <p className="work-package-view__empty">
           No active payment request to action.
         </p>
@@ -1058,6 +1362,77 @@ const ActionPanel = ({
         <p className="work-package-view__empty">
           Work package is no longer active.
         </p>
+      )}
+
+      {isContractorAction && contractorIsSelf && !activeRequest && (
+        <div className="work-package-view__reject">
+          {!invoiceOpen ? (
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--primary"
+              onClick={() => setInvoiceOpen(true)}
+              disabled={pending}
+            >
+              Submit invoice…
+            </button>
+          ) : (
+            <div className="work-package-view__reject-form">
+              <label className="work-package-view__reject-label">
+                Invoice amount
+              </label>
+              <input
+                className="work-package-view__reject-input"
+                type="text"
+                value={invoiceAmount}
+                onChange={(e) => {
+                  setInvoiceAmount(e.target.value);
+                  setInvoiceAmountError(null);
+                }}
+                placeholder="e.g. 25000"
+                disabled={pending}
+              />
+              {invoiceAmountError && (
+                <p className="work-package-view__form-error">
+                  {invoiceAmountError}
+                </p>
+              )}
+              <label className="work-package-view__reject-label">
+                Document (optional filename)
+              </label>
+              <input
+                className="work-package-view__reject-input"
+                type="text"
+                value={invoiceDoc}
+                onChange={(e) => setInvoiceDoc(e.target.value)}
+                placeholder="Invoice.pdf"
+                disabled={pending}
+              />
+              <div className="work-package-view__reject-actions">
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--ghost"
+                  onClick={() => {
+                    setInvoiceOpen(false);
+                    setInvoiceAmount("");
+                    setInvoiceAmountError(null);
+                    setInvoiceDoc("");
+                  }}
+                  disabled={pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--primary"
+                  onClick={onSubmitInvoice}
+                  disabled={pending || invoiceAmount.trim().length === 0}
+                >
+                  Submit invoice
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {canPmApprove && (
@@ -1244,7 +1619,7 @@ const ActionPanel = ({
                         : "Held — actions blocked."
                   : isContractorAction
                     ? contractorIsSelf
-                      ? "Submit / document actions land in a later step."
+                      ? "Invoice already active — await approval."
                       : "Read-only — this isn't your assigned package."
                     : "No action available."}
           </p>

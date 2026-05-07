@@ -87,7 +87,7 @@ const RouteSwitch = ({
     case "projects":
       return <ProjectListPage role={role} />;
     case "projectDetail":
-      return <ProjectDetailPage address={route.params.address} />;
+      return <ProjectDetailPage address={route.params.address} role={role} />;
     case "workPackageView":
       return <WorkPackageViewPage address={route.params.address} role={role} />;
     case "settings":

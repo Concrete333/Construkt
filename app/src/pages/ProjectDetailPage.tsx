@@ -4,7 +4,10 @@ import { useClients } from "../components/clientsContext";
 import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
-import { formatTimestamp, shortAddress } from "../lib/format";
+import { walletForRole } from "../lib/clients";
+import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
+import { friendlyClientError } from "../lib/program";
+import type { TxResult } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
 import {
   projectStatusLabel,
@@ -35,7 +38,13 @@ import type {
   ProjectMetadata,
   PackageScopeMetadata,
 } from "../lib/metadataClient";
+import type { DemoRole } from "../lib/theme";
 import "./ProjectDetailPage.css";
+
+interface ActionFeedback {
+  kind: "success" | "error";
+  message: string;
+}
 
 interface PackageRow {
   rollup: PackageRollup;
@@ -58,6 +67,19 @@ interface LoadedDetail {
 interface ProjectDetailPageProps {
   /** base58 address from `?address=` query param. */
   address?: string;
+  role: DemoRole;
+}
+
+interface FundCtx {
+  isFinance: boolean;
+  fundTarget: string | null;
+  fundText: string;
+  fundError: string | null;
+  pending: boolean;
+  onOpenFund: (packageAddress: string) => void;
+  onChangeFundText: (v: string) => void;
+  onCancelFund: () => void;
+  onSubmitFund: (packageAddress: PublicKey, projectAddress: PublicKey) => void;
 }
 
 const tryDecode = (address?: string): PublicKey | null => {
@@ -69,19 +91,52 @@ const tryDecode = (address?: string): PublicKey | null => {
   }
 };
 
-export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
-  const { client, metadata } = useClients();
+export const ProjectDetailPage = ({
+  address,
+  role,
+}: ProjectDetailPageProps) => {
+  const { client, metadata, metadataWriter, world } = useClients();
   const projectKey = useMemo(() => tryDecode(address), [address]);
   const [loaded, setLoaded] = useState<LoadedDetail | null | "missing">(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [pending, setPending] = useState(false);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+
+  const [addPkgOpen, setAddPkgOpen] = useState(false);
+  const [scopeText, setScopeText] = useState("");
+  const [capText, setCapText] = useState("");
+  const [capError, setCapError] = useState<string | null>(null);
+  const [contractorText, setContractorText] = useState(
+    world.contractor.publicKey.toBase58(),
+  );
+  const [contractorError, setContractorError] = useState<string | null>(null);
+
+  const [fundTarget, setFundTarget] = useState<string | null>(null);
+  const [fundText, setFundText] = useState("");
+  const [fundError, setFundError] = useState<string | null>(null);
+
+  const wallet = walletForRole(world, role);
+
+  const onAct = async (op: () => Promise<TxResult>) => {
+    setPending(true);
+    setFeedback(null);
+    try {
+      const result = await op();
+      setFeedback({
+        kind: "success",
+        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+      });
+      setRefreshKey((k) => k + 1);
+    } catch (err) {
+      setFeedback({ kind: "error", message: friendlyClientError(err) });
+    } finally {
+      setPending(false);
+    }
+  };
 
   useEffect(() => {
     if (!projectKey) return;
     let cancelled = false;
-    // Note: we don't synchronously reset `loaded` to `null` on address change
-    // (the lint rule react-hooks/set-state-in-effect rejects sync setState in
-    // effects). For the in-memory mock the fetch is instant so the brief
-    // stale-state window is invisible. If Phase 4's Anchor fetches show
-    // perceptible flicker, swap to a `key`-on-address remount instead.
     void (async () => {
       const projectFetched = await client.fetchProject(projectKey);
       if (!projectFetched) {
@@ -137,7 +192,6 @@ export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
         approvals: allApprovals,
       });
 
-      // Resolve actor display names from team metadata + ref-backed text
       const teamByWallet = new Map<string, string>();
       for (const member of projectMetadata?.team ?? []) {
         teamByWallet.set(member.wallet, member.displayName);
@@ -151,7 +205,6 @@ export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
         enriched.push({ ...event, actorDisplayName, detail });
       }
 
-      // Display newest first.
       enriched.reverse();
 
       if (!cancelled) {
@@ -166,7 +219,105 @@ export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
     return () => {
       cancelled = true;
     };
-  }, [client, metadata, projectKey]);
+  }, [client, metadata, projectKey, refreshKey]);
+
+  const onAddPackageSubmit = () => {
+    if (!projectKey) return;
+    const scope = scopeText.trim();
+    if (!scope) return;
+
+    let capAmount: bigint;
+    try {
+      capAmount = parseMockUsdc(capText);
+    } catch (e) {
+      setCapError(e instanceof Error ? e.message : "Invalid amount");
+      return;
+    }
+    setCapError(null);
+
+    let contractorKey: PublicKey;
+    try {
+      contractorKey = new PublicKey(contractorText.trim());
+    } catch {
+      setContractorError("Invalid wallet address");
+      return;
+    }
+    setContractorError(null);
+
+    const packages =
+      loaded !== null && loaded !== "missing" ? loaded.packages : [];
+    const packageId = BigInt(packages.length + 1);
+    const scopeRef = `metadata://demo/scope-${Date.now()}`;
+    metadataWriter?.putPackageScope(scopeRef, {
+      description: scope,
+      contractorDisplayName: "Demo Contractor",
+      contractModel: "bespoke",
+    });
+    void onAct(() =>
+      client.createWorkPackage({
+        authority: wallet,
+        project: projectKey,
+        packageId,
+        capAmount,
+        contractor: contractorKey,
+        mint: world.mint,
+        scopeRef,
+      }),
+    ).then(() => {
+      setAddPkgOpen(false);
+      setScopeText("");
+      setCapText("");
+      setContractorText(world.contractor.publicKey.toBase58());
+    });
+  };
+
+  const onSubmitFund = (
+    packageAddress: PublicKey,
+    projectAddress: PublicKey,
+  ) => {
+    let amount: bigint;
+    try {
+      amount = parseMockUsdc(fundText);
+    } catch (e) {
+      setFundError(e instanceof Error ? e.message : "Invalid amount");
+      return;
+    }
+    setFundError(null);
+    void onAct(() =>
+      client.fundEscrow({
+        authority: wallet,
+        project: projectAddress,
+        workPackage: packageAddress,
+        amount,
+      }),
+    ).then(() => {
+      setFundTarget(null);
+      setFundText("");
+    });
+  };
+
+  const fundCtx: FundCtx = {
+    isFinance: role === "financeDirector",
+    fundTarget,
+    fundText,
+    fundError,
+    pending,
+    onOpenFund: (addr) => {
+      setFundTarget(addr);
+      setFundText("");
+      setFundError(null);
+    },
+    onChangeFundText: (v) => {
+      setFundText(v);
+      setFundError(null);
+    },
+    onCancelFund: () => {
+      setFundTarget(null);
+      setFundText("");
+      setFundError(null);
+    },
+    onSubmitFund,
+  };
 
   if (!projectKey || loaded === "missing") {
     return (
@@ -190,6 +341,7 @@ export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
   }
 
   const { rollup, metadata: meta, packages, timeline } = loaded;
+  const canAddPackage = role === "financeDirector" || role === "projectManager";
 
   return (
     <section className="project-detail">
@@ -240,10 +392,123 @@ export const ProjectDetailPage = ({ address }: ProjectDetailPageProps) => {
 
       <div className="project-detail__columns">
         <main className="project-detail__main">
-          <h2 className="project-detail__section-heading">Work packages</h2>
+          <div className="project-detail__section-head-row">
+            <h2 className="project-detail__section-heading">Work packages</h2>
+            {canAddPackage && (
+              <button
+                type="button"
+                className="project-detail__btn project-detail__btn--primary"
+                onClick={() => setAddPkgOpen((v) => !v)}
+                disabled={pending}
+              >
+                + Add package
+              </button>
+            )}
+          </div>
+
+          {addPkgOpen && (
+            <div className="project-detail__create-form">
+              <div className="project-detail__form-field">
+                <label className="project-detail__form-label">
+                  Scope description
+                </label>
+                <input
+                  className="project-detail__form-input"
+                  type="text"
+                  value={scopeText}
+                  onChange={(e) => setScopeText(e.target.value)}
+                  placeholder="What work is covered?"
+                  disabled={pending}
+                />
+              </div>
+              <div className="project-detail__form-field">
+                <label className="project-detail__form-label">Cap amount</label>
+                <input
+                  className="project-detail__form-input"
+                  type="text"
+                  value={capText}
+                  onChange={(e) => {
+                    setCapText(e.target.value);
+                    setCapError(null);
+                  }}
+                  placeholder="e.g. 50000"
+                  disabled={pending}
+                />
+                {capError && (
+                  <p className="project-detail__form-error">{capError}</p>
+                )}
+              </div>
+              <div className="project-detail__form-field">
+                <label className="project-detail__form-label">
+                  Contractor wallet
+                </label>
+                <input
+                  className="project-detail__form-input"
+                  type="text"
+                  value={contractorText}
+                  onChange={(e) => {
+                    setContractorText(e.target.value);
+                    setContractorError(null);
+                  }}
+                  placeholder="base58 public key"
+                  disabled={pending}
+                />
+                {contractorError && (
+                  <p className="project-detail__form-error">
+                    {contractorError}
+                  </p>
+                )}
+              </div>
+              <div className="project-detail__create-actions">
+                <button
+                  type="button"
+                  className="project-detail__btn project-detail__btn--ghost"
+                  onClick={() => {
+                    setAddPkgOpen(false);
+                    setScopeText("");
+                    setCapText("");
+                    setCapError(null);
+                    setContractorText(world.contractor.publicKey.toBase58());
+                    setContractorError(null);
+                  }}
+                  disabled={pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="project-detail__btn project-detail__btn--primary"
+                  onClick={onAddPackageSubmit}
+                  disabled={
+                    pending ||
+                    scopeText.trim().length === 0 ||
+                    capText.trim().length === 0
+                  }
+                >
+                  Create package
+                </button>
+              </div>
+            </div>
+          )}
+
+          {feedback && (
+            <p
+              className={`project-detail__feedback project-detail__feedback--${feedback.kind}`}
+              role="status"
+              aria-live="polite"
+            >
+              {feedback.message}
+            </p>
+          )}
+
           <ul className="project-detail__packages">
             {packages.map((row) => (
-              <PackageCard key={row.rollup.address.toBase58()} row={row} />
+              <PackageCard
+                key={row.rollup.address.toBase58()}
+                row={row}
+                projectAddress={projectKey}
+                fundCtx={fundCtx}
+              />
             ))}
           </ul>
 
@@ -357,7 +622,15 @@ const Metric = ({
   </div>
 );
 
-const PackageCard = ({ row }: { row: PackageRow }) => {
+const PackageCard = ({
+  row,
+  projectAddress,
+  fundCtx,
+}: {
+  row: PackageRow;
+  projectAddress: PublicKey;
+  fundCtx: FundCtx;
+}) => {
   const wpHref = buildHash("workPackageView", {
     address: row.rollup.address.toBase58(),
   });
@@ -365,6 +638,13 @@ const PackageCard = ({ row }: { row: PackageRow }) => {
   const requestStatus = row.activeRequest
     ? paymentRequestDisplayStatus(row.activeRequest)
     : null;
+  const packageAddr = row.rollup.address.toBase58();
+  const isFundTarget = fundCtx.fundTarget === packageAddr;
+  const canFund =
+    fundCtx.isFinance &&
+    status === "active" &&
+    row.rollup.package.fundedAmount < row.rollup.package.capAmount;
+
   return (
     <li className="project-detail__package">
       <a className="project-detail__package-link" href={wpHref}>
@@ -407,6 +687,72 @@ const PackageCard = ({ row }: { row: PackageRow }) => {
           </div>
         )}
       </a>
+
+      {canFund && (
+        <div className="project-detail__package-fund">
+          {!isFundTarget ? (
+            <button
+              type="button"
+              className="project-detail__btn project-detail__btn--ghost"
+              onClick={(e) => {
+                e.preventDefault();
+                fundCtx.onOpenFund(packageAddr);
+              }}
+              disabled={fundCtx.pending}
+            >
+              Fund…
+            </button>
+          ) : (
+            <div
+              className="project-detail__create-form"
+              onClick={(e) => e.preventDefault()}
+            >
+              <div className="project-detail__form-field">
+                <label className="project-detail__form-label">Amount</label>
+                <input
+                  className="project-detail__form-input"
+                  type="text"
+                  value={fundCtx.fundText}
+                  onChange={(e) => fundCtx.onChangeFundText(e.target.value)}
+                  placeholder="e.g. 10000"
+                  disabled={fundCtx.pending}
+                />
+                {fundCtx.fundError && (
+                  <p className="project-detail__form-error">
+                    {fundCtx.fundError}
+                  </p>
+                )}
+              </div>
+              <div className="project-detail__create-actions">
+                <button
+                  type="button"
+                  className="project-detail__btn project-detail__btn--ghost"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    fundCtx.onCancelFund();
+                  }}
+                  disabled={fundCtx.pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="project-detail__btn project-detail__btn--primary"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    fundCtx.onSubmitFund(row.rollup.address, projectAddress);
+                  }}
+                  disabled={
+                    fundCtx.pending || fundCtx.fundText.trim().length === 0
+                  }
+                >
+                  Fund
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </li>
   );
 };
