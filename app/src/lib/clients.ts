@@ -1,7 +1,10 @@
 import { Keypair, PublicKey, Connection } from "@solana/web3.js";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
 import type { MetadataClient, MetadataWriter } from "./metadataClient";
-import { MockMetadataClient } from "./metadataClient";
+import {
+  LocalStorageMetadataClient,
+  MockMetadataClient,
+} from "./metadataClient";
 import { seedDemoMetadata } from "./metadataSeed";
 import { MockConstruktClient } from "./mockClient";
 import type { DemoWorld } from "./mockSeed";
@@ -49,6 +52,15 @@ export const buildDemoClients = async (): Promise<AppClients> => {
     metadataWriter: metadata,
     world,
   };
+};
+
+const browserLocalStorage = (): Storage | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
 };
 
 /**
@@ -127,7 +139,10 @@ export const buildAnchorClients = async (
     },
   };
 
-  const metadata = new MockMetadataClient();
+  const metadataStorage = browserLocalStorage();
+  const metadata = metadataStorage
+    ? new LocalStorageMetadataClient(metadataStorage)
+    : new MockMetadataClient();
   seedDemoMetadata(metadata, world);
 
   return {

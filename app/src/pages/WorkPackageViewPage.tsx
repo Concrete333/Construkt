@@ -6,6 +6,12 @@ import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
 import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
+import {
+  documentMetadataRef,
+  holdMetadataRef,
+  nextPaymentRequestId,
+  noteMetadataRef,
+} from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
 import {
@@ -1021,10 +1027,14 @@ const DocumentPanel = ({
     activeRequestAddress != null;
 
   const onAddDoc = () => {
-    if (!activeRequestAddress) return;
+    if (!activeRequestAddress || !activeRequest) return;
     const filename = docText.trim();
     if (!filename) return;
-    const docRef = `metadata://demo/doc-${Date.now()}`;
+    const docRef = documentMetadataRef(
+      workPackage,
+      activeRequest.requestId,
+      existingDocsCount + 1,
+    );
     metadataWriter?.putDocument(docRef, {
       filename,
       version: existingDocsCount + 1,
@@ -1203,10 +1213,10 @@ const ActionPanel = ({
   const contractorIsSelf = wallet.equals(contractor);
 
   const composeNoteRef = (kind: "approve" | "reject"): string =>
-    `metadata://demo/note/${requestAddr?.toBase58() ?? "unknown"}-${role}-${kind}-${Date.now()}`;
+    requestAddr ? noteMetadataRef(requestAddr, role, kind) : "";
 
   const composeHoldRef = (): string =>
-    `metadata://demo/hold/${requestAddr?.toBase58() ?? "unknown"}-${Date.now()}`;
+    requestAddr ? holdMetadataRef(requestAddr) : "";
 
   const writeNote = (ref: string, text: string) => {
     if (!metadataWriter) return;
@@ -1319,8 +1329,8 @@ const ActionPanel = ({
       return;
     }
     setInvoiceAmountError(null);
-    const requestId = requestCounter + 1n;
-    const docRef = `metadata://demo/doc-${Date.now()}`;
+    const requestId = nextPaymentRequestId({ requestCounter });
+    const docRef = documentMetadataRef(workPackage, requestId);
     metadataWriter?.putDocument(docRef, {
       filename: invoiceDoc.trim() || "Invoice.pdf",
       version: 1,

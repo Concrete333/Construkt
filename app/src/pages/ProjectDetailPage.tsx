@@ -6,6 +6,7 @@ import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
 import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
+import { nextWorkPackageId, packageScopeMetadataRef } from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
 import type { TxResult } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
@@ -246,8 +247,13 @@ export const ProjectDetailPage = ({
 
     const packages =
       loaded !== null && loaded !== "missing" ? loaded.packages : [];
-    const packageId = BigInt(packages.length + 1);
-    const scopeRef = `metadata://demo/scope-${Date.now()}`;
+    const packageId = nextWorkPackageId(
+      packages.map((row) => ({
+        address: row.rollup.address,
+        account: row.rollup.package,
+      })),
+    );
+    const scopeRef = packageScopeMetadataRef(projectKey, packageId);
     metadataWriter?.putPackageScope(scopeRef, {
       description: scope,
       contractorDisplayName: "Demo Contractor",

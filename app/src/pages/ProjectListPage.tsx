@@ -5,6 +5,7 @@ import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
 import { shortAddress } from "../lib/format";
+import { nextProjectId, projectMetadataRef } from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
 import type { TxResult } from "../lib/program";
 import {
@@ -122,8 +123,13 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
   const onCreateSubmit = () => {
     const name = nameText.trim();
     if (!name) return;
-    const projectId = BigInt(Date.now());
-    const metadataRef = `metadata://demo/project-${Date.now()}`;
+    const projectId = nextProjectId(
+      (loaded ?? []).map((entry) => ({
+        address: entry.rollup.address,
+        account: entry.rollup.project,
+      })),
+    );
+    const metadataRef = projectMetadataRef(projectId);
     metadataWriter?.putProject(metadataRef, {
       client: clientText.trim() || name,
       contractModel: "milestone",
