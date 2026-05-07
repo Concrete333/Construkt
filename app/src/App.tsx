@@ -6,6 +6,7 @@ import { useClients } from "./components/clientsContext";
 import { Dashboard2Page } from "./pages/Dashboard2Page";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { SignInPage } from "./pages/SignInPage";
 import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
 import { applyTheme, nextTheme } from "./lib/theme";
@@ -42,7 +43,13 @@ const App = () => {
       }
     >
       <SeededShell headerCommon={headerCommon}>
-        <RouteSwitch route={route} role={role} onSelectRole={setRole} />
+        <RouteSwitch
+          route={route}
+          role={role}
+          theme={theme}
+          network={network}
+          onSelectRole={setRole}
+        />
       </SeededShell>
     </ClientsProvider>
   );
@@ -62,10 +69,14 @@ const SeededShell = ({ headerCommon, children }: SeededShellProps) => {
 const RouteSwitch = ({
   route,
   role,
+  theme,
+  network,
   onSelectRole,
 }: {
   route: ParsedRoute;
   role: DemoRole;
+  theme: ThemeMode;
+  network: DemoNetwork;
   onSelectRole: (role: DemoRole) => void;
 }) => {
   switch (route.key) {
@@ -79,6 +90,8 @@ const RouteSwitch = ({
       return <ProjectDetailPage address={route.params.address} />;
     case "workPackageView":
       return <WorkPackageViewPage address={route.params.address} role={role} />;
+    case "settings":
+      return <SettingsPage role={role} theme={theme} network={network} />;
     case "home":
     default:
       return <HomePlaceholder />;
