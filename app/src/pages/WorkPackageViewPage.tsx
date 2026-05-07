@@ -899,20 +899,32 @@ const ActionPanel = ({
 }: ActionPanelProps) => {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectText, setRejectText] = useState("");
+  const [holdOpen, setHoldOpen] = useState(false);
+  const [holdText, setHoldText] = useState("");
 
   const status = activeRequest?.displayStatus ?? null;
   const requestAddr = activeRequest?.request.address ?? null;
+
+  const isFinance = role === "financeDirector";
+  const isOnHold =
+    status === "submittedOnHold" ||
+    status === "lowApprovedOnHold" ||
+    status === "highApprovedOnHold";
+  const isHoldablePending =
+    status === "submitted" ||
+    status === "lowApproved" ||
+    status === "highApproved";
 
   // Per-role action affordances.
   const canPmApprove = role === "projectManager" && status === "submitted";
   const canDirectorApprove = role === "director" && status === "lowApproved";
   const canRelease =
-    role === "financeDirector" &&
-    activeRequest != null &&
-    releaseReadiness?.ready === true;
+    isFinance && activeRequest != null && releaseReadiness?.ready === true;
   const canReject =
     (role === "projectManager" && status === "submitted") ||
     (role === "director" && status === "lowApproved");
+  const canPlaceHold = isFinance && activeRequest != null && isHoldablePending;
+  const canRemoveHold = isFinance && activeRequest != null && isOnHold;
 
   const isContractorAction = role === "contractor";
   const contractorIsSelf = wallet.equals(contractor);
@@ -921,12 +933,25 @@ const ActionPanel = ({
   const composeNoteRef = (kind: "approve" | "reject"): string =>
     `metadata://demo/note/${requestAddr?.toBase58() ?? "unknown"}-${role}-${kind}-${Date.now()}`;
 
+  const composeHoldRef = (): string =>
+    `metadata://demo/hold/${requestAddr?.toBase58() ?? "unknown"}-${Date.now()}`;
+
   const writeNote = (ref: string, text: string) => {
     if (!metadataWriter) return;
     metadataWriter.putNote(ref, {
       text,
       authorDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
       authorRole: role === "projectManager" ? "projectManager" : "director",
+      authoredAt: new Date().toISOString(),
+    });
+  };
+
+  const writeHold = (ref: string, reason: string) => {
+    if (!metadataWriter) return;
+    metadataWriter.putHold(ref, {
+      reason,
+      authorDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
+      authorRole: "financeDirector",
       authoredAt: new Date().toISOString(),
     });
   };
@@ -980,6 +1005,38 @@ const ActionPanel = ({
         // wallet itself as a stand-in. Phase 4 must derive the actual
         // contractor token account for the package mint.
         contractorTokenAccount: contractor,
+      }),
+    );
+  };
+
+  const onPlaceHold = () => {
+    if (!requestAddr) return;
+    const reason = holdText.trim();
+    if (reason.length === 0) return;
+    const holdRef = composeHoldRef();
+    writeHold(holdRef, reason);
+    void onAct(() =>
+      client.placeHold({
+        authority: wallet,
+        project,
+        workPackage,
+        paymentRequest: requestAddr,
+        holdRef,
+      }),
+    ).then(() => {
+      setHoldOpen(false);
+      setHoldText("");
+    });
+  };
+
+  const onRemoveHold = () => {
+    if (!requestAddr) return;
+    void onAct(() =>
+      client.removeHold({
+        authority: wallet,
+        project,
+        workPackage,
+        paymentRequest: requestAddr,
       }),
     );
   };
@@ -1042,6 +1099,69 @@ const ActionPanel = ({
         </div>
       )}
 
+      {canRemoveHold && (
+        <div className="work-package-view__action-buttons">
+          <button
+            type="button"
+            className="work-package-view__btn work-package-view__btn--primary"
+            onClick={onRemoveHold}
+            disabled={pending}
+          >
+            Remove hold
+          </button>
+        </div>
+      )}
+
+      {canPlaceHold && (
+        <div className="work-package-view__reject">
+          {!holdOpen ? (
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={() => setHoldOpen(true)}
+              disabled={pending}
+            >
+              Place hold…
+            </button>
+          ) : (
+            <div className="work-package-view__reject-form">
+              <label className="work-package-view__reject-label">
+                Reason (recorded with the hold)
+              </label>
+              <textarea
+                className="work-package-view__reject-input"
+                value={holdText}
+                onChange={(e) => setHoldText(e.target.value)}
+                rows={3}
+                disabled={pending}
+                placeholder="Why is this request being held?"
+              />
+              <div className="work-package-view__reject-actions">
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--ghost"
+                  onClick={() => {
+                    setHoldOpen(false);
+                    setHoldText("");
+                  }}
+                  disabled={pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--danger"
+                  onClick={onPlaceHold}
+                  disabled={pending || holdText.trim().length === 0}
+                >
+                  Place hold
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {canReject && (
         <div className="work-package-view__reject">
           {!rejectOpen ? (
@@ -1093,33 +1213,42 @@ const ActionPanel = ({
       )}
 
       {/* No-op explainers so the panel never feels blank for a role. */}
-      {activeRequest && !canPmApprove && !canDirectorApprove && !canRelease && (
-        <p className="work-package-view__empty">
-          {role === "financeDirector"
-            ? "Awaiting approvals before release."
-            : role === "projectManager"
-              ? status === "lowApproved" || status === "highApproved"
-                ? "Already PM-approved."
+      {activeRequest &&
+        !canPmApprove &&
+        !canDirectorApprove &&
+        !canRelease &&
+        !canPlaceHold &&
+        !canRemoveHold && (
+          <p className="work-package-view__empty">
+            {role === "financeDirector"
+              ? status === "released"
+                ? "Already released."
                 : status === "rejected"
                   ? "Request was rejected."
-                  : status === "released"
-                    ? "Already released."
-                    : "Held — actions blocked."
-              : role === "director"
-                ? status === "submitted"
-                  ? "Awaiting PM approval first."
-                  : status === "highApproved" || status === "released"
-                    ? "Already Director-approved."
-                    : status === "rejected"
-                      ? "Request was rejected."
+                  : "No finance action available."
+              : role === "projectManager"
+                ? status === "lowApproved" || status === "highApproved"
+                  ? "Already PM-approved."
+                  : status === "rejected"
+                    ? "Request was rejected."
+                    : status === "released"
+                      ? "Already released."
                       : "Held — actions blocked."
-                : isContractorAction
-                  ? contractorIsSelf
-                    ? "Submit / document actions land in a later step."
-                    : "Read-only — this isn't your assigned package."
-                  : "No action available."}
-        </p>
-      )}
+                : role === "director"
+                  ? status === "submitted"
+                    ? "Awaiting PM approval first."
+                    : status === "highApproved" || status === "released"
+                      ? "Already Director-approved."
+                      : status === "rejected"
+                        ? "Request was rejected."
+                        : "Held — actions blocked."
+                  : isContractorAction
+                    ? contractorIsSelf
+                      ? "Submit / document actions land in a later step."
+                      : "Read-only — this isn't your assigned package."
+                    : "No action available."}
+          </p>
+        )}
 
       {feedback && (
         <p
