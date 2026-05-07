@@ -339,12 +339,68 @@ Issues, decisions, and limitations recorded per step so future phases inherit th
 
 ### Phase 2: Port Prototype UX
 
-- Port useful layout, visual language, and page concepts from the Django/static prototype.
-- Prioritize the working app surfaces: dashboard, project list/detail, work package detail, payment/request timeline, documents panel, and setup/action modals.
-- Treat `dashboard2` as the canonical V0 dashboard. Task upload/review/response and chart fullscreen remain demo polish unless needed for the main presentation path.
-- Avoid carrying over the in-memory store as the long-term data model.
-- Keep UI state for form drafts, selected demo role, pending tx state, and current-session tx history only.
-- Replace the current Finance-only release flow with PM approval, Director approval, then Finance release.
+Ground rules:
+
+- Port useful layout, visual language, and page concepts from the static prototype at `frontend-prototype/web/index.html`. The prototype is the design reference; do not carry the in-memory `store` forward as runtime architecture.
+- Keep React UI state for form drafts, selected demo role, pending tx state, and current-session tx history only. Everything else comes from `ConstruktClient` + `MetadataClient` via the selectors.
+- Replace the prototype's Finance-only release flow with the explicit PM-approve → Director-approve → Finance-release split that the on-chain program enforces.
+
+#### V0 Screen Scope (Step 5 — resolved 2026-05-07)
+
+`✅ in V0` = ported into `app/`, must work end-to-end on the demo path.
+`🟡 polish` = keep the prototype version as a static reference, not ported into `app/` for V0; revisit once the V0 demo is signed off.
+`🗑 retire` = drop entirely; superseded by the V0 design.
+
+| Prototype hash route | V0 status | Notes |
+| --- | --- | --- |
+| `#home` | ✅ in V0 | Public landing page; one CTA into `#signin`. |
+| `#signin` | ✅ in V0 | Demo wallet + role picker (no real auth). |
+| `#dashboard2` | ✅ in V0 | Canonical V0 dashboard for all three roles. |
+| `#projects` | ✅ in V0 | Project list. Contractor view filtered via `filterProjectsByContractor`. |
+| `#project-detail` | ✅ in V0 | Project header, package list, team panel, audit log. |
+| `#work-package-view` | ✅ in V0 | Single package surface for PM + Contractor + Finance. |
+| `#dashboard` (legacy) | ✅ in V0 | Alias only — redirect to `#dashboard2`. |
+| `#work-package-detail` (legacy) | ✅ in V0 | Alias only — redirect to `#work-package-view`. |
+| `#settings` | 🟡 polish | Render a read-only stub for V0 (theme + demo role display); defer the rest. |
+| `#chart-fullscreen` | 🟡 polish | Keep on the prototype; not on the V0 demo path. |
+| `#upload-task` | 🟡 polish | Document upload UX is in scope as part of `#work-package-view`'s document panel — the dedicated task screen is not. |
+| `#review-task` | 🟡 polish | PM approval/rejection happens inside `#work-package-view` for V0; the standalone review screen is deferred. |
+| `#response-task` | 🟡 polish | Contractor responses live inline in the document panel for V0; the standalone screen is deferred. |
+
+#### V0 Modals (must work end-to-end)
+
+These are entry points for the on-chain instructions and gate the demo flow. Each one maps to exactly one `ConstruktClient` write call (plus optional `MetadataWriter` updates):
+
+| Modal | Calls | Available to |
+| --- | --- | --- |
+| Create project | `initializeProject` | Finance |
+| Add work package | `createWorkPackage` | PM (off-chain draft) → Finance approves on-chain in V0 |
+| Fund package | `fundEscrow` | Finance |
+| Assign team member | `assignRole` | Finance |
+| Submit invoice | `submitPaymentRequest` | Contractor |
+| Add / edit document | metadata write + `addDocumentReference` when linked to active request | Contractor |
+| Place hold | `placeHold` (selects an active request, not the package) | Finance |
+| Remove hold | `removeHold` | Finance |
+| Approve request (PM) | `approveRequest({ role: 'lowApprover' })` | PM |
+| Approve request (Director) | `approveRequest({ role: 'highApprover' })` | Director |
+| Reject request | `rejectRequest` | PM or Director |
+| Release payment | `releasePayment` | Finance |
+
+#### Per-role landing surfaces
+
+- **Finance Director**: lands on `#dashboard2` with the cross-project KPIs; can navigate to any project, fund packages, place/remove holds, and release.
+- **Project Manager**: lands on `#dashboard2` filtered to their projects; can create packages (off-chain draft), assign roles (with Finance), approve/reject as `LowApprover`.
+- **Director (HighApprover)**: lands on `#dashboard2` showing requests pending HighApprover sign-off; approves/rejects as `HighApprover`.
+- **Contractor**: lands on `#dashboard2` showing only the projects with at least one assigned package; can submit invoices, upload documents, view release status.
+
+#### Out-of-scope for V0
+
+- Variation requests / variation flow.
+- Materials vesting certificate, certificate of practical completion, site photos, progress reports — represented as document type metadata only; richer per-type UI deferred.
+- Internal package milestones / payment schedules.
+- Document-request workflow (PM requests doc from contractor).
+- Multi-project KPIs beyond the seed dataset.
+- The chart-fullscreen visualization and the dedicated task screens listed above.
 
 ### Phase 3: Data Adapter
 
@@ -444,6 +500,8 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 ## Open Decisions
 
 - ~~What off-chain metadata store should V0 use?~~ Resolved 2026-05-06 (Step 12): in-memory `MockMetadataClient` for V0 demo. The `MetadataClient` / `MetadataWriter` interfaces are the contract; Phase 4+ can swap in Supabase / IPFS / S3 by satisfying them. Selectors and components must always go through `MetadataClient`, never a concrete impl.
+- ~~Which prototype pages are in V0 scope versus later polish?~~ Resolved 2026-05-07 (Step 5): see the **V0 Screen Scope** table under Phase 2 above.
+- ~~Which `dashboard2` task workflow screens should remain in the main demo path versus staying as secondary polish?~~ Resolved 2026-05-07 (Step 5): `#upload-task`, `#review-task`, `#response-task` are all 🟡 polish for V0. Their flows are absorbed into `#work-package-view`'s document panel and approve/reject modals.
 - When should the backendless `frontend-prototype/web/index.html` demo be retired or migrated into the React/Vite app?
 - How will local demo wallets be created and selected?
 - Where should generated IDL and TypeScript types live for frontend consumption?
@@ -476,3 +534,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-06: `seedHospitalFitOut` added at `app/src/lib/mockSeed.ts`. Builds the demo world (one project, six work packages spanning released / highApproved / lowApproved / submitted-on-hold / no-request / rejected) on top of a `MockConstruktClient`. Resolves the Phase 3 open-decision on seed source in favour of mirroring the prototype's Demo Hospital Fit-Out narrative. 13 new vitest cases cover seed shape, per-package final state, approval records, and determinism. App test suite is now at 41 cases.
 - 2026-05-06: Selector layer landed at `app/src/selectors/` — `paymentSelectors.ts` (display status, approval tracker, release readiness, summary), `projectSelectors.ts` (package + project rollups, contractor visibility filter), `auditSelectors.ts` (chronological audit timeline). Money helpers `formatMockUsdc` / `parseMockUsdc` added at `app/src/lib/format.ts`. 48 new vitest cases bring the app suite to 89 passing.
 - 2026-05-06: Off-chain metadata adapter landed at `app/src/lib/metadataClient.ts` (`MetadataClient` read interface, `MetadataWriter` write interface, `MockMetadataClient` impl). Demo seed `seedDemoMetadata` at `app/src/lib/metadataSeed.ts` populates the Demo Hospital Fit-Out narrative (project metadata, six package scopes, five invoices, six approval/rejection notes, one hold). Resolves the Phase 1 open-decision on V0 metadata storage in favour of an in-memory mock with a Supabase / IPFS / S3-swap-ready interface. 16 new vitest cases bring the app suite to 105 passing.
+- 2026-05-07: Step 5 V0 screen scope locked in. Phase 2 section now carries the explicit ✅/🟡/🗑 table for every prototype hash route, the V0 modal list (each tied to one `ConstruktClient` write), per-role landing surfaces for Finance / PM / Director / Contractor, and an out-of-scope list. Closes the "which prototype pages" and "which dashboard2 task screens" open decisions.
