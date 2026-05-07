@@ -5,13 +5,20 @@ import type { DemoWorld } from "./mockSeed";
 import { seedDemoMetadata } from "./metadataSeed";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
 import type { ConstruktClient } from "./program";
-import type { MetadataClient } from "./metadataClient";
+import type { MetadataClient, MetadataWriter } from "./metadataClient";
 import type { PublicKey } from "@solana/web3.js";
 import type { DemoRole } from "./theme";
 
 export interface AppClients {
   client: ConstruktClient;
   metadata: MetadataClient;
+  /**
+   * Off-chain metadata write surface. Present in V0 (the mock client
+   * implements both interfaces); Phase 4 will likely set this to `null`
+   * because real backends own their own mutation paths. The UI must
+   * handle the `null` case rather than assuming write capability.
+   */
+  metadataWriter: MetadataWriter | null;
   world: DemoWorld;
 }
 
@@ -31,7 +38,12 @@ export const buildDemoClients = async (): Promise<AppClients> => {
   });
   const metadata = new MockMetadataClient();
   seedDemoMetadata(metadata, world);
-  return { client: construktClient, metadata, world };
+  return {
+    client: construktClient,
+    metadata,
+    metadataWriter: metadata,
+    world,
+  };
 };
 
 /**

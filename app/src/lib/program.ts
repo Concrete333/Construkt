@@ -300,3 +300,46 @@ export class ConstruktClientError extends Error {
     this.name = "ConstruktClientError";
   }
 }
+
+const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
+  Unauthorized: "This wallet is not authorized for that action.",
+  InvalidRole: "The specified role is not valid for this account.",
+  InactiveRoleAssignment: "Your role assignment on this package is inactive.",
+  RoleAlreadyInRequestedState: "Role state is already what you requested.",
+  ApproverRoleConflict:
+    "The same wallet cannot hold both PM and Director on this package.",
+  InvalidAccountRelationship:
+    "Accounts don't match each other (project / package / request).",
+  InvalidStatus: "The current request status doesn't allow that action.",
+  InvalidApprovalOrder: "PM must approve before Director can.",
+  ContractorCannotApprove:
+    "The contractor wallet cannot approve their own request.",
+  InvalidRequestId: "Request ID doesn't match the package's counter.",
+  ActiveRequestExists:
+    "Another payment request is already active on this package.",
+  MissingDocumentReference: "A document reference is required.",
+  DocumentReferenceUnchanged: "The document reference is unchanged.",
+  StringTooLong: "One of the reference strings is too long.",
+  RequestOnHold: "This request is currently on hold.",
+  HoldNotActive: "There is no active hold to remove.",
+  HoldAlreadyActive: "A hold is already active on this request.",
+  RequestAlreadyReleased: "This request has already been released.",
+  InsufficientRemainingCap: "Release amount would exceed the package cap.",
+  InsufficientVaultBalance: "Escrow vault doesn't hold enough tokens.",
+  WrongMint: "Token account uses the wrong mint.",
+  WrongTokenOwner: "Token account is owned by an unexpected wallet.",
+  ArithmeticOverflow: "Arithmetic overflow on amount math.",
+  InvalidAmount: "Amount is invalid (zero or negative).",
+};
+
+/**
+ * Convert a `ConstruktClientError` (or any error) into a short
+ * user-facing sentence the UI can render verbatim. Unknown errors
+ * fall back to the message text. This is the single chokepoint —
+ * components should never branch on `code` themselves.
+ */
+export const friendlyClientError = (err: unknown): string => {
+  if (err instanceof ConstruktClientError) return ERROR_MESSAGES[err.code];
+  if (err instanceof Error) return err.message;
+  return String(err);
+};

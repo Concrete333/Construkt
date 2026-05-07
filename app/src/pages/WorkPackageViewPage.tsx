@@ -4,7 +4,9 @@ import { useClients } from "../components/clientsContext";
 import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
+import { walletForRole } from "../lib/clients";
 import { formatTimestamp, shortAddress } from "../lib/format";
+import { friendlyClientError } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
 import {
   paymentRequestChipTone,
@@ -32,11 +34,19 @@ import type {
 } from "../lib/program";
 import type {
   DocumentMetadata,
+  MetadataWriter,
   PackageScopeMetadata,
   ProjectMetadata,
   TeamMember,
 } from "../lib/metadataClient";
+import type { DemoRole } from "../lib/theme";
+import { DEMO_ROLE_LABEL } from "../lib/theme";
 import "./WorkPackageViewPage.css";
+
+interface ActionFeedback {
+  kind: "success" | "error";
+  message: string;
+}
 
 interface RequestRow {
   request: Fetched<PaymentRequestAccount>;
@@ -68,6 +78,7 @@ interface LoadedDetail {
 interface WorkPackageViewPageProps {
   /** base58 work package address from `?address=` query param. */
   address?: string;
+  role: DemoRole;
 }
 
 const tryDecode = (address?: string): PublicKey | null => {
@@ -79,10 +90,17 @@ const tryDecode = (address?: string): PublicKey | null => {
   }
 };
 
-export const WorkPackageViewPage = ({ address }: WorkPackageViewPageProps) => {
-  const { client, metadata } = useClients();
+export const WorkPackageViewPage = ({
+  address,
+  role,
+}: WorkPackageViewPageProps) => {
+  const { client, metadata, metadataWriter, world } = useClients();
   const packageKey = useMemo(() => tryDecode(address), [address]);
   const [loaded, setLoaded] = useState<LoadedDetail | null | "missing">(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
+  const [pending, setPending] = useState(false);
+  const wallet = walletForRole(world, role);
 
   useEffect(() => {
     if (!packageKey) return;
@@ -208,7 +226,7 @@ export const WorkPackageViewPage = ({ address }: WorkPackageViewPageProps) => {
     return () => {
       cancelled = true;
     };
-  }, [client, metadata, packageKey]);
+  }, [client, metadata, packageKey, refreshKey]);
 
   if (!packageKey || loaded === "missing") {
     return (
@@ -372,6 +390,43 @@ export const WorkPackageViewPage = ({ address }: WorkPackageViewPageProps) => {
         </main>
 
         <aside className="work-package-view__aside">
+          <ActionPanel
+            role={role}
+            wallet={wallet}
+            walletDisplayName={
+              teamMembers.find((m) => m.wallet === wallet.toBase58())
+                ?.displayName ?? null
+            }
+            project={loaded.project.address}
+            workPackage={loaded.packageAddress}
+            packageStatus={rollup.package.status}
+            contractor={rollup.package.contractor}
+            activeRequest={requests.find((r) => r.isActive) ?? null}
+            releaseReadiness={releaseReadiness}
+            pending={pending}
+            feedback={feedback}
+            onAct={async (op) => {
+              setPending(true);
+              setFeedback(null);
+              try {
+                const result = await op();
+                setFeedback({
+                  kind: "success",
+                  message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+                });
+                setRefreshKey((k) => k + 1);
+              } catch (err) {
+                setFeedback({
+                  kind: "error",
+                  message: friendlyClientError(err),
+                });
+              } finally {
+                setPending(false);
+              }
+            }}
+            client={client}
+            metadataWriter={metadataWriter}
+          />
           <ApprovalTrackerPanel
             row={requests.find((r) => r.isActive) ?? null}
             teamMembers={teamMembers}
@@ -808,3 +863,273 @@ const Metric = ({
     <dd>{children}</dd>
   </div>
 );
+
+interface ActionPanelProps {
+  role: DemoRole;
+  wallet: PublicKey;
+  walletDisplayName: string | null;
+  project: PublicKey;
+  workPackage: PublicKey;
+  packageStatus: WorkPackageAccount["status"];
+  contractor: PublicKey;
+  activeRequest: RequestRow | null;
+  releaseReadiness: ReleaseReadiness | null;
+  pending: boolean;
+  feedback: ActionFeedback | null;
+  onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
+  client: ReturnType<typeof useClients>["client"];
+  metadataWriter: MetadataWriter | null;
+}
+
+const ActionPanel = ({
+  role,
+  wallet,
+  walletDisplayName,
+  project,
+  workPackage,
+  packageStatus,
+  contractor,
+  activeRequest,
+  releaseReadiness,
+  pending,
+  feedback,
+  onAct,
+  client,
+  metadataWriter,
+}: ActionPanelProps) => {
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectText, setRejectText] = useState("");
+
+  const status = activeRequest?.displayStatus ?? null;
+  const requestAddr = activeRequest?.request.address ?? null;
+
+  // Per-role action affordances.
+  const canPmApprove = role === "projectManager" && status === "submitted";
+  const canDirectorApprove = role === "director" && status === "lowApproved";
+  const canRelease =
+    role === "financeDirector" &&
+    activeRequest != null &&
+    releaseReadiness?.ready === true;
+  const canReject =
+    (role === "projectManager" && status === "submitted") ||
+    (role === "director" && status === "lowApproved");
+
+  const isContractorAction = role === "contractor";
+  const contractorIsSelf = wallet.equals(contractor);
+
+  // Note ref factory (V0 demo only — Phase 4 backends own this).
+  const composeNoteRef = (kind: "approve" | "reject"): string =>
+    `metadata://demo/note/${requestAddr?.toBase58() ?? "unknown"}-${role}-${kind}-${Date.now()}`;
+
+  const writeNote = (ref: string, text: string) => {
+    if (!metadataWriter) return;
+    metadataWriter.putNote(ref, {
+      text,
+      authorDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
+      authorRole: role === "projectManager" ? "projectManager" : "director",
+      authoredAt: new Date().toISOString(),
+    });
+  };
+
+  const onApprove = () => {
+    if (!requestAddr) return;
+    const noteRef = composeNoteRef("approve");
+    writeNote(noteRef, "");
+    void onAct(() =>
+      client.approveRequest({
+        approver: wallet,
+        project,
+        workPackage,
+        paymentRequest: requestAddr,
+        role: role === "projectManager" ? "lowApprover" : "highApprover",
+        noteRef,
+      }),
+    );
+  };
+
+  const onReject = () => {
+    if (!requestAddr) return;
+    const text = rejectText.trim();
+    if (text.length === 0) return;
+    const noteRef = composeNoteRef("reject");
+    writeNote(noteRef, text);
+    void onAct(() =>
+      client.rejectRequest({
+        approver: wallet,
+        project,
+        workPackage,
+        paymentRequest: requestAddr,
+        role: role === "projectManager" ? "lowApprover" : "highApprover",
+        noteRef,
+      }),
+    ).then(() => {
+      setRejectOpen(false);
+      setRejectText("");
+    });
+  };
+
+  const onRelease = () => {
+    if (!requestAddr) return;
+    void onAct(() =>
+      client.releasePayment({
+        authority: wallet,
+        project,
+        workPackage,
+        paymentRequest: requestAddr,
+        // Mock client doesn't enforce a real ATA; pass the contractor
+        // wallet itself as a stand-in. Phase 4 must derive the actual
+        // contractor token account for the package mint.
+        contractorTokenAccount: contractor,
+      }),
+    );
+  };
+
+  const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(wallet.toBase58())}`;
+
+  return (
+    <section className="work-package-view__aside-panel work-package-view__action-panel">
+      <h2>Actions</h2>
+      <p className="work-package-view__aside-eyebrow">{eyebrow}</p>
+
+      {!activeRequest && (
+        <p className="work-package-view__empty">
+          No active payment request to action.
+        </p>
+      )}
+
+      {activeRequest && packageStatus !== "active" && (
+        <p className="work-package-view__empty">
+          Work package is no longer active.
+        </p>
+      )}
+
+      {canPmApprove && (
+        <div className="work-package-view__action-buttons">
+          <button
+            type="button"
+            className="work-package-view__btn work-package-view__btn--primary"
+            onClick={onApprove}
+            disabled={pending}
+          >
+            Approve as PM
+          </button>
+        </div>
+      )}
+
+      {canDirectorApprove && (
+        <div className="work-package-view__action-buttons">
+          <button
+            type="button"
+            className="work-package-view__btn work-package-view__btn--primary"
+            onClick={onApprove}
+            disabled={pending}
+          >
+            Approve as Director
+          </button>
+        </div>
+      )}
+
+      {canRelease && (
+        <div className="work-package-view__action-buttons">
+          <button
+            type="button"
+            className="work-package-view__btn work-package-view__btn--primary"
+            onClick={onRelease}
+            disabled={pending}
+          >
+            Release payment
+          </button>
+        </div>
+      )}
+
+      {canReject && (
+        <div className="work-package-view__reject">
+          {!rejectOpen ? (
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={() => setRejectOpen(true)}
+              disabled={pending}
+            >
+              Reject…
+            </button>
+          ) : (
+            <div className="work-package-view__reject-form">
+              <label className="work-package-view__reject-label">
+                Reason (will be recorded on the approval record)
+              </label>
+              <textarea
+                className="work-package-view__reject-input"
+                value={rejectText}
+                onChange={(e) => setRejectText(e.target.value)}
+                rows={3}
+                disabled={pending}
+                placeholder="What needs to change before this can be approved?"
+              />
+              <div className="work-package-view__reject-actions">
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--ghost"
+                  onClick={() => {
+                    setRejectOpen(false);
+                    setRejectText("");
+                  }}
+                  disabled={pending}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--danger"
+                  onClick={onReject}
+                  disabled={pending || rejectText.trim().length === 0}
+                >
+                  Reject request
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No-op explainers so the panel never feels blank for a role. */}
+      {activeRequest && !canPmApprove && !canDirectorApprove && !canRelease && (
+        <p className="work-package-view__empty">
+          {role === "financeDirector"
+            ? "Awaiting approvals before release."
+            : role === "projectManager"
+              ? status === "lowApproved" || status === "highApproved"
+                ? "Already PM-approved."
+                : status === "rejected"
+                  ? "Request was rejected."
+                  : status === "released"
+                    ? "Already released."
+                    : "Held — actions blocked."
+              : role === "director"
+                ? status === "submitted"
+                  ? "Awaiting PM approval first."
+                  : status === "highApproved" || status === "released"
+                    ? "Already Director-approved."
+                    : status === "rejected"
+                      ? "Request was rejected."
+                      : "Held — actions blocked."
+                : isContractorAction
+                  ? contractorIsSelf
+                    ? "Submit / document actions land in a later step."
+                    : "Read-only — this isn't your assigned package."
+                  : "No action available."}
+        </p>
+      )}
+
+      {feedback && (
+        <p
+          className={`work-package-view__feedback work-package-view__feedback--${feedback.kind}`}
+          role="status"
+          aria-live="polite"
+        >
+          {feedback.message}
+        </p>
+      )}
+    </section>
+  );
+};
