@@ -1,0 +1,74 @@
+/*
+ * Design tokens for the integrated Construkt app.
+ *
+ * Copied (with intent) from the prototype's `frontend-prototype/web/static/projects/css/construkt.css`.
+ * Keep these two files in sync until the prototype is retired — visual
+ * regressions between the prototype demo and the integrated app are
+ * easier to spot when both build off the same custom-property names.
+ */
+
+:root {
+  --font-display: "Bricolage Grotesque", sans-serif;
+  --font-body: "Geist", "Inter", sans-serif;
+
+  --color-bg: #f3f2ef;
+  --color-surface: #f8f7f4;
+  --color-surface-2: #ffffff;
+  --color-border: #dbd8d2;
+  --color-divider: #e6e3de;
+  --color-text: #181714;
+  --color-text-muted: #64625d;
+  --color-text-faint: #a8a5a0;
+  --color-primary: #1c4a3e;
+  --color-primary-hover: #163d33;
+  --color-primary-light: #deeee9;
+  --color-success: #1e5c30;
+  --color-warning: #7a4d00;
+  --color-error: #8f1f3c;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-11: 2.75rem;
+  --space-12: 3rem;
+  --space-13: 3.25rem;
+  --space-14: 3.5rem;
+  --space-15: 3.75rem;
+  --space-16: 4rem;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.5rem;
+  --text-xl: 2.25rem;
+
+  --radius-sm: 3px;
+  --radius-md: 7px;
+  --radius-lg: 12px;
+  --radius-full: 9999px;
+
+  --shadow-sm: 0 2px 6px rgba(20, 18, 14, 0.07);
+  --shadow-md: 0 4px 16px rgba(20, 18, 14, 0.09);
+}
+
+[data-theme="dark"] {
+  --color-bg: #111210;
+  --color-surface: #171815;
+  --color-surface-2: #1d1f1b;
+  --color-border: #2c2e2a;
+  --color-divider: #222420;
+  --color-text: #c8c9c4;
+  --color-text-muted: #6e706a;
+  --color-text-faint: #4a4c47;
+  --color-primary: #4a9e86;
+  --color-primary-hover: #5ab89e;
+  --color-primary-light: #162820;
+}
