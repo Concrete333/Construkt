@@ -6,6 +6,7 @@ import { useClients } from "./components/clientsContext";
 import { Dashboard2Page } from "./pages/Dashboard2Page";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { SignInPage } from "./pages/SignInPage";
 import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
@@ -41,7 +42,7 @@ const App = () => {
       }
     >
       <SeededShell headerCommon={headerCommon}>
-        <RouteSwitch route={route} role={role} />
+        <RouteSwitch route={route} role={role} onSelectRole={setRole} />
       </SeededShell>
     </ClientsProvider>
   );
@@ -61,11 +62,15 @@ const SeededShell = ({ headerCommon, children }: SeededShellProps) => {
 const RouteSwitch = ({
   route,
   role,
+  onSelectRole,
 }: {
   route: ParsedRoute;
   role: DemoRole;
+  onSelectRole: (role: DemoRole) => void;
 }) => {
   switch (route.key) {
+    case "signin":
+      return <SignInPage onSelectRole={onSelectRole} />;
     case "dashboard2":
       return <Dashboard2Page role={role} />;
     case "projects":
@@ -91,11 +96,8 @@ const HomePlaceholder = () => (
       surfaces land in the next steps.
     </p>
     <div className="home-placeholder__cta">
-      <a className="home-placeholder__button" href="#dashboard2">
-        Open dashboard
-      </a>
-      <a className="home-placeholder__button" href="#projects">
-        Browse projects
+      <a className="home-placeholder__button" href="#signin">
+        Sign in to demo
       </a>
     </div>
   </section>
