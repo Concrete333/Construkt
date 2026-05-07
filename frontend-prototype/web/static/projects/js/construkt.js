@@ -1663,17 +1663,59 @@ const store = {
       }).join('');
     }
 
-    function projectDaysUntilDue(project) {
+    function packageHasPendingApprovals(pkg) {
+      return (pkg.requests || []).some((request) => !['Released', 'Rejected'].includes(request.status))
+        || (pkg.variationRequests || []).some((variation) => !['Approved', 'Rejected'].includes(variation.status));
+    }
+
+    function packageNeedsAttention(pkg) {
+      return !isPackageComplete(pkg) || packageHasPendingApprovals(pkg);
+    }
+
+    function projectDueInfo(project) {
+      if (isProjectComplete(project)) {
+        return {
+          label: project.endDate ? `Completed ${formatDate(project.endDate)}` : 'Completed',
+          daysUntil: null,
+          isOverdue: false,
+          sortValue: Number.POSITIVE_INFINITY,
+        };
+      }
+
       const dateValues = [
-        ...(project.packages || []).map((pkg) => pkg.completionDate),
+        ...(project.packages || [])
+          .filter((pkg) => packageNeedsAttention(pkg))
+          .map((pkg) => pkg.completionDate),
         project.endDate,
       ].filter(Boolean);
       const dates = dateValues
         .map((date) => new Date(`${date}T00:00:00`))
-        .filter((date) => !Number.isNaN(date.getTime()));
-      if (!dates.length) return 999;
-      const nextDate = dates.sort((a, b) => a - b)[0];
-      return Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
+        .filter((date) => !Number.isNaN(date.getTime()))
+        .sort((a, b) => a - b);
+
+      if (!dates.length) {
+        return {
+          label: 'No due date',
+          daysUntil: null,
+          isOverdue: false,
+          sortValue: 999,
+        };
+      }
+
+      const nextDate = dates[0];
+      const daysUntil = Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
+      return {
+        label: daysUntil < 0
+          ? 'Overdue'
+          : daysUntil === 0
+            ? 'Due today'
+            : daysUntil === 1
+              ? '1 day'
+              : `${daysUntil} days`,
+        daysUntil,
+        isOverdue: daysUntil < 0,
+        sortValue: daysUntil,
+      };
     }
 
     function assignedContractorPackages() {
@@ -1828,24 +1870,18 @@ const store = {
       // Chart rendering functions
       function renderBarChart(chartContent) {
         const displayProjects = projectsForCurrentRole()
-          .map((project) => ({ ...project, daysUntilDue: projectDaysUntilDue(project) }))
-          .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+          .map((project) => ({ ...project, dueInfo: projectDueInfo(project) }))
+          .sort((a, b) => a.dueInfo.sortValue - b.dueInfo.sortValue)
           .slice(0, 7);
 
         chartContent.innerHTML = displayProjects.map((project) => {
-          const daysText = project.daysUntilDue < 0
-            ? 'Overdue'
-            : project.daysUntilDue === 1
-              ? '1 day'
-              : `${project.daysUntilDue} days`;
-
           return `
             <div class="chart-row">
               <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
               <div class="chart-bar-container">
                 ${renderFundingSegments(project)}
               </div>
-              <div class="chart-value">${daysText}</div>
+              <div class="chart-value">${escapeHtml(project.dueInfo.label)}</div>
             </div>
           `;
         }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
@@ -2236,22 +2272,17 @@ const store = {
       }
 
       const liveProjects = projectsForCurrentRole()
-        .map((project) => ({ ...project, daysUntilDue: projectDaysUntilDue(project) }))
-        .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+        .map((project) => ({ ...project, dueInfo: projectDueInfo(project) }))
+        .sort((a, b) => a.dueInfo.sortValue - b.dueInfo.sortValue);
 
       chartContent.innerHTML = liveProjects.map((project) => {
-        const daysText = project.daysUntilDue < 0
-          ? 'Overdue'
-          : project.daysUntilDue === 1
-            ? '1 day'
-            : `${project.daysUntilDue} days`;
         return `
           <div class="chart-row">
             <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
             <div class="chart-bar-container">
               ${renderFundingSegments(project)}
             </div>
-            <div class="chart-value">${daysText}</div>
+            <div class="chart-value">${escapeHtml(project.dueInfo.label)}</div>
           </div>
         `;
       }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
