@@ -1104,6 +1104,45 @@ const store = {
       return project?.packages.find((pkg) => pkg.id === packageId);
     }
 
+    function projectQuickActionTarget(project) {
+      if (!project?.packages?.length) return null;
+      return project.packages.find((pkg) => pkg.requests.some((request) => request.pmApproved && !request.fdApproved && request.status !== 'Rejected'))
+        || project.packages.find((pkg) => (pkg.funded || 0) < (pkg.cap || 0))
+        || project.packages[0];
+    }
+
+    function renderProjectQuickActions(project) {
+      const card = document.querySelector('.project-detail-side .quick-actions');
+      const context = document.getElementById('project-quick-actions-context');
+      const fundButton = document.getElementById('project-quick-fund');
+      const holdButton = document.getElementById('project-quick-hold');
+      if (!card || !context || !fundButton || !holdButton) return;
+
+      if (store.currentRole !== 'finance_director') {
+        card.hidden = true;
+        return;
+      }
+
+      const targetPkg = projectQuickActionTarget(project);
+      if (!targetPkg) {
+        card.hidden = true;
+        return;
+      }
+
+      const remaining = Math.max((targetPkg.cap || 0) - (targetPkg.funded || 0), 0);
+      card.hidden = false;
+      context.textContent = remaining > 0
+        ? `Actions for ${targetPkg.name}. ${formatGBP(remaining)} remains to be funded on this project package.`
+        : `Actions for ${targetPkg.name}. Use these controls on the current project package.`;
+
+      fundButton.dataset.projectId = project.id;
+      fundButton.dataset.packageId = targetPkg.id;
+      holdButton.dataset.projectId = project.id;
+      holdButton.dataset.packageId = targetPkg.id;
+      fundButton.textContent = `Fund ${targetPkg.name}`;
+      holdButton.textContent = `Hold ${targetPkg.name}`;
+    }
+
     function getAllRequests(project) {
       return project.packages.flatMap((pkg) => pkg.requests.map((request) => ({ ...request, package: pkg })));
     }
@@ -1323,6 +1362,7 @@ const store = {
       renderTimeline(projectId);
       renderDocuments(projectId);
       renderPayments(projectId);
+      renderProjectQuickActions(project);
       applyRoleUI(store.currentRole);
       syncProjectDetailEmptyStates();
     }
@@ -3568,6 +3608,24 @@ const store = {
       };
     }
 
+    function syncContextFromTrigger(trigger) {
+      if (!trigger?.dataset) return;
+      if (trigger.dataset.projectId) {
+        store.activeProjectId = trigger.dataset.projectId;
+        store.currentProjectId = trigger.dataset.projectId;
+      }
+      if (trigger.dataset.packageId) {
+        store.activePackageId = trigger.dataset.packageId;
+        store.currentPackageId = trigger.dataset.packageId;
+      }
+      if (trigger.dataset.requestId) {
+        store.activeRequestId = trigger.dataset.requestId;
+      }
+      if (trigger.dataset.variationId) {
+        store.activeVariationId = trigger.dataset.variationId;
+      }
+    }
+
     function syncMilestoneStatuses(project) {
       if (!project?.milestones?.length) return;
       project.milestones.forEach((milestone) => {
@@ -4739,6 +4797,7 @@ const store = {
 
     document.querySelectorAll('[data-modal-target]').forEach((trigger) => {
       trigger.addEventListener('click', () => {
+        syncContextFromTrigger(trigger);
         prepareAddDocumentModal(trigger);
         openModal(trigger.dataset.modalTarget);
       });
@@ -4747,6 +4806,7 @@ const store = {
     document.addEventListener('click', (event) => {
       const trigger = event.target.closest('[data-modal-target]');
       if (!trigger) return;
+      syncContextFromTrigger(trigger);
       prepareAddDocumentModal(trigger);
       openModal(trigger.dataset.modalTarget);
     });
