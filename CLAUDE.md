@@ -94,12 +94,12 @@ Covers: `formatGBP`, `parseMoneyKpi`, `formatMoneyKpi`, `easeOutCubic`, `clampPe
 
 ### Backendless Demo (`frontend-prototype/web/index.html`)
 
-Static HTML/CSS/JS demo — the canonical presentation entry point. No wallet, no Anchor, no server required. Business state is mocked. Used for UX iteration before the full Solana-integrated frontend (`app/`, not yet built).
+Static HTML/CSS/JS demo — the canonical presentation entry point. No wallet, no Anchor, no server required. Business state is mocked. Used for UX iteration alongside the Solana-integrated React frontend in `app/`.
 
-The other HTML sources are intentionally retained for planning but are not the canonical demo source right now:
+The older duplicate HTML sources were removed during the front/back merge cleanup. Do not recreate or edit them as active surfaces:
 
-- `frontend-prototype/web/templates/projects/construkt.html` may be used later if the final site becomes Django-based.
-- `frontend-prototype/website/construkt.html` is retained as a standalone legacy/export source.
+- `frontend-prototype/web/templates/projects/construkt.html`
+- `frontend-prototype/website/construkt.html`
 - Keep product behavior changes in `frontend-prototype/web/static/projects/js/construkt.js` and shared CSS unless a specific HTML source is being updated deliberately.
 
 ## V0 Design Decisions

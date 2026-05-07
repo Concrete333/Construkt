@@ -1,10 +1,6 @@
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
-import type {
-  MetadataClient,
-  MetadataSnapshot,
-  MetadataWriter,
-} from "./metadataClient";
+import type { MetadataClient, MetadataWriter } from "./metadataClient";
 import {
   LocalStorageMetadataClient,
   MockMetadataClient,
@@ -145,58 +141,30 @@ const buildDeterministicAnchorSeedWorld = (
   };
 };
 
-const supportsSnapshots = (
-  metadata: MetadataClient,
-): metadata is MetadataClient &
-  MetadataWriter & {
-    toSnapshot(): MetadataSnapshot;
-    loadSnapshot(snapshot: Partial<MetadataSnapshot>): void;
-  } =>
-  "toSnapshot" in metadata &&
-  typeof metadata.toSnapshot === "function" &&
-  "loadSnapshot" in metadata &&
-  typeof metadata.loadSnapshot === "function";
-
-const mergeSnapshots = (
-  seeded: MetadataSnapshot,
-  existing: MetadataSnapshot,
-): MetadataSnapshot => ({
-  projects: { ...seeded.projects, ...existing.projects },
-  packages: { ...seeded.packages, ...existing.packages },
-  documents: { ...seeded.documents, ...existing.documents },
-  notes: { ...seeded.notes, ...existing.notes },
-  holds: { ...seeded.holds, ...existing.holds },
-});
-
 const maybeSeedDemoMetadata = async (
-  metadata: MetadataClient & MetadataWriter,
+  metadata: MockMetadataClient | LocalStorageMetadataClient,
   world: DemoWorld,
 ): Promise<void> => {
   if ((await metadata.resolveProject(demoProjectRef())) !== null) return;
 
-  if (supportsSnapshots(metadata)) {
-    const seeded = new MockMetadataClient();
-    seedDemoMetadata(seeded, world);
-    metadata.loadSnapshot(
-      mergeSnapshots(seeded.toSnapshot(), metadata.toSnapshot()),
-    );
-    return;
-  }
-
-  seedDemoMetadata(metadata, world);
+  const seeded = new MockMetadataClient();
+  seedDemoMetadata(seeded, world);
+  metadata.loadSnapshot(seeded.toSnapshot());
 };
 
 const hasSeededAnchorDemo = async (
   client: ConstruktClient,
   world: DemoWorld,
 ): Promise<boolean> => {
-  const project = await client.fetchProject(world.project);
-  if (!project) return false;
-  for (const summary of Object.values(world.packages)) {
-    const workPackage = await client.fetchWorkPackage(summary.address);
-    if (!workPackage) return false;
-  }
-  return true;
+  const [project, ...packages] = await Promise.all([
+    client.fetchProject(world.project),
+    ...Object.values(world.packages).map((summary) =>
+      client.fetchWorkPackage(summary.address),
+    ),
+  ]);
+  return (
+    project !== null && packages.every((workPackage) => workPackage !== null)
+  );
 };
 
 /**

@@ -6,48 +6,36 @@ import type {
   WorkPackageAccount,
 } from "./program";
 
-const nextAfterMax = (ids: Iterable<bigint>): bigint => {
+export const nextProjectId = (
+  projects: Iterable<Fetched<ProjectAccount>>,
+): bigint => {
   let max = 0n;
-  for (const id of ids) {
-    if (id > max) max = id;
+  for (const project of projects) {
+    if (project.account.projectId > max) max = project.account.projectId;
   }
   return max + 1n;
 };
 
-export const nextProjectId = (
-  projects: Iterable<Fetched<ProjectAccount>>,
-): bigint =>
-  nextAfterMax(
-    (function* () {
-      for (const project of projects) {
-        yield project.account.projectId;
-      }
-    })(),
-  );
-
 export const nextWorkPackageId = (
   packages: Iterable<Fetched<WorkPackageAccount>>,
-): bigint =>
-  nextAfterMax(
-    (function* () {
-      for (const pkg of packages) {
-        yield pkg.account.packageId;
-      }
-    })(),
-  );
+): bigint => {
+  let max = 0n;
+  for (const pkg of packages) {
+    if (pkg.account.packageId > max) max = pkg.account.packageId;
+  }
+  return max + 1n;
+};
 
 export const nextPaymentRequestId = (
   workPackage: Pick<WorkPackageAccount, "requestCounter">,
   requests: Iterable<Fetched<PaymentRequestAccount>> = [],
-): bigint =>
-  nextAfterMax(
-    (function* () {
-      yield workPackage.requestCounter;
-      for (const request of requests) {
-        yield request.account.requestId;
-      }
-    })(),
-  );
+): bigint => {
+  let max = workPackage.requestCounter;
+  for (const request of requests) {
+    if (request.account.requestId > max) max = request.account.requestId;
+  }
+  return max + 1n;
+};
 
 export const projectMetadataRef = (
   authority: PublicKey,
@@ -78,11 +66,9 @@ export const noteMetadataRef = (
   paymentRequest: PublicKey,
   actor: string,
   kind: "approve" | "reject",
-  authoredAt?: string,
+  authoredAt: string,
 ): string =>
-  authoredAt
-    ? `metadata://demo/note/${paymentRequest.toBase58()}/${actor}/${kind}/${timestampKey(authoredAt)}`
-    : `metadata://demo/note/${paymentRequest.toBase58()}/${actor}/${kind}`;
+  `metadata://demo/note/${paymentRequest.toBase58()}/${actor}/${kind}/${timestampKey(authoredAt)}`;
 
 export const holdMetadataRef = (
   paymentRequest: PublicKey,

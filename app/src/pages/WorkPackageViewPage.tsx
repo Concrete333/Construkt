@@ -298,6 +298,7 @@ export const WorkPackageViewPage = ({
   const walletDisplayName =
     teamMembers.find((m) => m.wallet === wallet.toBase58())?.displayName ??
     null;
+  const activeRequestRow = requests.find((row) => row.isActive) ?? null;
 
   return (
     <section className="work-package-view">
@@ -371,6 +372,7 @@ export const WorkPackageViewPage = ({
               walletDisplayName={walletDisplayName}
               contractor={rollup.package.contractor}
               activeRequest={activeRequest}
+              activeRequestRow={activeRequestRow}
               activeRequestAddress={activeRequestAddress}
               project={loaded.project.address}
               workPackage={loaded.packageAddress}
@@ -440,7 +442,7 @@ export const WorkPackageViewPage = ({
             workPackage={loaded.packageAddress}
             packageStatus={rollup.package.status}
             contractor={rollup.package.contractor}
-            activeRequest={requests.find((r) => r.isActive) ?? null}
+            activeRequest={activeRequestRow}
             activeRequestAddress={activeRequestAddress}
             releaseReadiness={releaseReadiness}
             pending={pending}
@@ -450,7 +452,7 @@ export const WorkPackageViewPage = ({
             metadataWriter={metadataWriter}
           />
           <ApprovalTrackerPanel
-            row={requests.find((r) => r.isActive) ?? null}
+            row={activeRequestRow}
             teamMembers={teamMembers}
           />
           <ReleaseReadinessPanel
@@ -961,6 +963,7 @@ interface DocumentPanelProps {
   walletDisplayName: string | null;
   contractor: PublicKey;
   activeRequest: PaymentRequestAccount | null;
+  activeRequestRow: RequestRow | null;
   activeRequestAddress: PublicKey | null;
   project: PublicKey;
   workPackage: PublicKey;
@@ -977,6 +980,7 @@ const DocumentPanel = ({
   walletDisplayName,
   contractor,
   activeRequest,
+  activeRequestRow,
   activeRequestAddress,
   project,
   workPackage,
@@ -1018,11 +1022,6 @@ const DocumentPanel = ({
     activeRequest != null &&
     !isTerminal &&
     activeRequestAddress != null;
-  const activeRequestRow =
-    activeRequestAddress == null
-      ? null
-      : (rows.find((row) => row.request.address.equals(activeRequestAddress)) ??
-        null);
 
   const onAddDoc = () => {
     if (!activeRequestAddress || !activeRequest) return;
