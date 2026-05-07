@@ -1710,8 +1710,8 @@ const store = {
           : daysUntil === 0
             ? 'Due today'
             : daysUntil === 1
-              ? '1 day'
-              : `${daysUntil} days`,
+              ? 'Due in 1 day'
+              : `Due in ${daysUntil} days`,
         daysUntil,
         isOverdue: daysUntil < 0,
         sortValue: daysUntil,
