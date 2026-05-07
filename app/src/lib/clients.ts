@@ -1,12 +1,17 @@
-import { MockConstruktClient } from "./mockClient";
-import { MockMetadataClient } from "./metadataClient";
-import { seedHospitalFitOut } from "./mockSeed";
-import type { DemoWorld } from "./mockSeed";
-import { seedDemoMetadata } from "./metadataSeed";
+import { Keypair, PublicKey, Connection } from "@solana/web3.js";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
-import type { ConstruktClient } from "./program";
 import type { MetadataClient, MetadataWriter } from "./metadataClient";
-import type { PublicKey } from "@solana/web3.js";
+import { MockMetadataClient } from "./metadataClient";
+import { seedDemoMetadata } from "./metadataSeed";
+import { MockConstruktClient } from "./mockClient";
+import type { DemoWorld } from "./mockSeed";
+import { seedHospitalFitOut } from "./mockSeed";
+import {
+  derivePaymentRequestAddress,
+  deriveProjectAddress,
+  deriveWorkPackageAddress,
+} from "./pda";
+import type { ConstruktClient } from "./program";
 import type { DemoRole } from "./theme";
 
 export interface AppClients {
@@ -40,6 +45,93 @@ export const buildDemoClients = async (): Promise<AppClients> => {
   seedDemoMetadata(metadata, world);
   return {
     client: construktClient,
+    metadata,
+    metadataWriter: metadata,
+    world,
+  };
+};
+
+/**
+ * Build the Anchor-backed client bundle for localnet/devnet mode.
+ * The world shape stays deterministic so existing UI routes and
+ * selector assumptions keep working without extra chain lookups.
+ */
+export const buildAnchorClients = async (
+  rpcUrl: string,
+): Promise<AppClients> => {
+  const { createAnchorClient } = await import("./anchorClient");
+  const finance = Keypair.fromSeed(new Uint8Array(32).fill(1));
+  const pm = Keypair.fromSeed(new Uint8Array(32).fill(2));
+  const director = Keypair.fromSeed(new Uint8Array(32).fill(3));
+  const contractor = Keypair.fromSeed(new Uint8Array(32).fill(4));
+  const mintKp = Keypair.fromSeed(new Uint8Array(32).fill(10));
+
+  const connection = new Connection(rpcUrl, "confirmed");
+  const client = createAnchorClient({
+    programId: CONSTRUKT_PROGRAM_ID,
+    connection,
+    keypairs: [finance, pm, director, contractor, mintKp],
+  });
+
+  const programId = CONSTRUKT_PROGRAM_ID;
+  const project = deriveProjectAddress(programId, finance.publicKey, 1n);
+  const pkgAddr = (id: bigint): PublicKey =>
+    deriveWorkPackageAddress(programId, project, id);
+  const reqAddr = (pkg: PublicKey, id: bigint): PublicKey =>
+    derivePaymentRequestAddress(programId, pkg, id);
+
+  const world: DemoWorld = {
+    finance,
+    pm,
+    director,
+    contractor,
+    mint: mintKp.publicKey,
+    project,
+    packages: {
+      foundation: {
+        name: "Foundation Pour - Bay A",
+        address: pkgAddr(1n),
+        request: reqAddr(pkgAddr(1n), 1n),
+        finalStatus: "released",
+      },
+      steelFrame: {
+        name: "Steel Frame - Section B",
+        address: pkgAddr(2n),
+        request: reqAddr(pkgAddr(2n), 1n),
+        finalStatus: "highApproved",
+      },
+      mepFirstFix: {
+        name: "MEP First Fix",
+        address: pkgAddr(3n),
+        request: reqAddr(pkgAddr(3n), 1n),
+        finalStatus: "lowApproved",
+      },
+      facade: {
+        name: "Facade Remediation",
+        address: pkgAddr(4n),
+        request: reqAddr(pkgAddr(4n), 1n),
+        finalStatus: "submittedOnHold",
+      },
+      interior: {
+        name: "Interior Fit-Out",
+        address: pkgAddr(5n),
+        request: null,
+        finalStatus: "noRequest",
+      },
+      rejectedDelta: {
+        name: "Site Logistics Variation",
+        address: pkgAddr(6n),
+        request: reqAddr(pkgAddr(6n), 1n),
+        finalStatus: "rejected",
+      },
+    },
+  };
+
+  const metadata = new MockMetadataClient();
+  seedDemoMetadata(metadata, world);
+
+  return {
+    client,
     metadata,
     metadataWriter: metadata,
     world,

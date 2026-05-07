@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
@@ -9,6 +9,7 @@ import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { SignInPage } from "./pages/SignInPage";
 import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
+import { buildAnchorClients, buildDemoClients } from "./lib/clients";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
 import { walletForRole } from "./lib/clients";
@@ -21,10 +22,16 @@ const App = () => {
   const [network] = useState<DemoNetwork>("localnet");
   const [role, setRole] = useState<DemoRole>("financeDirector");
   const route = useHashRoute();
+  const rpc = import.meta.env.VITE_ANCHOR_RPC as string | undefined;
 
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
+
+  const buildClients = useCallback(
+    () => (rpc ? buildAnchorClients(rpc) : buildDemoClients()),
+    [rpc],
+  );
 
   const headerCommon = {
     network,
@@ -36,6 +43,7 @@ const App = () => {
 
   return (
     <ClientsProvider
+      buildClients={buildClients}
       fallback={
         <AppShell header={{ ...headerCommon, wallet: null }}>
           <DemoSeedingNotice />
