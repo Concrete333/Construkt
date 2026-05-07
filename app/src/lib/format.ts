@@ -65,6 +65,33 @@ export const formatMockUsdc = (
 };
 
 /**
+ * Format a Unix-second `bigint` (as stored in on-chain `i64` fields)
+ * as a locale-aware date and time string. UI default is `medium / short`
+ * — enough resolution for the audit log without being noisy.
+ */
+export const formatTimestamp = (unixSeconds: bigint): string => {
+  const date = new Date(Number(unixSeconds) * 1000);
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
+/**
+ * Truncate a base58 public key to a short `Abcd…WxYz` form for compact
+ * display where the full address would dominate the row.
+ */
+export const shortAddress = (
+  base58: string,
+  opts: { head?: number; tail?: number } = {},
+): string => {
+  const head = opts.head ?? 4;
+  const tail = opts.tail ?? 4;
+  if (base58.length <= head + tail + 1) return base58;
+  return `${base58.slice(0, head)}…${base58.slice(-tail)}`;
+};
+
+/**
  * Parse a user-entered amount (e.g. "200.50" or "1,234.5") into mock USDC
  * base units. Throws on empty input, non-numeric input, or more fraction
  * digits than the mint's decimals supports.

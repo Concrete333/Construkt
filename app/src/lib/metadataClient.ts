@@ -27,6 +27,16 @@ export type TeamRole =
   | "director"
   | "other";
 
+const TEAM_ROLE_LABELS: Record<TeamRole, string> = {
+  financeDirector: "Finance Director",
+  projectManager: "Project Manager",
+  contractor: "Contractor",
+  director: "Director",
+  other: "Other",
+};
+
+export const teamRoleLabel = (role: TeamRole): string => TEAM_ROLE_LABELS[role];
+
 export type DocumentType =
   | "invoice"
   | "vestingCertificate"

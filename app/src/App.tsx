@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
 import { ProjectListPage } from "./pages/ProjectListPage";
+import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
+import type { ParsedRoute } from "./lib/router";
 import type { DemoNetwork, DemoRole, ThemeMode } from "./lib/theme";
 import "./App.css";
 
@@ -27,22 +29,24 @@ const App = () => {
       }}
     >
       <ClientsProvider fallback={<DemoSeedingNotice />}>
-        <RouteSwitch routeKey={route.key} role={role} />
+        <RouteSwitch route={route} role={role} />
       </ClientsProvider>
     </AppShell>
   );
 };
 
 const RouteSwitch = ({
-  routeKey,
+  route,
   role,
 }: {
-  routeKey: ReturnType<typeof useHashRoute>["key"];
+  route: ParsedRoute;
   role: DemoRole;
 }) => {
-  switch (routeKey) {
+  switch (route.key) {
     case "projects":
       return <ProjectListPage role={role} />;
+    case "projectDetail":
+      return <ProjectDetailPage address={route.params.address} />;
     case "home":
     default:
       return <HomePlaceholder />;

@@ -1,0 +1,304 @@
+.project-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.project-detail__loading,
+.project-detail__missing {
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.project-detail__missing h1 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-3);
+  color: var(--color-text);
+}
+
+.project-detail__back {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  align-self: flex-start;
+}
+
+.project-detail__back:hover {
+  color: var(--color-text);
+}
+
+.project-detail__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+}
+
+.project-detail__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.project-detail__title h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.project-detail__client {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.project-detail__client strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.project-detail__client .dot {
+  color: var(--color-text-faint);
+}
+
+.project-detail__description {
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  max-width: 65ch;
+}
+
+.project-detail__metrics {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3) var(--space-5);
+}
+
+.project-detail__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-detail__metric dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.project-detail__metric dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-detail__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 880px) {
+  .project-detail__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.project-detail__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.project-detail__section-heading {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.project-detail__packages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.project-detail__package {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.project-detail__package:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-detail__package-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  color: inherit;
+}
+
+.project-detail__package-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.project-detail__package-head h3 {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-body);
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.project-detail__package-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.project-detail__package-request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-divider);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.project-detail__timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 480px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+.project-detail__event {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px dashed var(--color-divider);
+}
+
+.project-detail__event:last-child {
+  border-bottom: 0;
+}
+
+.project-detail__event-time {
+  font-size: var(--text-xs);
+  color: var(--color-text-faint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.project-detail__event-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.project-detail__event-label {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.project-detail__event-label strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.project-detail__event-wallet {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.project-detail__event-detail {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-wrap: balance;
+}
+
+.project-detail__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.project-detail__team {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  padding: var(--space-2);
+}
+
+.project-detail__team-member {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-bottom: 1px dashed var(--color-divider);
+}
+
+.project-detail__team-member:last-child {
+  border-bottom: 0;
+}
+
+.project-detail__team-name {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.project-detail__team-org {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.project-detail__team-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

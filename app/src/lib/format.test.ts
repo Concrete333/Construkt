@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatMockUsdc, parseMockUsdc } from "./format";
+import {
+  formatMockUsdc,
+  formatTimestamp,
+  parseMockUsdc,
+  shortAddress,
+} from "./format";
 
 describe("formatMockUsdc", () => {
   it("formats whole amounts with two decimals by default", () => {
@@ -86,5 +91,33 @@ describe("parseMockUsdc", () => {
       groupThousands: false,
     });
     expect(parseMockUsdc(formatted)).toBe(original);
+  });
+});
+
+describe("formatTimestamp", () => {
+  it("returns a non-empty locale-aware string", () => {
+    expect(formatTimestamp(1_700_000_000n).length).toBeGreaterThan(0);
+  });
+
+  it("changes with the input", () => {
+    expect(formatTimestamp(1_700_000_000n)).not.toBe(
+      formatTimestamp(1_800_000_000n),
+    );
+  });
+});
+
+describe("shortAddress", () => {
+  it("collapses long base58 strings to head…tail", () => {
+    expect(shortAddress("11111111111111111111111111111111")).toBe("1111…1111");
+  });
+
+  it("returns short inputs unchanged", () => {
+    expect(shortAddress("abcde")).toBe("abcde");
+  });
+
+  it("respects head/tail overrides", () => {
+    expect(shortAddress("ABCDEFGHIJKLMNOP", { head: 2, tail: 2 })).toBe(
+      "AB…OP",
+    );
   });
 });
