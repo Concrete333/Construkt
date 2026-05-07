@@ -1752,6 +1752,12 @@ const store = {
       }).join('');
     }
 
+    function contractorPackageDateLabel(pkg) {
+      const due = pkg.completionDate || pkg.project?.endDate;
+      if (!due) return modelLabel(pkg.contractModel);
+      return isPackageComplete(pkg) ? `Completed ${formatDate(due)}` : `Due ${formatDate(due)}`;
+    }
+
     function renderContractorPackages(chartContent) {
       const assigned = assignedContractorPackages();
       if (!assigned.length) {
@@ -1765,14 +1771,13 @@ const store = {
         return `
           <div class="contractor-project-heading">${projectName}</div>
           ${projectPackages.map((pkg) => {
-            const due = pkg.completionDate || pkg.project.endDate;
             return `
               <div class="chart-row">
                 <div class="chart-label chart-label-clickable" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">${pkg.name}</div>
                 <div class="chart-bar-container" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">
                   ${renderContractorPackageSegments(pkg)}
                 </div>
-                <div class="chart-value">${due ? formatDate(due) : modelLabel(pkg.contractModel)}</div>
+                <div class="chart-value">${escapeHtml(contractorPackageDateLabel(pkg))}</div>
               </div>
             `;
           }).join('')}
