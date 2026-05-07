@@ -5,6 +5,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "anchor:test": "anchor test --provider.cluster localnet",
+    "anchor:test:wsl": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/wsl-anchor-test.ps1",
     "seed:localnet": "ts-node -P tsconfig.scripts.json scripts/seed-localnet.ts",
     "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "test:frontend": "ts-mocha -p ./tsconfig.json -t 10000 \"frontend-prototype/tests/construkt.frontend.ts\"",

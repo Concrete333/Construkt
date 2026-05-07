@@ -21,6 +21,9 @@ npm run anchor:test
 # or directly:
 anchor test --provider.cluster localnet
 
+# From Windows PowerShell, call the WSL test wrapper
+npm run anchor:test:wsl
+
 # Run a single test file (ts-mocha reads tsconfig.json)
 npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
 

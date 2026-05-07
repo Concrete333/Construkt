@@ -30,6 +30,7 @@ npm run test:frontend
 ### Run on-chain tests (requires WSL)
 
 All Anchor and Solana CLI commands must run inside WSL (Ubuntu). Solana and Anchor are not installed on the Windows side.
+From Windows PowerShell, use `npm run anchor:test:wsl` to call the WSL test wrapper.
 
 ```bash
 # 1. In WSL — start localnet with the program pre-loaded
@@ -37,6 +38,9 @@ bash scripts/setup-localnet.sh
 
 # 2. In WSL — run all four test files against localnet
 npm run anchor:test
+
+# Or, from Windows PowerShell, run the same tests through WSL
+npm run anchor:test:wsl
 
 # 3. Optional — seed localnet with demo data
 npm run seed:localnet
@@ -55,6 +59,9 @@ npm run dev        # Vite dev server at http://localhost:5173
 | Script | What it does | Requires WSL? |
 |---|---|---|
 | `npm run anchor:test` | Run on-chain Anchor tests against localnet | Yes |
+| `npm run anchor:test:wsl` | Run the WSL Anchor test wrapper from Windows PowerShell | Yes |
+| `npm run seed:localnet` | Seed localnet with deterministic demo data | Yes |
+| `npm run typecheck:scripts` | Type-check TypeScript utility scripts | No |
 | `npm run test:frontend` | Run 75 frontend unit tests in Node | No |
 | `npm run lint` | Check formatting for `migrations/` and `tests/` | No |
 | `npm run lint:fix` | Auto-fix formatting | No |
