@@ -1050,6 +1050,14 @@ const store = {
     }
 
     function getTimelineNodes(project) {
+      if (project.milestones?.length) {
+        if (project.contractModel === 'milestone') syncMilestoneStatuses(project);
+        return project.milestones.map((milestone) => ({
+          name: milestone.name,
+          targetDate: milestone.targetDate,
+          status: milestone.status,
+        }));
+      }
       if (project.contractModel === 'milestone') {
         syncMilestoneStatuses(project);
         return project.milestones.map((milestone) => ({
@@ -1231,20 +1239,21 @@ const store = {
         acc.totalReleased += pkg.released || 0;
         return acc;
       }, { contractValue: 0, escrowFunded: 0, totalReleased: 0 });
-      totals.remaining = totals.contractValue - totals.totalReleased;
-      const fundedPct = totals.contractValue ? Math.round((totals.escrowFunded / totals.contractValue) * 100) : 0;
-      const releasedPct = totals.contractValue ? Math.round((totals.totalReleased / totals.contractValue) * 100) : 0;
+      const contractValue = totals.contractValue || project.budget || 0;
+      totals.remaining = contractValue - totals.totalReleased;
+      const fundedPct = contractValue ? Math.round((totals.escrowFunded / contractValue) * 100) : 0;
+      const releasedPct = contractValue ? Math.round((totals.totalReleased / contractValue) * 100) : 0;
 
       document.getElementById('project-title').textContent = project.name;
       document.querySelector('[data-project-detail-breadcrumb]').textContent = `Projects → ${project.name}`;
       document.getElementById('project-meta').innerHTML = `
         <span>${project.client}</span>
         ${statusChip(project.status)}
-        <span class="model-badge">${project.endClient || project.contractModel === 'mixed' ? 'Package-level contracts' : `Reference: ${modelLabel(project.contractModel)}`}</span>
+        <span class="model-badge">Reference: ${modelLabel(project.contractModel)}</span>
         <span>Started ${formatDate(project.startDate)}</span>
       `;
       document.getElementById('project-kpis').innerHTML = `
-        <article class="kpi-card"><span class="kpi-label">Contract Value</span><strong class="kpi-value">${formatGBP(totals.contractValue)}</strong><span class="kpi-note">Across ${visiblePackages.length} ${store.currentRole === 'contractor' ? 'assigned' : 'active'} packages</span></article>
+        <article class="kpi-card"><span class="kpi-label">Contract Value</span><strong class="kpi-value">${formatGBP(contractValue)}</strong><span class="kpi-note">${visiblePackages.length ? `Across ${visiblePackages.length} ${store.currentRole === 'contractor' ? 'assigned' : 'active'} packages` : 'Project budget before packages are added'}</span></article>
         <article class="kpi-card"><span class="kpi-label">Escrow Funded</span><strong class="kpi-value">${formatGBP(totals.escrowFunded)}</strong><div class="kpi-progress-pct-row"><span class="kpi-progress-pct">${fundedPct}% funded</span></div><div class="kpi-progress-track" aria-hidden="true"><span class="kpi-progress-fill kpi-progress-fill--funded" style="width:${fundedPct}%"></span></div><span class="kpi-note">${fundedPct}% currently locked</span></article>
         <article class="kpi-card" data-visible-to="finance_director project_manager"><span class="kpi-label">Total Released</span><strong class="kpi-value">${formatGBP(totals.totalReleased)}</strong><div class="kpi-progress-pct-row"><span class="kpi-progress-pct">${releasedPct}% released</span></div><div class="kpi-progress-track" aria-hidden="true"><span class="kpi-progress-fill kpi-progress-fill--released" style="width:${releasedPct}%"></span></div><span class="kpi-note">Paid against approved work</span></article>
         <article class="kpi-card"><span class="kpi-label">Remaining</span><strong class="kpi-value">${formatGBP(totals.remaining)}</strong><span class="kpi-note">Contract value less released</span></article>
@@ -3545,9 +3554,7 @@ const store = {
     function syncProjectClientMode() {
       const endClient = document.querySelector('[data-project-end-client]')?.checked ?? true;
       const clientField = document.querySelector('[data-project-client-field]');
-      const contractReference = document.querySelector('[data-project-contract-reference]');
       if (clientField) clientField.hidden = endClient;
-      if (contractReference) contractReference.hidden = endClient;
     }
 
     function roleKeyFromFormLabel(label) {
@@ -3590,7 +3597,8 @@ const store = {
         name: formData.name,
         client: formData.endClient ? 'End client' : formData.client,
         contractRef: formData.contractRef,
-        contractModel: formData.endClient ? 'mixed' : formData.contractModel,
+        budget: parsePackageAmount(formData.budget || 0),
+        contractModel: formData.contractModel,
         endClient: Boolean(formData.endClient),
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -3601,7 +3609,15 @@ const store = {
         ],
         packages: [],
         documents: [],
-        milestones: milestones || [],
+        milestones: (milestones || []).map((milestone, index) => ({
+          id: milestone.id || `ms-${Date.now()}-${index + 1}`,
+          name: milestone.name || `Payment section ${index + 1}`,
+          targetDate: milestone.targetDate || formData.endDate,
+          budget: milestone.budget || 0,
+          releaseTrigger: milestone.releaseTrigger || '',
+          status: milestone.status || 'upcoming',
+          packageIds: milestone.packageIds || [],
+        })),
         auditLog: [],
       };
       store.projects.push(project);
@@ -4278,12 +4294,14 @@ const store = {
       return milestoneRows().map((row) => ({
         name: row.querySelector('[data-milestone-name]')?.value.trim() || '',
         targetDate: row.querySelector('[data-milestone-date]')?.value || '',
+        budget: parsePackageAmount(row.querySelector('[data-milestone-budget]')?.value || 0),
+        releaseTrigger: row.querySelector('[data-milestone-trigger]')?.value.trim() || '',
         status: 'upcoming',
         packageIds: [],
       }));
     }
 
-    function renderMilestoneBuilder(rows = [
+    function renderMilestoneBuilderLegacy(rows = [
       { name: 'Foundation & Groundworks', targetDate: '' },
       { name: 'Structural Frame', targetDate: '' },
     ]) {
@@ -4300,24 +4318,106 @@ const store = {
     }
 
     function collectMilestones() {
-      return getMilestoneRowValues().filter((milestone) => milestone.name || milestone.targetDate);
+      return getMilestoneRowValues().filter((milestone) => milestone.name || milestone.targetDate || milestone.budget || milestone.releaseTrigger);
+    }
+
+    function sectionDefaultsForModel(model = selectedProjectContractModel()) {
+      if (model === 'valuation') {
+        return {
+          title: 'Define valuation periods',
+          help: 'Set each valuation period, assessment date, and budget allowance.',
+          nameLabel: 'Valuation period',
+          namePlaceholder: 'Month 1 valuation',
+          triggerPlaceholder: 'Assessment and payment notice complete',
+          rows: [
+            { name: 'Month 1 valuation', targetDate: '', budget: 0, releaseTrigger: 'Assessment approved' },
+            { name: 'Month 2 valuation', targetDate: '', budget: 0, releaseTrigger: 'Assessment approved' },
+          ],
+        };
+      }
+      if (model === 'bespoke') {
+        return {
+          title: 'Define bespoke release stages',
+          help: 'Set each custom payment stage, release trigger, and budget allowance.',
+          nameLabel: 'Release stage',
+          namePlaceholder: 'Design package approval',
+          triggerPlaceholder: 'Named approval or document condition',
+          rows: [
+            { name: 'Initial release stage', targetDate: '', budget: 0, releaseTrigger: 'Named approval complete' },
+            { name: 'Final release stage', targetDate: '', budget: 0, releaseTrigger: 'Completion evidence accepted' },
+          ],
+        };
+      }
+      return {
+        title: 'Define project milestones',
+        help: 'Set the milestone names, target dates, and budget allowance for each stage.',
+        nameLabel: 'Milestone',
+        namePlaceholder: 'Foundation & Groundworks',
+        triggerPlaceholder: 'Completion certificate and PM approval',
+        rows: [
+          { name: 'Foundation & Groundworks', targetDate: '', budget: 0, releaseTrigger: 'Stage complete and approved' },
+          { name: 'Structural Frame', targetDate: '', budget: 0, releaseTrigger: 'Stage complete and approved' },
+        ],
+      };
+    }
+
+    function syncNewProjectBudgetSummary() {
+      const summary = document.querySelector('[data-new-project-budget-summary]');
+      if (!summary) return;
+      const overallBudget = parsePackageAmount(document.querySelector('[data-new-project-budget]')?.value || 0);
+      const sectionTotal = getMilestoneRowValues().reduce((sum, row) => sum + (row.budget || 0), 0);
+      const remaining = overallBudget - sectionTotal;
+      summary.textContent = `Overall budget: ${formatGBP(overallBudget)} | Sections: ${formatGBP(sectionTotal)} | Remaining: ${formatGBP(remaining)}`;
+      summary.classList.toggle('is-over', overallBudget > 0 && remaining < 0);
+    }
+
+    function renderMilestoneBuilder(rows) {
+      const builder = document.querySelector('[data-milestone-builder]');
+      if (!builder) return;
+      const config = sectionDefaultsForModel();
+      const title = document.querySelector('[data-payment-section-title]');
+      const help = document.querySelector('[data-payment-section-help]');
+      if (title) title.textContent = config.title;
+      if (help) help.textContent = config.help;
+      const nextRows = rows?.length ? rows : config.rows;
+      builder.innerHTML = nextRows.map((row) => `
+        <div class="new-project-section-row" data-milestone-row>
+          <div class="form-field">
+            <label>${config.nameLabel} name</label>
+            <input type="text" value="${escapeHtml(row.name || '')}" placeholder="${escapeHtml(config.namePlaceholder)}" data-milestone-name>
+          </div>
+          <div class="form-field">
+            <label>Target date</label>
+            <input type="date" value="${escapeHtml(row.targetDate || '')}" data-milestone-date>
+          </div>
+          <div class="form-field">
+            <label>Budget - GBP</label>
+            <input type="number" min="0" step="1000" value="${row.budget || ''}" placeholder="0" data-milestone-budget>
+          </div>
+          <div class="form-field">
+            <label>Release condition</label>
+            <input type="text" value="${escapeHtml(row.releaseTrigger || '')}" placeholder="${escapeHtml(config.triggerPlaceholder)}" data-milestone-trigger>
+          </div>
+          <button class="new-project-remove-section" type="button" data-remove-milestone-row aria-label="Remove section" ${nextRows.length === 1 ? 'disabled' : ''}>Remove</button>
+        </div>
+      `).join('');
+      syncNewProjectBudgetSummary();
+      validateMilestoneProjectForm();
     }
 
     function validateMilestoneProjectForm() {
       const createButton = document.querySelector('[data-new-project-create]');
       const builder = document.querySelector('[data-milestone-builder]');
-      if (!createButton || !builder || selectedContractModel() !== 'milestone') {
+      if (!createButton || !builder) {
         if (createButton) createButton.disabled = false;
         return;
       }
-      const milestones = getMilestoneRowValues();
-      const namedCount = milestones.filter((milestone) => milestone.name).length;
-      const allDates = milestones.length > 0 && milestones.every((milestone) => milestone.targetDate);
-      createButton.disabled = namedCount < 2 || !allDates;
+      const sections = collectMilestones();
+      createButton.disabled = sections.length < 1 || sections.some((section) => !section.name);
+      syncNewProjectBudgetSummary();
     }
 
     function renderNewProjectStep(step) {
-      const isMilestone = selectedContractModel() === 'milestone';
       const steps = document.querySelectorAll('[data-new-project-step]');
       const panels = document.querySelectorAll('[data-new-project-panel]');
       const backButton = document.querySelector('[data-new-project-back]');
@@ -4338,15 +4438,13 @@ const store = {
         item.classList.toggle('is-active', itemStep === step);
         item.classList.toggle('is-complete', itemStep < step);
       });
-      document.querySelectorAll('[data-new-project-milestone-step]').forEach((item) => {
-        item.hidden = !isMilestone;
-      });
       panels.forEach((panel) => {
         panel.classList.toggle('is-active', Number(panel.dataset.newProjectPanel) === step);
       });
       if (backButton) backButton.hidden = step === 1;
-      if (nextButton) nextButton.hidden = step !== 1 && !(step === 2 && isMilestone);
-      if (createButton) createButton.hidden = isMilestone ? step !== 3 : step !== 2;
+      if (nextButton) nextButton.hidden = step !== 1;
+      if (createButton) createButton.hidden = step !== 2;
+      if (step === 2) renderMilestoneBuilder(getMilestoneRowValues());
       validateMilestoneProjectForm();
     }
 
@@ -4363,18 +4461,16 @@ const store = {
     });
 
     document.querySelector('[data-new-project-next]')?.addEventListener('click', () => {
-      const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-      renderNewProjectStep(activeStep === 2 && selectedContractModel() === 'milestone' ? 3 : 2);
+      renderNewProjectStep(2);
     });
 
     document.querySelector('[data-new-project-back]')?.addEventListener('click', () => {
-      const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-      renderNewProjectStep(activeStep === 3 ? 2 : 1);
+      renderNewProjectStep(1);
     });
 
     document.querySelector('[data-add-milestone-row]')?.addEventListener('click', () => {
       const rows = getMilestoneRowValues();
-      rows.push({ name: '', targetDate: '', status: 'upcoming', packageIds: [] });
+      rows.push({ name: '', targetDate: '', budget: 0, releaseTrigger: '', status: 'upcoming', packageIds: [] });
       renderMilestoneBuilder(rows);
     });
 
@@ -4384,10 +4480,11 @@ const store = {
       const rows = getMilestoneRowValues();
       const index = milestoneRows().indexOf(removeButton.closest('[data-milestone-row]'));
       rows.splice(index, 1);
-      renderMilestoneBuilder(rows.length ? rows : [{ name: '', targetDate: '', status: 'upcoming', packageIds: [] }]);
+      renderMilestoneBuilder(rows.length ? rows : [{ name: '', targetDate: '', budget: 0, releaseTrigger: '', status: 'upcoming', packageIds: [] }]);
     });
 
     document.querySelector('[data-milestone-builder]')?.addEventListener('input', validateMilestoneProjectForm);
+    document.querySelector('[data-new-project-budget]')?.addEventListener('input', syncNewProjectBudgetSummary);
     document.querySelector('[data-project-end-client]')?.addEventListener('change', syncProjectClientMode);
     document.querySelectorAll('[data-project-contract-model-card]').forEach((card) => {
       card.addEventListener('click', () => {
@@ -4396,6 +4493,7 @@ const store = {
           item.classList.toggle('is-selected', isSelected);
           item.setAttribute('aria-pressed', String(isSelected));
         });
+        renderMilestoneBuilder(sectionDefaultsForModel(card.dataset.projectContractModel).rows);
       });
     });
 
@@ -4408,13 +4506,14 @@ const store = {
           name: modalScopedValue(modal, '[data-new-project-name]') || 'Untitled Project',
           client: modalScopedValue(modal, '[data-new-project-client]') || 'Client Organisation',
           contractRef: modalScopedValue(modal, '[data-new-project-ref]') || 'REF-' + Date.now(),
+          budget: modalScopedValue(modal, '[data-new-project-budget]') || '0',
           startDate: modalScopedValue(modal, '[data-new-project-start]') || new Date().toISOString().split('T')[0],
           endDate: modalScopedValue(modal, '[data-new-project-end]') || new Date().toISOString().split('T')[0],
           pm: modalScopedValue(modal, '[data-new-project-pm]') || 'Eleanor Lane',
           fd: modalScopedValue(modal, '[data-new-project-fd]') || 'Maya Shah',
           contractModel: selectedProjectContractModel(),
           endClient,
-        }, []);
+        }, collectMilestones());
       }
 
       if (modalName === 'add-package') {

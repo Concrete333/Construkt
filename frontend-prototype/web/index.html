@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/projects/css/construkt.css?v=font-20260507b">
+  <link rel="stylesheet" href="static/projects/css/construkt.css?v=project-flow-20260507a">
 </head>
 <body>
   <div id="public-screen" class="screen">
@@ -2150,19 +2150,25 @@
   </div>
 
   <div class="modal-overlay" data-modal="new-project" hidden>
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
+    <section class="modal-card new-project-modal" role="dialog" aria-modal="true" aria-labelledby="new-project-title">
       <div class="modal-header">
         <h2 id="new-project-title">Create New Project</h2>
         <button class="modal-close" data-modal-close type="button">×</button>
       </div>
       <form class="modal-form">
+        <div class="modal-steps" aria-label="Create project steps">
+          <span class="modal-step is-active" data-new-project-step="1"><span class="modal-step-dot">1</span>Project setup</span>
+          <span class="modal-step-line"></span>
+          <span class="modal-step" data-new-project-step="2"><span class="modal-step-dot">2</span>Payment sections</span>
+        </div>
         <div class="modal-step-panel is-active" data-new-project-panel="1">
           <label class="checkbox-row"><input type="checkbox" data-project-end-client checked> We are the end client for this project</label>
           <div class="form-field"><label>Project Name</label><input type="text" data-new-project-name></div>
           <div class="form-field" data-project-client-field hidden><label>Client / Organisation</label><input type="text" data-new-project-client></div>
           <div class="form-field"><label>Contract Reference</label><input type="text" data-new-project-ref></div>
-          <div data-project-contract-reference hidden>
-            <label class="form-field-label">Reference Contract Model</label>
+          <div class="form-field"><label>Overall Project Budget - GBP</label><input type="number" min="0" step="1000" data-new-project-budget placeholder="e.g. 1250000"></div>
+          <div data-project-contract-reference>
+            <label class="form-field-label">Payment Structure</label>
             <div class="contract-model-list contract-model-list--compact" role="radiogroup" aria-label="Reference contract model">
               <button class="contract-model-card is-selected" data-project-contract-model-card data-project-contract-model="milestone" type="button" aria-pressed="true">
                 <h3>Milestone-Based</h3>
@@ -2180,20 +2186,31 @@
                 <span class="model-badge">Flexible</span>
               </button>
             </div>
-            <p class="faint">This is project-level reference only. Work packages still choose their own contract type.</p>
+            <p class="faint">This sets the project payment structure. Work packages can still use their own contract type where needed.</p>
           </div>
           <div class="form-field"><label>Start Date</label><input type="date" data-new-project-start></div>
           <div class="form-field"><label>Estimated Completion</label><input type="date" data-new-project-end></div>
           <div class="form-field"><label>Invite / Assign Project Manager Owner</label><select data-new-project-pm><option>Eleanor Lane</option><option>Emma Watson</option><option>Ravi Henson</option></select></div>
           <div class="form-field"><label>Assign Finance Director</label><select data-new-project-fd><option>Maya Shah</option></select></div>
         </div>
-        <p class="faint">Work packages can still use different contract types for different contractors or subcontractors.</p>
+        <div class="modal-step-panel" data-new-project-panel="2">
+          <div class="new-project-section-head">
+            <div>
+              <label class="form-field-label" data-payment-section-title>Define project milestones</label>
+              <p class="faint" data-payment-section-help>Set the milestone names, target dates, and budget allowance for each stage.</p>
+            </div>
+            <button class="btn btn-ghost" data-add-milestone-row type="button">Add section</button>
+          </div>
+          <div class="new-project-budget-summary" data-new-project-budget-summary>Overall budget: GBP 0</div>
+          <div class="new-project-section-grid" data-milestone-builder></div>
+          <p class="faint">These sections give the project its starting payment structure. You can still add detailed work packages after the project is created.</p>
+        </div>
       </form>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-ghost" data-new-project-back type="button" hidden>← Back</button>
-        <button class="btn btn-primary" data-new-project-next type="button" hidden>Next →</button>
-        <button class="btn btn-primary" data-new-project-create type="button">Create Project</button>
+        <button class="btn btn-ghost" data-new-project-back type="button" hidden>Back</button>
+        <button class="btn btn-primary" data-new-project-next type="button">Next</button>
+        <button class="btn btn-primary" data-new-project-create type="button" hidden>Create Project</button>
       </div>
     </section>
   </div>
@@ -2499,6 +2516,6 @@
     </section>
   </div>
 
-  <script src="static/projects/js/construkt.js?v=font-20260507b"></script>
+  <script src="static/projects/js/construkt.js?v=project-flow-20260507a"></script>
 </body>
 </html>

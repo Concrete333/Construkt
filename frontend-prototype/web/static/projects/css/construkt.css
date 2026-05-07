@@ -3073,6 +3073,10 @@
       box-shadow: var(--shadow-lg, var(--shadow-md));
     }
 
+    .new-project-modal {
+      width: min(860px, calc(100vw - var(--space-8)));
+    }
+
     .evidence-review-modal {
       width: min(980px, calc(100vw - var(--space-8)));
       padding: var(--space-7);
@@ -3330,6 +3334,15 @@
     }
 
     @media (max-width: 900px) {
+      .new-project-section-head,
+      .new-project-section-row {
+        grid-template-columns: 1fr;
+      }
+
+      .new-project-section-head {
+        display: grid;
+      }
+
       .evidence-summary-strip,
       .evidence-review-grid,
       .evidence-expanded {
@@ -3406,6 +3419,71 @@
     .modal-step-panel.is-active {
       display: grid;
       gap: var(--space-4);
+    }
+
+    .new-project-section-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: var(--space-4);
+    }
+
+    .new-project-budget-summary {
+      padding: var(--space-3) var(--space-4);
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-md);
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+
+    .new-project-budget-summary.is-over {
+      border-color: color-mix(in srgb, var(--color-warning) 46%, var(--color-border));
+      color: var(--color-warning);
+      background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-2));
+    }
+
+    .new-project-section-grid {
+      display: grid;
+      gap: var(--space-3);
+    }
+
+    .new-project-section-row {
+      display: grid;
+      grid-template-columns: minmax(170px, 1fr) minmax(140px, 0.55fr) minmax(130px, 0.45fr) minmax(190px, 1fr) auto;
+      gap: var(--space-3);
+      align-items: end;
+      padding: var(--space-4);
+      border: 1px solid var(--color-divider);
+      border-radius: var(--radius-lg);
+      background: var(--color-surface);
+    }
+
+    .new-project-remove-section {
+      min-height: 42px;
+      padding: 0 var(--space-3);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      color: var(--color-text-muted);
+      background: var(--color-surface-2);
+      font-size: var(--text-sm);
+      font-weight: 600;
+    }
+
+    .new-project-remove-section:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    @media (max-width: 900px) {
+      .new-project-section-head {
+        display: grid;
+      }
+
+      .new-project-section-row {
+        grid-template-columns: 1fr;
+      }
     }
 
     .contract-model-list {
