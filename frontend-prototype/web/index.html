@@ -4,20 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Construkt</title>
+  <meta name="description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <meta property="og:title" content="Construkt">
+  <meta property="og:description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <meta name="twitter:description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <link rel="icon" href="static/projects/img/construkt-logo-nav.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&family=Geist:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/projects/css/construkt.css?v=landing-20260505d">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/projects/css/construkt.css?v=font-20260507b">
 </head>
 <body>
   <div id="public-screen" class="screen">
     <header class="public-header">
       <a class="logo" href="#home" aria-label="Construkt home">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M10 7h14"></path>
-          <path d="M10 25h14"></path>
-          <path d="M10 7v18"></path>
-        </svg>
+        <span class="logo-picture" aria-hidden="true">
+          <img class="logo-mark logo-mark-light" src="static/projects/img/construkt-logo-mark.png" alt="">
+          <img class="logo-mark logo-mark-dark" src="static/projects/img/construkt-logo-mark-dark.png" alt="">
+        </span>
         <span class="wordmark">Construkt</span>
       </a>
       <div class="header-actions">
@@ -327,15 +331,22 @@
 
   <div id="app-screen" class="screen">
     <nav class="app-nav" aria-label="Application navigation">
-      <a class="logo" href="#dashboard2" aria-label="Construkt dashboard">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M10 7h14"></path>
-          <path d="M10 25h14"></path>
-          <path d="M10 7v18"></path>
-        </svg>
+      <a class="logo" href="#home" aria-label="Construkt home">
+        <span class="logo-picture" aria-hidden="true">
+          <img class="logo-mark logo-mark-light" src="static/projects/img/construkt-logo-mark.png" alt="">
+          <img class="logo-mark logo-mark-dark" src="static/projects/img/construkt-logo-mark-dark.png" alt="">
+        </span>
         <span class="wordmark">Construkt</span>
       </a>
       <div class="tab-list" role="tablist">
+        <a class="tab-link" data-route-link="home" href="#home" aria-label="Home">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5"></path>
+            <path d="M5 9.5V21h14V9.5"></path>
+            <path d="M9.5 21v-6h5v6"></path>
+          </svg>
+          <span class="tab-label">Home</span>
+        </a>
         <a class="tab-link" data-route-link="dashboard2" href="#dashboard2" aria-label="Dashboard">
           <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="3" width="7" height="9" rx="1"></rect>
@@ -2488,6 +2499,6 @@
     </section>
   </div>
 
-  <script src="static/projects/js/construkt.js?v=landing-20260505d"></script>
+  <script src="static/projects/js/construkt.js?v=font-20260507b"></script>
 </body>
 </html>

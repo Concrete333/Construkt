@@ -5,79 +5,325 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Construkt</title>
+  <meta name="description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <meta property="og:title" content="Construkt">
+  <meta property="og:description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <meta name="twitter:description" content="Construction payment control for work packages, escrow, approvals, evidence, and audit trails.">
+  <link rel="icon" href="{% static 'projects/img/construkt-logo-nav.png' %}" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600&family=Geist:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'projects/css/construkt.css' %}">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'projects/css/construkt.css' %}?v=font-20260507b">
 </head>
 <body>
   <div id="public-screen" class="screen">
     <header class="public-header">
       <a class="logo" href="#home" aria-label="Construkt home">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M10 7h14"></path>
-          <path d="M10 25h14"></path>
-          <path d="M10 7v18"></path>
-        </svg>
+        <span class="logo-picture" aria-hidden="true">
+          <img class="logo-mark logo-mark-light" src="{% static 'projects/img/construkt-logo-mark.png' %}" alt="">
+          <img class="logo-mark logo-mark-dark" src="{% static 'projects/img/construkt-logo-mark-dark.png' %}" alt="">
+        </span>
         <span class="wordmark">Construkt</span>
       </a>
       <div class="header-actions">
-        <a class="btn btn-ghost" href="#signin">Sign in</a>
-        <a class="btn btn-primary" href="#signin">Get access</a>
+        <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+        <button class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v2"></path>
+            <path d="M12 19v2"></path>
+            <path d="M5.6 5.6l1.4 1.4"></path>
+            <path d="M17 17l1.4 1.4"></path>
+            <path d="M3 12h2"></path>
+            <path d="M19 12h2"></path>
+            <path d="M5.6 18.4l1.4-1.4"></path>
+            <path d="M17 7l1.4-1.4"></path>
+            <circle cx="12" cy="12" r="4"></circle>
+          </svg>
+        </button>
       </div>
     </header>
 
-    <main id="home-page" class="public-main">
-      <section class="home-grid">
-        <div>
+    <main id="home-page" class="public-main landing-main" data-selected-role="finance">
+      <section class="landing-hero landing-reveal">
+        <div class="landing-hero-copy">
           <p class="eyebrow">Construction payment control</p>
-          <h1>Clean approvals for work-package payments.</h1>
-          <p class="lead">Construkt keeps finance, site teams, and contractors aligned on package funding, request status, approval progress, and release readiness.</p>
+          <h1><span>Construction payments,</span><span>clearly controlled.</span></h1>
+          <p class="lead">Construkt turns work-package payments into a controlled flow: set up the package, lock funding, submit evidence, approve the work, and release only when the rules are met.</p>
           <div class="public-actions">
-            <a class="btn btn-primary" href="#dashboard">Open dashboard</a>
-            <a class="btn btn-ghost" href="#signin">Sign in</a>
+            <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+            <a class="btn btn-ghost" href="#role-walkthrough">Preview demo roles</a>
           </div>
         </div>
-        <aside class="process-panel" aria-label="Payment process">
-          <div class="process-row">
-            <span class="process-index">1</span>
-            <div><strong>Package funded</strong><span>Finance sets cap and escrow funding.</span></div>
-            <span class="status-pill chip-tone-success">Ready</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">2</span>
-            <div><strong>Request submitted</strong><span>Contractor adds amount and document ref.</span></div>
-            <span class="status-pill chip-tone-primary">Open</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">3</span>
-            <div><strong>PM review</strong><span>Approval or rejection is logged.</span></div>
-            <span class="status-pill chip-tone-primary">Next</span>
-          </div>
-          <div class="process-row">
-            <span class="process-index">4</span>
-            <div><strong>Finance release</strong><span>Funds release after rules pass.</span></div>
-            <span class="status-pill chip-tone-danger">Blocked</span>
+        <aside class="landing-hero-visual" aria-label="Construkt approval flow preview">
+          <div class="landing-device-shell">
+            <div class="landing-device-top">
+              <span>Demo Hospital Fit-Out</span>
+              <span class="status-pill chip-tone-primary">Live package</span>
+            </div>
+            <div class="landing-payment-line">
+              <span class="is-paid"></span>
+              <span class="is-paid"></span>
+              <span class="is-active"></span>
+              <span></span>
+            </div>
+            <div class="landing-mini-grid">
+              <div><span>Escrow funded</span><strong>&pound;410k</strong></div>
+              <div><span>Requested</span><strong>&pound;92.4k</strong></div>
+              <div><span>Documents</span><strong>4 linked</strong></div>
+              <div><span>Release</span><strong>Blocked</strong></div>
+            </div>
+            <div class="landing-approval-card">
+              <span class="process-index">3</span>
+              <div>
+                <strong>PM evidence review</strong>
+                <span>Cube tests, photos, and certificate ready for approval.</span>
+              </div>
+              <span class="status-pill chip-tone-warning">Current</span>
+            </div>
           </div>
         </aside>
       </section>
-    </main>
 
-    <main id="signin-page" class="public-main">
-      <section class="signin-panel">
-        <p class="eyebrow">Secure access</p>
-        <h1>Sign in to your project workspace.</h1>
-        <form class="form-stack">
-          <div class="field">
-            <label for="email">Email</label>
-            <input id="email" type="email" value="finance.director@construkt.local">
+      <section class="landing-how landing-reveal" aria-labelledby="landing-how-title">
+        <div class="landing-how-head">
+          <p class="eyebrow">How Construkt works</p>
+          <h2 id="landing-how-title">From package setup to payment release.</h2>
+          <p>Construkt is not a full construction ERP. It is the payment-control layer that sits around work-package requests, approvals, holds, and release decisions.</p>
+        </div>
+        <div class="landing-flow-steps">
+          <article>
+            <span>01</span>
+            <strong>Set up project packages</strong>
+            <p>Create the project, split it into work packages, set caps, and lock funding.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Submit request</strong>
+            <p>Submit the invoice against the right work package.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Attach evidence</strong>
+            <p>Keep certificates, photos, QA packs, and document references with the request.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <strong>Approve or reject</strong>
+            <p>Review the evidence and record the decision with a note.</p>
+          </article>
+          <article>
+            <span>05</span>
+            <strong>Release from escrow</strong>
+            <p>Release stays blocked until approvals and hold checks are clear.</p>
+          </article>
+        </div>
+        <p class="landing-chain-note">The payment state, approvals, releases, and audit references are recorded on-chain. The documents themselves stay off-chain as hashes or references.</p>
+      </section>
+
+      <section id="role-walkthrough" class="landing-role-picker landing-role-cta landing-reveal" aria-labelledby="landing-role-title">
+        <div class="landing-role-intro">
+          <p class="eyebrow">Demo role previews</p>
+          <h2 id="landing-role-title">See how configurable roles work together.</h2>
+          <p>The demo uses three common construction roles. Select one below to see how the same payment flow changes by permission level.</p>
+        </div>
+        <div class="landing-role-cards" role="tablist" aria-label="Landing page role view">
+          <button class="landing-role-card is-active" type="button" data-landing-role="finance" role="tab" aria-selected="true">
+            <span>Finance Director</span>
+            <strong>Set up escrow and control release.</strong>
+          </button>
+          <button class="landing-role-card" type="button" data-landing-role="pm" role="tab" aria-selected="false">
+            <span>Project Manager</span>
+            <strong>Review evidence and approve work.</strong>
+          </button>
+          <button class="landing-role-card" type="button" data-landing-role="contractor" role="tab" aria-selected="false">
+            <span>Contractor</span>
+            <strong>Submit requests and track payment status.</strong>
+          </button>
+        </div>
+      </section>
+
+      <section class="landing-story landing-guided-walkthrough landing-reveal">
+        <div class="landing-story-copy">
+          <p class="eyebrow">Workflow preview</p>
+          <div class="landing-role-story is-active" data-role-story="finance">
+            <h2>Set the controls before funds move.</h2>
+            <p>Create the project, define work packages, lock escrow, and release only when evidence, approvals, and hold checks are clear.</p>
           </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" type="password" value="ConstruktDemo123!">
+          <div class="landing-role-story" data-role-story="pm">
+            <h2>Review the work with the evidence beside it.</h2>
+            <p>Open the review task, check the evidence pack, add a site note, then approve or reject with context attached to the payment record.</p>
           </div>
-          <a class="btn btn-primary" href="#dashboard">Continue</a>
-        </form>
+          <div class="landing-role-story" data-role-story="contractor">
+            <h2>Submit the request and track what happens next.</h2>
+            <p>Track assigned packages, submit the request, attach proof, and follow approval progress in one place.</p>
+          </div>
+        </div>
+        <div class="landing-product-demo" aria-label="Role workflow preview">
+          <div class="landing-demo-frame is-active" data-role-board="finance">
+            <div class="landing-demo-topbar">
+              <span>Finance Director</span>
+              <strong>Project setup and release control</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Create payment structure</span>
+                <h3>Demo Hospital Fit-Out</h3>
+                <div class="landing-demo-steps">
+                  <div><span>1</span><strong>Create project</strong><small>Contract ref MH-402A</small></div>
+                  <div><span>2</span><strong>Add work package</strong><small>Foundation Pour - Bay A</small></div>
+                  <div><span>3</span><strong>Fund escrow</strong><small>&pound;410k locked</small></div>
+                </div>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-warning">Blocked</span>
+                <strong>Release readiness</strong>
+                <p>Waiting for evidence review before release is available.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="finance">Open dashboard view -></a>
+              </aside>
+            </div>
+          </div>
+
+          <div class="landing-demo-frame" data-role-board="pm">
+            <div class="landing-demo-topbar">
+              <span>Project Manager</span>
+              <strong>Evidence review and site approval</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Outstanding task</span>
+                <h3>Review submitted evidence</h3>
+                <div class="landing-evidence-list">
+                  <div><strong>Foundation Pour Certificate</strong><span>DOC-FND-014 - V3 - ready</span></div>
+                  <div><strong>Cube Test Results</strong><span>DOC-CUBE-021 - linked to invoice</span></div>
+                  <div><strong>Site Photos and QA Pack</strong><span>4 images - contractor note attached</span></div>
+                </div>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-primary">Current step</span>
+                <strong>PM review</strong>
+                <p>Approve or reject with an audit note that stays with the request.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="pm">Open review queue -></a>
+              </aside>
+            </div>
+          </div>
+
+          <div class="landing-demo-frame" data-role-board="contractor">
+            <div class="landing-demo-topbar">
+              <span>Contractor</span>
+              <strong>Submission and payment tracking</strong>
+            </div>
+            <div class="landing-demo-layout">
+              <div class="landing-demo-main-panel">
+                <span class="landing-card-label">Assigned package</span>
+                <h3>Foundation Pour - Bay A</h3>
+                <div class="landing-contractor-track">
+                  <span class="is-done">Submitted</span>
+                  <span class="is-done">Evidence attached</span>
+                  <span class="is-current">PM review</span>
+                  <span>Release</span>
+                </div>
+                <p>Invoice INV-FND-001 for &pound;92.4k is waiting for site approval.</p>
+              </div>
+              <aside class="landing-demo-side-panel">
+                <span class="status-pill chip-tone-warning">Action needed</span>
+                <strong>Add supporting proof</strong>
+                <p>Upload certificates, photos, and document references against the payment request.</p>
+                <a href="#dashboard2" class="text-link" data-demo-role-link="contractor">Open contractor view -></a>
+              </aside>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="landing-showcase landing-reveal">
+        <div class="landing-showcase-head">
+          <p class="eyebrow">Inside the app</p>
+          <h2>Start from the dashboard.</h2>
+          <p>The dashboard is the starting point. Open a project, check work package progress, review supporting records, and follow the audit trail.</p>
+        </div>
+        <div class="landing-showcase-grid">
+          <article class="landing-screen-card">
+            <span>01</span>
+            <strong>Projects</strong>
+            <p>See the projects you are responsible for and where attention is needed.</p>
+          </article>
+          <article class="landing-screen-card">
+            <span>02</span>
+            <strong>Work packages</strong>
+            <p>Track package caps, funding, requests, evidence, approvals, and release status.</p>
+          </article>
+          <article class="landing-screen-card">
+            <span>03</span>
+            <strong>Audit trail</strong>
+            <p>Keep approvals, holds, document references, release actions, and transaction records attached to the right package.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="landing-final-cta landing-reveal">
+        <p class="eyebrow">Ready to explore</p>
+        <h2>Open the demo dashboard or browse the project list.</h2>
+        <div class="public-actions">
+          <a class="btn btn-primary" href="#dashboard2">Open demo dashboard</a>
+          <a class="btn btn-ghost" href="#projects">Browse projects</a>
+        </div>
+      </section>
+
+      <section class="landing-appendix landing-reveal" aria-labelledby="landing-appendix-title">
+        <div class="landing-appendix-head">
+          <p class="eyebrow">Under the hood</p>
+          <h2 id="landing-appendix-title">Why smart contracts fit this workflow.</h2>
+          <p>Construkt uses blockchain for payment rules and audit records, not to store every project file or replace human review.</p>
+        </div>
+        <div class="landing-appendix-list">
+          <details open>
+            <summary>What are smart contracts?</summary>
+            <p>Smart contracts are programs that run on a blockchain and enforce agreed rules. In Construkt, they act as a payment controller for construction work packages: funds can be locked, payment requests can be submitted, approvals can be recorded, and release can stay blocked until the required conditions are met.</p>
+            <p>The aim is to turn contract terms, milestones, document references, and approval steps into a workflow that is clear to follow.</p>
+          </details>
+          <details>
+            <summary>Why are smart contracts useful for construction payments?</summary>
+            <p>Construction payments often involve more than a simple invoice. Payment may depend on milestones, evidence of completed work, variations, budget checks, and several approvals.</p>
+            <p>Construkt uses smart contracts for the parts of that process where rules matter most. A payment request is submitted against a work package, the required stakeholders approve it in sequence, and funds become eligible for release only when the agreed conditions are met.</p>
+          </details>
+          <details>
+            <summary>Why blockchain?</summary>
+            <p>Blockchain is useful when several parties need to rely on the same payment record but do not all use the same internal system.</p>
+            <p>For construction payments, that means clients, contractors, project managers, directors, and payment teams can refer to one verifiable record of key events: who approved what, when it happened, which document reference was linked, and whether a payment was released or held.</p>
+            <p>Construkt uses blockchain for the trust-critical parts of the workflow: package state, approval records, payment status, document references, holds, and release decisions.</p>
+          </details>
+          <details>
+            <summary>Why Solana?</summary>
+            <p>Solana is fast and low cost, which makes it a good fit for workflows with frequent approval and payment-state updates.</p>
+            <p>Construkt uses Solana so package funding, approvals, holds, and release decisions can be recorded without making the product feel slow or expensive to use. For this MVP, Solana also works well with Anchor, the framework used to build the approval and escrow program.</p>
+          </details>
+          <details>
+            <summary>Are documents stored on-chain?</summary>
+            <p>No. Full contracts, drawings, invoices, and supporting files should stay off-chain in systems built for document storage.</p>
+            <p>Construkt stores document references and hashes. That lets the platform prove which version of a document was linked to a payment request or approval without putting sensitive files on-chain.</p>
+            <p>If a document changes, its hash changes. That gives teams document integrity without unnecessary storage cost or privacy risk.</p>
+          </details>
+          <details>
+            <summary>Does blockchain replace human review?</summary>
+            <p>No. People still review the work, evidence, and commercial context.</p>
+            <p>The smart contract enforces the payment rules after those decisions are made. Humans make the judgement. The system keeps the approval path and release conditions clear.</p>
+          </details>
+          <details>
+            <summary>Does this replace existing payment systems?</summary>
+            <p>Not necessarily. In a full escrow model, funds can be locked and released through the smart contract. In an enterprise setting, Construkt could also act as a payment-control layer: it confirms whether a release is eligible, while the existing payment system executes the actual payment.</p>
+            <p>That gives organisations a practical path between smart-contract automation and existing payment operations.</p>
+          </details>
+          <details>
+            <summary>What makes Construkt different?</summary>
+            <p>Most construction software focuses on documents, tasks, or project progress. Construkt focuses on payment control.</p>
+            <p>It connects work packages, payment requests, supporting evidence, approvals, holds, and release decisions into one auditable workflow. The core idea is simple: funds should move only when the agreed conditions are met, and every party should be able to see the status and history behind each payment.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="landing-origin" aria-label="Created at the University of Exeter">
+        <span>Created at the</span>
+        <img src="{% static 'projects/img/university-of-exeter-logo.jpg' %}" alt="University of Exeter">
       </section>
     </main>
 
@@ -86,15 +332,22 @@
 
   <div id="app-screen" class="screen">
     <nav class="app-nav" aria-label="Application navigation">
-      <a class="logo" href="#dashboard2" aria-label="Construkt dashboard">
-        <svg viewBox="0 0 32 32" aria-hidden="true">
-          <path d="M10 7h14"></path>
-          <path d="M10 25h14"></path>
-          <path d="M10 7v18"></path>
-        </svg>
+      <a class="logo" href="#home" aria-label="Construkt home">
+        <span class="logo-picture" aria-hidden="true">
+          <img class="logo-mark logo-mark-light" src="{% static 'projects/img/construkt-logo-mark.png' %}" alt="">
+          <img class="logo-mark logo-mark-dark" src="{% static 'projects/img/construkt-logo-mark-dark.png' %}" alt="">
+        </span>
         <span class="wordmark">Construkt</span>
       </a>
       <div class="tab-list" role="tablist">
+        <a class="tab-link" data-route-link="home" href="#home" aria-label="Home">
+          <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5"></path>
+            <path d="M5 9.5V21h14V9.5"></path>
+            <path d="M9.5 21v-6h5v6"></path>
+          </svg>
+          <span class="tab-label">Home</span>
+        </a>
         <a class="tab-link" data-route-link="dashboard2" href="#dashboard2" aria-label="Dashboard">
           <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
             <rect x="3" y="3" width="7" height="9" rx="1"></rect>
@@ -121,12 +374,7 @@
       <div class="nav-right">
         <span class="network"><span class="network-dot"></span>SOLANA DEVNET DEMO</span>
         <button id="role-toggle" class="btn role-badge" type="button">Finance Director</button>
-        <button class="user-menu" type="button" aria-label="User menu">
-          <span id="avatar" class="avatar">FD</span>
-          <span id="user-name" class="user-name">Finance Director</span>
-          <span class="chevron">⌄</span>
-        </button>
-        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+        <button id="theme-toggle" class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3v2"></path>
             <path d="M12 19v2"></path>
@@ -805,13 +1053,18 @@
       <section id="work-package-view-page" data-app-page="work-package-view">
         <div class="work-package-view-container">
           <div class="work-package-view-header">
-            <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 12H5M12 19l-7-7 7-7"/>
-              </svg>
-              Back to Chart
-            </button>
-            <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+            <div class="work-package-view-heading">
+              <button class="task-back-btn" id="work-package-back-btn" type="button" aria-label="Back">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M19 12H5M12 19l-7-7 7-7"/>
+                </svg>
+                Back to project
+              </button>
+              <div class="work-package-view-breadcrumb" id="wp-breadcrumb">Projects -> Demo Hospital Fit-Out -> Work Package</div>
+              <h1 class="work-package-view-title" id="work-package-view-title">Foundation Pour</h1>
+              <div class="work-package-view-meta" id="wp-view-meta"></div>
+            </div>
+            <aside class="work-package-current-action-card" id="wp-current-action-card"></aside>
           </div>
 
           <div class="work-package-view-content">
@@ -850,6 +1103,7 @@
             <div class="work-package-milestone-card">
               <div class="work-package-milestone-head">
                 <h2 class="work-package-milestone-heading">Milestone Payment Schedule</h2>
+                <span class="work-package-milestone-summary" id="wp-milestone-summary"></span>
                 <div class="work-package-milestone-legend" aria-label="Milestone status legend">
                   <span><i class="milestone-legend-dot is-uninvoiced"></i>Uninvoiced</span>
                   <span><i class="milestone-legend-dot is-invoiced"></i>Invoiced</span>
@@ -859,6 +1113,36 @@
               </div>
               <div class="milestone-payment-bar" id="wp-milestone-bar" aria-label="Work package milestone payment status"></div>
               <div class="milestone-payment-details" id="wp-milestone-details"></div>
+            </div>
+
+            <div class="work-package-tasks-card">
+              <div class="work-package-card-head">
+                <h2 class="work-package-docs-heading">Package Tasks</h2>
+                <span class="work-package-info-label" id="wp-task-summary">Construction controls</span>
+              </div>
+              <div class="work-package-task-list" id="wp-task-list"></div>
+            </div>
+
+            <div class="work-package-view-grid">
+              <main class="work-package-view-main">
+                <section class="work-package-request-card" id="wp-current-request-card"></section>
+              </main>
+              <aside class="work-package-view-side">
+                <section class="work-package-info-card" id="wp-package-snapshot"></section>
+                <section class="work-package-readiness-card" id="wp-payment-readiness"></section>
+              </aside>
+            </div>
+
+            <div class="work-package-tabs-card">
+              <div class="section-tabs">
+                <div class="tab-buttons" role="tablist" aria-label="Work package records">
+                  <button class="section-tab is-active" type="button" data-wp-tab="audit">Audit Trail</button>
+                  <button class="section-tab" type="button" data-wp-tab="documents">Documents</button>
+                  <button class="section-tab" type="button" data-wp-tab="payments">Payments</button>
+                </div>
+                <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain -></a>
+              </div>
+              <div id="wp-tab-content"></div>
             </div>
 
             <!-- Actions Card -->
@@ -1040,8 +1324,7 @@
         </section>
 
         <div class="project-detail-layout">
-          <main class="project-detail-main">
-            <section class="assignment-card">
+            <section class="assignment-card project-packages">
               <div class="card-head">
                 <h2>Work Packages</h2>
                 <button class="btn btn-primary small" data-visible-to="project_manager" data-modal-target="add-package" type="button">Add estimated package</button>
@@ -1499,8 +1782,6 @@
                 </div>
               </div>
             </section>
-          </main>
-
           <aside class="project-detail-side">
             <section class="activity-panel">
               <div class="card-head">
@@ -2084,7 +2365,7 @@
       </form>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-success" type="button">Approve</button>
+        <button class="btn btn-primary" type="button">Approve</button>
       </div>
     </section>
   </div>
@@ -2106,11 +2387,15 @@
   </div>
 
   <div class="modal-overlay" data-modal="approve-request" hidden>
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="approve-request-title">
+    <section class="modal-card evidence-review-modal" role="dialog" aria-modal="true" aria-labelledby="approve-request-title">
       <div class="modal-header">
-        <h2 id="approve-request-title">Approve Payment Request</h2>
+        <div>
+          <h2 id="approve-request-title">Review Evidence &amp; Approve Request</h2>
+          <p class="modal-subtitle">Open linked evidence, leave an audit note, then record your decision.</p>
+        </div>
         <button class="modal-close" data-modal-close type="button">×</button>
       </div>
+      <div class="evidence-review" data-evidence-review></div>
       <div class="modal-summary">
         <div class="modal-summary-row"><span>Invoice ref</span><strong>INV-FND-001</strong></div>
         <div class="modal-summary-row"><span>Contractor</span><strong>Okafor Builders Ltd.</strong></div>
@@ -2121,8 +2406,11 @@
         <div class="form-field"><label>Review note</label><textarea rows="3" placeholder="Add review note"></textarea></div>
       </form>
       <div class="modal-footer">
+        <a class="text-link evidence-full-docs-link" href="#work-package-view" data-open-wp-documents data-modal-close>Open full documents tab →</a>
+        <span class="modal-footer-spacer"></span>
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-success" type="button">Approve</button>
+        <button class="btn btn-ghost evidence-reject-btn" data-modal-target="reject-request" type="button">Reject</button>
+        <button class="btn btn-success" type="button">Approve Request</button>
       </div>
     </section>
   </div>
@@ -2212,6 +2500,6 @@
     </section>
   </div>
 
-  <script src="{% static 'projects/js/construkt.js' %}"></script>
+  <script src="{% static 'projects/js/construkt.js' %}?v=font-20260507b"></script>
 </body>
 </html>

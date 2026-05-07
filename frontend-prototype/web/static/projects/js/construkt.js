@@ -1374,17 +1374,17 @@ const store = {
 
     function normalizeProjectFundingPackages(project) {
       const completed = (project.completedPackages || project.spentPayments || []).map((amount, index) => ({
-        name: `Completed Package ${index + 1}`,
+        name: `Package ${index + 1}`,
         amount,
         status: 'completed',
       }));
       const inProgress = (project.inProgressPackages || project.pendingPayments || []).map((amount, index) => ({
-        name: `In Progress Package ${index + 1}`,
+        name: `Package ${completed.length + index + 1}`,
         amount,
         status: 'in-progress',
       }));
       let estimated = (project.estimatedPackages || []).map((amount, index) => ({
-        name: `Estimated Package ${index + 1}`,
+        name: `Package ${completed.length + inProgress.length + index + 1}`,
         amount,
         status: 'estimated',
       }));
@@ -1394,7 +1394,7 @@ const store = {
       if (!estimated.length && remainingBudget > 0) {
         const estimatedAmount = Math.round((remainingBudget * 0.65) / 1000) * 1000;
         if (estimatedAmount > 0) {
-          estimated = [{ name: 'Estimated Package 1', amount: Math.min(estimatedAmount, remainingBudget), status: 'estimated' }];
+          estimated = [{ name: `Package ${completed.length + inProgress.length + 1}`, amount: Math.min(estimatedAmount, remainingBudget), status: 'estimated' }];
         }
       }
 
