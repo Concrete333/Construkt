@@ -1,0 +1,338 @@
+.dashboard2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.dashboard2__loading {
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.dashboard2__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dashboard2__eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-faint);
+}
+
+.dashboard2__head h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+}
+
+.dashboard2__lead {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 65ch;
+}
+
+.dashboard2__kpis {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+}
+
+.dashboard2__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard2__kpi dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.dashboard2__kpi dd {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard2__columns {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .dashboard2__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard2__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+.dashboard2__aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboard2__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+}
+
+.dashboard2__panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.dashboard2__panel-head h2 {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.dashboard2__panel-eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.dashboard2__empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+/* Outstanding tasks */
+
+.dashboard2__tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dashboard2__task {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, var(--radius-md));
+  background: var(--color-surface);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.dashboard2__task:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard2__task-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  color: inherit;
+}
+
+.dashboard2__task-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard2__task-title {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.dashboard2__task-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dashboard2__task-side {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.dashboard2__task-amount {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Project quick cards */
+
+.dashboard2__projects {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.dashboard2__project {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, var(--radius-md));
+  background: var(--color-surface);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.dashboard2__project:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard2__project-link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  color: inherit;
+}
+
+.dashboard2__project-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.dashboard2__project-head h3 {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: var(--font-body);
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.dashboard2__project-client {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.dashboard2__project-client strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.dashboard2__project-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.dashboard2__project-flags {
+  margin: 0;
+}
+
+/* Recent activity */
+
+.dashboard2__activity {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.dashboard2__event {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px dashed var(--color-divider);
+}
+
+.dashboard2__event:last-child {
+  border-bottom: 0;
+}
+
+.dashboard2__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-text-faint);
+  margin-top: 6px;
+}
+
+.dashboard2__dot--success {
+  background: var(--color-success, #16a34a);
+}
+
+.dashboard2__dot--warning {
+  background: var(--color-warning, #d97706);
+}
+
+.dashboard2__dot--error {
+  background: var(--color-error, #dc2626);
+}
+
+.dashboard2__dot--info {
+  background: var(--color-primary);
+}
+
+.dashboard2__dot--neutral {
+  background: var(--color-text-faint);
+}
+
+.dashboard2__event-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.dashboard2__event-title {
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+.dashboard2__event-meta {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard2__event-wallet {
+  font-family: var(--mono, ui-monospace, Consolas, monospace);
+}

@@ -1,0 +1,248 @@
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.project-list__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.project-list__head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.project-list__head h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.project-list__lead {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.project-list__empty {
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.project-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: var(--space-4);
+}
+
+.project-list__item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.project-list__item:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-list__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  color: inherit;
+}
+
+.project-list__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.project-list__title h2 {
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+
+.project-list__client {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.project-list__client strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.project-list__metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3) var(--space-4);
+}
+
+.project-list__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-list__metric dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.project-list__metric dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-list__held {
+  margin-top: var(--space-1);
+}
+
+/* ── Inline create-project form ───────────────────────────────────── */
+
+.project-list__create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.project-list__form-row {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.project-list__form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.project-list__form-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.project-list__form-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.project-list__form-input:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.project-list__form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.project-list__create-actions {
+  display: flex;
+  flex-direction: row;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+/* ── Feedback ─────────────────────────────────────────────────────── */
+
+.project-list__feedback {
+  font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.project-list__feedback--success {
+  background: color-mix(
+    in srgb,
+    var(--color-success, #22c55e) 12%,
+    transparent
+  );
+  color: var(--color-success, #15803d);
+}
+
+.project-list__feedback--error {
+  background: color-mix(in srgb, var(--color-error, #ef4444) 12%, transparent);
+  color: var(--color-error, #b91c1c);
+}
+
+/* ── Buttons (matching WorkPackageViewPage pattern) ───────────────── */
+
+.project-list__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease,
+    opacity 120ms ease;
+  white-space: nowrap;
+}
+
+.project-list__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.project-list__btn--primary {
+  background: var(--color-primary);
+  color: var(--color-on-primary, #fff);
+  border-color: var(--color-primary);
+}
+
+.project-list__btn--primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.project-list__btn--ghost {
+  background: transparent;
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+
+.project-list__btn--ghost:hover:not(:disabled) {
+  background: var(--color-surface-2);
+  color: var(--color-text);
+}
