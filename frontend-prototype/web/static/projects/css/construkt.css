@@ -3077,6 +3077,10 @@
       width: min(860px, calc(100vw - var(--space-8)));
     }
 
+    .add-package-modal {
+      width: min(900px, calc(100vw - var(--space-8)));
+    }
+
     .evidence-review-modal {
       width: min(980px, calc(100vw - var(--space-8)));
       padding: var(--space-7);
@@ -3442,6 +3446,12 @@
       border-color: color-mix(in srgb, var(--color-warning) 46%, var(--color-border));
       color: var(--color-warning);
       background: color-mix(in srgb, var(--color-warning) 12%, var(--color-surface-2));
+    }
+
+    .new-project-budget-summary.is-error {
+      border-color: color-mix(in srgb, var(--color-error) 52%, var(--color-border));
+      color: var(--color-error);
+      background: color-mix(in srgb, var(--color-error) 10%, var(--color-surface-2));
     }
 
     .new-project-section-grid {

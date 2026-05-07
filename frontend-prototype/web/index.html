@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="static/projects/css/construkt.css?v=project-flow-20260507a">
+  <link rel="stylesheet" href="static/projects/css/construkt.css?v=pm-package-20260507a">
 </head>
 <body>
   <div id="public-screen" class="screen">
@@ -2217,31 +2217,52 @@
   </div>
 
   <div class="modal-overlay" data-modal="add-package" hidden>
-    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="add-package-title">
+    <section class="modal-card add-package-modal" role="dialog" aria-modal="true" aria-labelledby="add-package-title">
       <div class="modal-header">
         <h2 id="add-package-title">Add Estimated Work Package</h2>
         <button class="modal-close" data-modal-close type="button">×</button>
       </div>
       <form class="modal-form">
-        <div class="form-field"><label>Package Name</label><input type="text"></div>
-        <div class="form-field">
-          <label>Contract Type</label>
-          <select data-package-contract-model>
-            <option value="milestone">Milestone-Based</option>
-            <option value="valuation">Valuation-Based</option>
-            <option value="bespoke">Bespoke Schedule</option>
-          </select>
+        <div class="modal-steps" aria-label="Create package steps">
+          <span class="modal-step is-active" data-package-step="1"><span class="modal-step-dot">1</span>Package setup</span>
+          <span class="modal-step-line"></span>
+          <span class="modal-step" data-package-step="2"><span class="modal-step-dot">2</span>Payment schedule</span>
         </div>
-        <div class="form-field"><label>Estimated Budget — £</label><input type="number"></div>
-        <div class="form-field"><label>Contractor Agreement</label><select><option>Unassigned estimate</option><option>Daniel Okafor</option><option>Northline Structures</option></select></div>
-        <div class="form-field"><label>Contract Reference</label><input type="text"></div>
-        <div class="form-field"><label>Start Date</label><input type="date"></div>
-        <div class="form-field"><label>Completion Date</label><input type="date"></div>
-        <p class="faint">Packages begin as estimates. When a contractor agreement and budget are ready, Finance approves the package and locks escrow.</p>
+        <div class="modal-step-panel is-active" data-package-panel="1">
+          <div class="form-field"><label>Package Name</label><input type="text" data-add-package-name></div>
+          <div class="form-field">
+            <label>Contract Type</label>
+            <select data-package-contract-model>
+              <option value="milestone">Milestone-Based</option>
+              <option value="valuation">Valuation-Based</option>
+              <option value="bespoke">Bespoke Schedule</option>
+            </select>
+          </div>
+          <div class="form-field"><label>Estimated Budget - GBP</label><input type="number" min="0" step="1000" data-add-package-budget></div>
+          <div class="form-field"><label>Contractor Agreement</label><select data-add-package-contractor><option>Unassigned estimate</option><option>Daniel Okafor</option><option>Northline Structures</option></select></div>
+          <div class="form-field"><label>Contract Reference</label><input type="text" data-add-package-ref></div>
+          <div class="form-field"><label>Start Date</label><input type="date" data-add-package-start></div>
+          <div class="form-field"><label>Completion Date</label><input type="date" data-add-package-completion></div>
+          <p class="faint">Packages begin as estimates. When a contractor agreement and budget are ready, Finance approves the package and locks escrow.</p>
+        </div>
+        <div class="modal-step-panel" data-package-panel="2">
+          <div class="new-project-section-head">
+            <div>
+              <label class="form-field-label" data-package-schedule-title>Define package milestones</label>
+              <p class="faint" data-package-schedule-help>Adjust each milestone name, date, and amount before the package is created.</p>
+            </div>
+            <button class="btn btn-ghost" data-add-package-milestone-row type="button">Add milestone</button>
+          </div>
+          <div class="new-project-budget-summary" data-package-schedule-summary>Package budget: GBP 0</div>
+          <div class="new-project-section-grid" data-package-milestone-builder></div>
+          <p class="faint">Dates must be unique. Amounts are checked against the package budget as you edit.</p>
+        </div>
       </form>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
-        <button class="btn btn-primary" type="button">Add Estimated Package</button>
+        <button class="btn btn-ghost" data-package-back type="button" hidden>Back</button>
+        <button class="btn btn-primary" data-package-next type="button">Next</button>
+        <button class="btn btn-primary" data-add-package-create type="button" hidden>Add Estimated Package</button>
       </div>
     </section>
   </div>
@@ -2517,6 +2538,6 @@
     </section>
   </div>
 
-  <script src="static/projects/js/construkt.js?v=project-flow-20260507a"></script>
+  <script src="static/projects/js/construkt.js?v=pm-package-20260507a"></script>
 </body>
 </html>

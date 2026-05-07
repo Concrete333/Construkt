@@ -195,12 +195,126 @@ const store = {
           status: 'Active',
           contractModel: 'valuation',
           contractRef: 'CLR-201',
+          budget: 500000,
           startDate: '2026-01-10',
           endDate: '2027-03-01',
-          team: [],
-          packages: [],
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Daniel Okafor', role: 'contractor', org: 'Okafor Builders Ltd' },
+          ],
+          packages: [
+            {
+              id: 'wp-201',
+              name: 'Package 1 - Enabling Works',
+              cap: 120000,
+              funded: 120000,
+              released: 120000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              contractModel: 'valuation',
+              completionDate: '2026-03-18',
+              requests: [
+                {
+                  id: 'req-201',
+                  ref: 'INV-CLR-001',
+                  amount: 120000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2026-03-10',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-03-12',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-03-15',
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-202',
+              name: 'Package 2 - Structural Repairs',
+              cap: 95000,
+              funded: 95000,
+              released: 95000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              contractModel: 'valuation',
+              completionDate: '2026-04-02',
+              requests: [
+                {
+                  id: 'req-202',
+                  ref: 'INV-CLR-002',
+                  amount: 95000,
+                  submittedBy: 'Northline Structures',
+                  date: '2026-03-24',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-03-27',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-03-30',
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-203',
+              name: 'Package 3 - Reading Room Fit-Out',
+              cap: 105000,
+              funded: 105000,
+              released: 62000,
+              status: 'In Progress',
+              contractor: 'Daniel Okafor',
+              contractModel: 'valuation',
+              completionDate: '2026-05-20',
+              requests: [],
+            },
+            {
+              id: 'wp-204',
+              name: 'Package 4 - MEP Refurbishment',
+              cap: 80000,
+              funded: 40000,
+              released: 0,
+              status: 'Partially Funded',
+              contractor: 'Northline Structures',
+              contractModel: 'valuation',
+              completionDate: '2026-06-18',
+              requests: [
+                {
+                  id: 'req-204',
+                  ref: 'INV-CLR-004',
+                  amount: 40000,
+                  submittedBy: 'Northline Structures',
+                  date: '2026-04-12',
+                  status: 'Submitted',
+                  pmApproved: false,
+                  fdApproved: false,
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-205',
+              name: 'Package 5 - Final Commissioning',
+              cap: 100000,
+              funded: 0,
+              released: 0,
+              status: 'Estimated',
+              contractor: 'Unassigned estimate',
+              contractModel: 'valuation',
+              completionDate: '2027-02-15',
+              requests: [],
+            },
+          ],
           milestones: [],
-          auditLog: [],
+          auditLog: [
+            { event: 'Package 1 enabling works released', actor: 'Maya Shah', date: '2026-03-15T10:20:00', type: 'released' },
+            { event: 'Package 2 structural repairs released', actor: 'Maya Shah', date: '2026-03-30T14:05:00', type: 'released' },
+            { event: 'Package 4 MEP invoice submitted for PM review', actor: 'Northline Structures', date: '2026-04-12T09:30:00', type: 'pending' },
+          ],
         },
         {
           id: 'proj-003',
@@ -209,12 +323,57 @@ const store = {
           status: 'Active',
           contractModel: 'bespoke',
           contractRef: 'SW-088',
+          budget: 650000,
           startDate: '2025-11-01',
           endDate: '2026-12-01',
-          team: [],
-          packages: [],
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Northline Structures', role: 'contractor', org: 'Northline Structures' },
+          ],
+          packages: [
+            {
+              id: 'wp-301',
+              name: 'Package 1 - Platform Survey',
+              cap: 150000,
+              funded: 150000,
+              released: 150000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              contractModel: 'bespoke',
+              completionDate: '2026-01-28',
+              requests: [],
+            },
+            {
+              id: 'wp-302',
+              name: 'Package 2 - Trackside Civils',
+              cap: 125000,
+              funded: 125000,
+              released: 88000,
+              status: 'In Progress',
+              contractor: 'Northline Structures',
+              contractModel: 'bespoke',
+              completionDate: '2026-05-08',
+              requests: [],
+            },
+            {
+              id: 'wp-303',
+              name: 'Package 3 - Access Works',
+              cap: 125000,
+              funded: 60000,
+              released: 0,
+              status: 'Partially Funded',
+              contractor: 'Unassigned estimate',
+              contractModel: 'bespoke',
+              completionDate: '2026-08-14',
+              requests: [],
+            },
+          ],
           milestones: [],
-          auditLog: [],
+          auditLog: [
+            { event: 'Platform survey package completed', actor: 'Eleanor Lane', date: '2026-01-28T12:15:00', type: 'released' },
+            { event: 'Trackside civils evidence pack requested', actor: 'Eleanor Lane', date: '2026-04-08T16:40:00', type: 'pending' },
+          ],
         },
         {
           id: 'proj-004',
@@ -1422,6 +1581,31 @@ const store = {
     }
 
     function normalizeProjectFundingPackages(project) {
+      if (Array.isArray(project.packages) && project.packages.length) {
+        const packages = project.packages.map((pkg, index) => {
+          const amount = pkg.cap || Math.max(pkg.funded || 0, pkg.released || 0);
+          let status = 'estimated';
+          if (isPackageComplete(pkg)) {
+            status = 'completed';
+          } else if ((pkg.requests || []).length || (pkg.funded || 0) > 0 || /funded|progress/i.test(pkg.status || '')) {
+            status = 'in-progress';
+          }
+          return {
+            id: pkg.id,
+            projectId: project.id,
+            name: pkg.name || `Package ${index + 1}`,
+            amount,
+            status,
+          };
+        });
+        const total = project.budget || packages.reduce((sum, pkg) => sum + pkg.amount, 0);
+        const allocated = packages.reduce((sum, pkg) => sum + pkg.amount, 0);
+        const unallocated = total > allocated
+          ? [{ name: 'Unallocated Budget', amount: total - allocated, status: 'unallocated' }]
+          : [];
+        return [...packages, ...unallocated];
+      }
+
       const completed = (project.completedPackages || project.spentPayments || []).map((amount, index) => ({
         name: `Package ${index + 1}`,
         amount,
@@ -1437,8 +1621,9 @@ const store = {
         amount,
         status: 'estimated',
       }));
+      const projectTotal = project.total || project.budget || 0;
       const allocatedBeforeEstimated = [...completed, ...inProgress].reduce((sum, pkg) => sum + pkg.amount, 0);
-      const remainingBudget = Math.max(project.total - allocatedBeforeEstimated, 0);
+      const remainingBudget = Math.max(projectTotal - allocatedBeforeEstimated, 0);
 
       if (!estimated.length && remainingBudget > 0) {
         const estimatedAmount = Math.round((remainingBudget * 0.65) / 1000) * 1000;
@@ -1448,7 +1633,7 @@ const store = {
       }
 
       const allocated = [...completed, ...inProgress, ...estimated].reduce((sum, pkg) => sum + pkg.amount, 0);
-      const unallocatedAmount = Math.max(project.total - allocated, 0);
+      const unallocatedAmount = Math.max(projectTotal - allocated, 0);
       const unallocated = unallocatedAmount > 0
         ? [{ name: 'Unallocated Budget', amount: unallocatedAmount, status: 'unallocated' }]
         : [];
@@ -1458,7 +1643,7 @@ const store = {
 
     function renderFundingSegments(project) {
       const packages = normalizeProjectFundingPackages(project);
-      const total = project.total || packages.reduce((sum, pkg) => sum + pkg.amount, 0) || 1;
+      const total = project.total || project.budget || packages.reduce((sum, pkg) => sum + pkg.amount, 0) || 1;
 
       return packages.map((pkg) => {
         const percent = (pkg.amount / total) * 100;
@@ -1471,8 +1656,24 @@ const store = {
           return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs}></div>`;
         }
 
+        if (pkg.projectId && pkg.id) {
+          return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs} onclick="openWorkPackageView('${pkg.projectId}', '${pkg.id}', event)"></div>`;
+        }
         return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs} onclick="showWorkPackage('${project.name}', '${pkg.name}', '${formatGBP(pkg.amount)}', '${label}', event)"></div>`;
       }).join('');
+    }
+
+    function projectDaysUntilDue(project) {
+      const dateValues = [
+        ...(project.packages || []).map((pkg) => pkg.completionDate),
+        project.endDate,
+      ].filter(Boolean);
+      const dates = dateValues
+        .map((date) => new Date(`${date}T00:00:00`))
+        .filter((date) => !Number.isNaN(date.getTime()));
+      if (!dates.length) return 999;
+      const nextDate = dates.sort((a, b) => a - b)[0];
+      return Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
     }
 
     function assignedContractorPackages() {
@@ -1626,77 +1827,28 @@ const store = {
 
       // Chart rendering functions
       function renderBarChart(chartContent) {
-        // Render chart with dummy data (same data as fullscreen)
-        const projects = [
-        { name: 'Civic Library Retrofit', total: 500000,
-          spentPayments: [120000, 95000, 105000],
-          pendingPayments: [40000, 40000],
-          unspent: 100000, daysUntilDue: 3 },
-        { name: 'Demo Hospital Fit-Out', total: 800000,
-          spentPayments: [180000, 140000, 130000],
-          pendingPayments: [75000, 75000],
-          unspent: 200000, daysUntilDue: 12 },
-        { name: 'Station Works', total: 650000,
-          spentPayments: [150000, 125000, 125000],
-          pendingPayments: [60000, 40000],
-          unspent: 150000, daysUntilDue: 7 },
-        { name: 'Office Complex', total: 450000,
-          spentPayments: [80000, 70000, 50000],
-          pendingPayments: [60000, 60000],
-          unspent: 130000, daysUntilDue: 18 },
-        { name: 'Retail Park Development', total: 920000,
-          spentPayments: [250000, 200000, 150000],
-          pendingPayments: [90000, 90000],
-          unspent: 140000, daysUntilDue: 5 },
-        { name: 'School Extension', total: 380000,
-          spentPayments: [120000, 90000, 70000],
-          pendingPayments: [30000, 20000],
-          unspent: 50000, daysUntilDue: 9 },
-        { name: 'Warehouse Conversion', total: 720000,
-          spentPayments: [200000, 180000, 120000],
-          pendingPayments: [70000, 50000],
-          unspent: 100000, daysUntilDue: 14 },
-        { name: 'Community Center', total: 550000,
-          spentPayments: [140000, 120000, 90000],
-          pendingPayments: [50000, 40000],
-          unspent: 110000, daysUntilDue: 4 },
-        { name: 'Shopping Mall Renovation', total: 1200000,
-          spentPayments: [320000, 280000, 200000],
-          pendingPayments: [130000, 120000],
-          unspent: 150000, daysUntilDue: 21 },
-        { name: 'Bridge Repair', total: 680000,
-          spentPayments: [170000, 140000, 110000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 6 },
-        { name: 'Park Infrastructure', total: 290000,
-          spentPayments: [80000, 60000, 40000],
-          pendingPayments: [35000, 25000],
-          unspent: 50000, daysUntilDue: 11 },
-        { name: 'Apartment Complex', total: 950000,
-          spentPayments: [240000, 200000, 160000],
-          pendingPayments: [100000, 100000],
-          unspent: 150000, daysUntilDue: 16 }
-      ];
+        const displayProjects = projectsForCurrentRole()
+          .map((project) => ({ ...project, daysUntilDue: projectDaysUntilDue(project) }))
+          .sort((a, b) => a.daysUntilDue - b.daysUntilDue)
+          .slice(0, 7);
 
-      // Sort by most pressing (soonest deadline)
-      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+        chartContent.innerHTML = displayProjects.map((project) => {
+          const daysText = project.daysUntilDue < 0
+            ? 'Overdue'
+            : project.daysUntilDue === 1
+              ? '1 day'
+              : `${project.daysUntilDue} days`;
 
-      // Limit to 7 projects on dashboard
-      const displayProjects = projects.slice(0, 7);
-
-      chartContent.innerHTML = displayProjects.map(project => {
-        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
-
-        return `
-          <div class="chart-row">
-            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
-            <div class="chart-bar-container">
-              ${renderFundingSegments(project)}
+          return `
+            <div class="chart-row">
+              <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
+              <div class="chart-bar-container">
+                ${renderFundingSegments(project)}
+              </div>
+              <div class="chart-value">${daysText}</div>
             </div>
-            <div class="chart-value">${daysText}</div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
       }
 
       function renderContractorDial(chartContent) {
@@ -2083,129 +2235,26 @@ const store = {
         };
       }
 
-      // Render all projects with individual payment breakdowns
-      const projects = [
-        { name: 'Civic Library Retrofit', total: 500000,
-          spentPayments: [120000, 95000, 105000],
-          pendingPayments: [40000, 40000],
-          unspent: 100000, daysUntilDue: 3 },
-        { name: 'Demo Hospital Fit-Out', total: 800000,
-          spentPayments: [180000, 140000, 130000],
-          pendingPayments: [75000, 75000],
-          unspent: 200000, daysUntilDue: 12 },
-        { name: 'Station Works', total: 650000,
-          spentPayments: [150000, 125000, 125000],
-          pendingPayments: [60000, 40000],
-          unspent: 150000, daysUntilDue: 7 },
-        { name: 'Office Complex', total: 450000,
-          spentPayments: [80000, 70000, 50000],
-          pendingPayments: [60000, 60000],
-          unspent: 130000, daysUntilDue: 18 },
-        { name: 'Retail Park Development', total: 920000,
-          spentPayments: [250000, 200000, 150000],
-          pendingPayments: [90000, 90000],
-          unspent: 140000, daysUntilDue: 5 },
-        { name: 'School Extension', total: 380000,
-          spentPayments: [120000, 90000, 70000],
-          pendingPayments: [30000, 20000],
-          unspent: 50000, daysUntilDue: 9 },
-        { name: 'Warehouse Conversion', total: 720000,
-          spentPayments: [200000, 180000, 120000],
-          pendingPayments: [70000, 50000],
-          unspent: 100000, daysUntilDue: 14 },
-        { name: 'Community Center', total: 550000,
-          spentPayments: [140000, 120000, 90000],
-          pendingPayments: [50000, 40000],
-          unspent: 110000, daysUntilDue: 4 },
-        { name: 'Shopping Mall Renovation', total: 1200000,
-          spentPayments: [320000, 280000, 200000],
-          pendingPayments: [130000, 120000],
-          unspent: 150000, daysUntilDue: 21 },
-        { name: 'Bridge Repair', total: 680000,
-          spentPayments: [170000, 140000, 110000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 6 },
-        { name: 'Park Infrastructure', total: 290000,
-          spentPayments: [80000, 60000, 40000],
-          pendingPayments: [35000, 25000],
-          unspent: 50000, daysUntilDue: 11 },
-        { name: 'Apartment Complex', total: 950000,
-          spentPayments: [240000, 200000, 160000],
-          pendingPayments: [100000, 100000],
-          unspent: 150000, daysUntilDue: 16 },
-        { name: 'Theatre Restoration', total: 620000,
-          spentPayments: [150000, 130000, 100000],
-          pendingPayments: [60000, 50000],
-          unspent: 130000, daysUntilDue: 8 },
-        { name: 'Industrial Estate', total: 1100000,
-          spentPayments: [280000, 240000, 200000],
-          pendingPayments: [110000, 110000],
-          unspent: 160000, daysUntilDue: 22 },
-        { name: 'Sports Complex', total: 780000,
-          spentPayments: [190000, 160000, 130000],
-          pendingPayments: [75000, 65000],
-          unspent: 160000, daysUntilDue: 13 },
-        { name: 'Hotel Expansion', total: 1400000,
-          spentPayments: [380000, 320000, 250000],
-          pendingPayments: [140000, 140000],
-          unspent: 170000, daysUntilDue: 25 },
-        { name: 'Museum Addition', total: 540000,
-          spentPayments: [130000, 110000, 100000],
-          pendingPayments: [50000, 45000],
-          unspent: 105000, daysUntilDue: 10 },
-        { name: 'University Building', total: 890000,
-          spentPayments: [220000, 190000, 150000],
-          pendingPayments: [85000, 85000],
-          unspent: 160000, daysUntilDue: 15 },
-        { name: 'Medical Clinic', total: 420000,
-          spentPayments: [110000, 90000, 70000],
-          pendingPayments: [40000, 35000],
-          unspent: 75000, daysUntilDue: 6 },
-        { name: 'Town Hall Renovation', total: 750000,
-          spentPayments: [190000, 170000, 130000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 17 },
-        { name: 'Data Center', total: 980000,
-          spentPayments: [250000, 220000, 170000],
-          pendingPayments: [95000, 95000],
-          unspent: 150000, daysUntilDue: 19 },
-        { name: 'Fire Station', total: 510000,
-          spentPayments: [130000, 110000, 80000],
-          pendingPayments: [50000, 45000],
-          unspent: 95000, daysUntilDue: 9 },
-        { name: 'Police Headquarters', total: 860000,
-          spentPayments: [220000, 190000, 140000],
-          pendingPayments: [80000, 80000],
-          unspent: 150000, daysUntilDue: 20 },
-        { name: 'Market Square', total: 340000,
-          spentPayments: [85000, 70000, 55000],
-          pendingPayments: [35000, 30000],
-          unspent: 65000, daysUntilDue: 7 },
-        { name: 'Swimming Pool', total: 670000,
-          spentPayments: [170000, 145000, 115000],
-          pendingPayments: [60000, 60000],
-          unspent: 120000, daysUntilDue: 14 },
-        { name: 'Conference Center', total: 1050000,
-          spentPayments: [270000, 230000, 180000],
-          pendingPayments: [100000, 100000],
-          unspent: 170000, daysUntilDue: 23 }
-      ];
+      const liveProjects = projectsForCurrentRole()
+        .map((project) => ({ ...project, daysUntilDue: projectDaysUntilDue(project) }))
+        .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
-      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
-
-      chartContent.innerHTML = projects.map(project => {
-        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
-
+      chartContent.innerHTML = liveProjects.map((project) => {
+        const daysText = project.daysUntilDue < 0
+          ? 'Overdue'
+          : project.daysUntilDue === 1
+            ? '1 day'
+            : `${project.daysUntilDue} days`;
         return `
           <div class="chart-row">
-            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
+            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
             <div class="chart-bar-container">
               ${renderFundingSegments(project)}
             </div>
             <div class="chart-value">${daysText}</div>
           </div>
         `;
-      }).join('');
+      }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
     }
 
     function renderUploadTask() {
@@ -2547,7 +2596,7 @@ const store = {
         }));
       }
 
-      const total = parsePackageAmount(pkg?.amount) || 120000;
+      const total = parsePackageAmount(pkg?.amount || pkg?.cap) || 120000;
       const amounts = [0.2, 0.3, 0.3, 0.2].map((share) => Math.round(total * share));
       const statusSets = {
         Completed: ['paid', 'paid', 'paid', 'paid'],
@@ -3678,14 +3727,14 @@ const store = {
       showProjectDetail(project.id);
     }
 
-    function addPackage(projectId, formData) {
+    function addPackage(projectId, formData, milestones = []) {
       const project = projectFor(projectId);
       if (!project) return;
       const contractor = formData.contractor === 'Unassigned estimate' ? 'Unassigned estimate' : formData.contractor;
       const pkg = {
         id: 'wp-' + Date.now(),
         name: formData.name,
-        cap: parseFloat(formData.cap) || 0,
+        cap: parsePackageAmount(formData.cap) || 0,
         contractModel: formData.contractModel || 'milestone',
         funded: 0,
         released: 0,
@@ -3698,12 +3747,19 @@ const store = {
         requests: [],
         variationRequests: [],
         documentRequests: [],
+        milestones: milestones.map((milestone) => ({
+          name: milestone.name,
+          paymentDate: milestone.paymentDate,
+          amount: milestone.amount,
+          status: milestone.status || 'uninvoiced',
+        })),
       };
       project.packages.push(pkg);
       syncMilestoneStatuses(project);
       store.activePackageId = pkg.id;
       logAudit(project, 'Estimated package added by Project Manager: ' + pkg.name, 'info');
       renderProjectDetail(projectId);
+      renderDashboard2();
     }
 
     function approveWorkPackage(projectId, packageId) {
@@ -4456,6 +4512,183 @@ const store = {
       validateMilestoneProjectForm();
     }
 
+    function selectedPackageContractModel() {
+      return document.querySelector('[data-package-contract-model]')?.value || 'milestone';
+    }
+
+    function packageScheduleRows() {
+      return [...document.querySelectorAll('[data-package-milestone-row]')];
+    }
+
+    function packageBudgetValue() {
+      return parsePackageAmount(document.querySelector('[data-add-package-budget]')?.value || 0);
+    }
+
+    function packageScheduleRequired() {
+      const model = selectedPackageContractModel();
+      return model === 'milestone' || model === 'bespoke';
+    }
+
+    function packageScheduleConfig(model = selectedPackageContractModel()) {
+      if (model === 'bespoke') {
+        return {
+          title: 'Define bespoke payment stages',
+          help: 'Adjust each custom stage name, payment date, and amount before the package is created.',
+          addLabel: 'Add stage',
+          nameLabel: 'Stage name',
+          namePlaceholder: 'Custom release stage',
+          names: ['Initial release', 'Main works release', 'Completion release'],
+          shares: [0.25, 0.5, 0.25],
+        };
+      }
+      return {
+        title: 'Define package milestones',
+        help: 'Adjust each milestone name, payment date, and amount before the package is created.',
+        addLabel: 'Add milestone',
+        nameLabel: 'Milestone name',
+        namePlaceholder: 'Foundation pour',
+        names: ['Mobilisation', 'Works complete', 'Inspection sign-off', 'Retention release'],
+        shares: [0.2, 0.35, 0.35, 0.1],
+      };
+    }
+
+    function addDaysToIso(dateValue, days) {
+      const base = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+      if (Number.isNaN(base.getTime())) return '';
+      base.setDate(base.getDate() + days);
+      return base.toISOString().split('T')[0];
+    }
+
+    function packageScheduleDefaultRows() {
+      const config = packageScheduleConfig();
+      const budget = packageBudgetValue();
+      const packageName = document.querySelector('[data-add-package-name]')?.value.trim() || 'Package';
+      const start = document.querySelector('[data-add-package-start]')?.value || new Date().toISOString().split('T')[0];
+      const end = document.querySelector('[data-add-package-completion]')?.value || '';
+      return config.names.map((name, index) => {
+        const amount = Math.round((budget * config.shares[index]) / 1000) * 1000;
+        const date = end && index === config.names.length - 1
+          ? end
+          : addDaysToIso(start, (index + 1) * 14);
+        return {
+          name: `${packageName} ${name}`.trim(),
+          paymentDate: date,
+          amount,
+          status: 'uninvoiced',
+        };
+      });
+    }
+
+    function getPackageMilestoneRowValues() {
+      return packageScheduleRows().map((row) => ({
+        name: row.querySelector('[data-package-milestone-name]')?.value.trim() || '',
+        paymentDate: row.querySelector('[data-package-milestone-date]')?.value || '',
+        amount: parsePackageAmount(row.querySelector('[data-package-milestone-amount]')?.value || 0),
+        status: row.querySelector('[data-package-milestone-status]')?.value || 'uninvoiced',
+      }));
+    }
+
+    function syncPackageScheduleSummary() {
+      const summary = document.querySelector('[data-package-schedule-summary]');
+      if (!summary) return;
+      const budget = packageBudgetValue();
+      const rows = getPackageMilestoneRowValues();
+      const total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+      const remaining = budget - total;
+      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
+      const hasDuplicateDates = new Set(dates).size !== dates.length;
+      summary.textContent = hasDuplicateDates
+        ? `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Dates cannot overlap`
+        : `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Remaining: ${formatGBP(remaining)}`;
+      summary.classList.toggle('is-over', budget > 0 && remaining < 0 && !hasDuplicateDates);
+      summary.classList.toggle('is-error', hasDuplicateDates);
+    }
+
+    function validatePackageSchedule() {
+      const createButton = document.querySelector('[data-add-package-create]');
+      if (!createButton) return;
+      if (!packageScheduleRequired()) {
+        createButton.disabled = false;
+        return;
+      }
+      const rows = getPackageMilestoneRowValues();
+      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
+      const hasDuplicateDates = new Set(dates).size !== dates.length;
+      createButton.disabled = rows.length < 1
+        || rows.some((row) => !row.name || !row.paymentDate || row.amount <= 0)
+        || hasDuplicateDates;
+      syncPackageScheduleSummary();
+    }
+
+    function renderPackageMilestoneBuilder(rows = packageScheduleDefaultRows()) {
+      const builder = document.querySelector('[data-package-milestone-builder]');
+      if (!builder) return;
+      const config = packageScheduleConfig();
+      const title = document.querySelector('[data-package-schedule-title]');
+      const help = document.querySelector('[data-package-schedule-help]');
+      const addButton = document.querySelector('[data-add-package-milestone-row]');
+      if (title) title.textContent = config.title;
+      if (help) help.textContent = config.help;
+      if (addButton) addButton.textContent = config.addLabel;
+      builder.innerHTML = rows.map((row) => `
+        <div class="new-project-section-row" data-package-milestone-row>
+          <div class="form-field">
+            <label>${config.nameLabel}</label>
+            <input type="text" value="${escapeHtml(row.name || '')}" placeholder="${escapeHtml(config.namePlaceholder)}" data-package-milestone-name>
+          </div>
+          <div class="form-field">
+            <label>Payment date</label>
+            <input type="date" value="${escapeHtml(row.paymentDate || '')}" data-package-milestone-date>
+          </div>
+          <div class="form-field">
+            <label>Amount - GBP</label>
+            <input type="number" min="0" step="1000" value="${row.amount || ''}" placeholder="0" data-package-milestone-amount>
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <select data-package-milestone-status>
+              <option value="uninvoiced" ${row.status === 'uninvoiced' ? 'selected' : ''}>Uninvoiced</option>
+              <option value="invoiced" ${row.status === 'invoiced' ? 'selected' : ''}>Invoiced</option>
+              <option value="paid" ${row.status === 'paid' ? 'selected' : ''}>Released</option>
+              <option value="contested" ${row.status === 'contested' ? 'selected' : ''}>Contested</option>
+            </select>
+          </div>
+          <button class="new-project-remove-section" type="button" data-remove-package-milestone-row aria-label="Remove schedule row" ${rows.length === 1 ? 'disabled' : ''}>Remove</button>
+        </div>
+      `).join('');
+      syncPackageScheduleSummary();
+      validatePackageSchedule();
+    }
+
+    function collectPackageMilestones() {
+      return packageScheduleRequired()
+        ? getPackageMilestoneRowValues().filter((row) => row.name || row.paymentDate || row.amount)
+        : [];
+    }
+
+    function renderAddPackageStep(step = 1) {
+      const steps = document.querySelectorAll('[data-package-step]');
+      const panels = document.querySelectorAll('[data-package-panel]');
+      const backButton = document.querySelector('[data-package-back]');
+      const nextButton = document.querySelector('[data-package-next]');
+      const createButton = document.querySelector('[data-add-package-create]');
+      const needsSchedule = packageScheduleRequired();
+      steps.forEach((item) => {
+        const itemStep = Number(item.dataset.packageStep);
+        item.classList.toggle('is-active', itemStep === step);
+        item.classList.toggle('is-complete', itemStep < step);
+        item.hidden = itemStep === 2 && !needsSchedule;
+      });
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-active', Number(panel.dataset.packagePanel) === step);
+      });
+      if (backButton) backButton.hidden = step === 1;
+      if (nextButton) nextButton.hidden = !needsSchedule || step !== 1;
+      if (createButton) createButton.hidden = needsSchedule ? step !== 2 : false;
+      if (step === 2) renderPackageMilestoneBuilder(getPackageMilestoneRowValues().length ? getPackageMilestoneRowValues() : packageScheduleDefaultRows());
+      validatePackageSchedule();
+    }
+
     function validateMilestoneProjectForm() {
       const createButton = document.querySelector('[data-new-project-create]');
       const builder = document.querySelector('[data-milestone-builder]');
@@ -4536,6 +4769,51 @@ const store = {
       });
     });
 
+    document.querySelector('[data-package-next]')?.addEventListener('click', () => {
+      renderAddPackageStep(2);
+    });
+
+    document.querySelector('[data-package-back]')?.addEventListener('click', () => {
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-package-contract-model]')?.addEventListener('change', () => {
+      renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-add-package-budget]')?.addEventListener('input', () => {
+      renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-add-package-name]')?.addEventListener('input', () => {
+      if (!document.querySelector('[data-package-panel="2"]')?.classList.contains('is-active')) {
+        renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      }
+    });
+
+    document.querySelector('[data-add-package-start]')?.addEventListener('change', () => renderPackageMilestoneBuilder(packageScheduleDefaultRows()));
+    document.querySelector('[data-add-package-completion]')?.addEventListener('change', () => renderPackageMilestoneBuilder(packageScheduleDefaultRows()));
+
+    document.querySelector('[data-add-package-milestone-row]')?.addEventListener('click', () => {
+      const rows = getPackageMilestoneRowValues();
+      rows.push({ name: '', paymentDate: '', amount: 0, status: 'uninvoiced' });
+      renderPackageMilestoneBuilder(rows);
+    });
+
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove-package-milestone-row]');
+      if (!removeButton) return;
+      const rows = getPackageMilestoneRowValues();
+      const index = packageScheduleRows().indexOf(removeButton.closest('[data-package-milestone-row]'));
+      rows.splice(index, 1);
+      renderPackageMilestoneBuilder(rows.length ? rows : [{ name: '', paymentDate: '', amount: 0, status: 'uninvoiced' }]);
+    });
+
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('input', validatePackageSchedule);
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('change', validatePackageSchedule);
+
     function handleModalSubmit(modal) {
       const modalName = modal.dataset.modal;
       const context = currentContextIds();
@@ -4557,14 +4835,14 @@ const store = {
 
       if (modalName === 'add-package') {
         addPackage(context.projectId, {
-          name: modalFieldValue(modal, 0) || 'New Work Package',
-          contractModel: document.querySelector('[data-package-contract-model]')?.value || 'milestone',
-          cap: modalFieldValue(modal, 2) || '0',
-          contractor: modalFieldValue(modal, 3) || 'Unassigned estimate',
-          contractRef: modalFieldValue(modal, 4) || '',
-          startDate: modalFieldValue(modal, 5) || '',
-          completionDate: modalFieldValue(modal, 6) || '',
-        });
+          name: modalScopedValue(modal, '[data-add-package-name]') || 'New Work Package',
+          contractModel: selectedPackageContractModel(),
+          cap: modalScopedValue(modal, '[data-add-package-budget]') || '0',
+          contractor: modalScopedValue(modal, '[data-add-package-contractor]') || 'Unassigned estimate',
+          contractRef: modalScopedValue(modal, '[data-add-package-ref]') || '',
+          startDate: modalScopedValue(modal, '[data-add-package-start]') || '',
+          completionDate: modalScopedValue(modal, '[data-add-package-completion]') || '',
+        }, collectPackageMilestones());
       }
 
       if (modalName === 'fund-package') {
@@ -4746,6 +5024,10 @@ const store = {
         renderNewProjectStep(1);
       }
       if (name === 'new-project') syncProjectClientMode();
+      if (name === 'add-package') {
+        renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+        renderAddPackageStep(1);
+      }
     }
 
     function setLandingRole(role) {
@@ -4814,7 +5096,7 @@ const store = {
     document.addEventListener('click', (event) => {
       const modal = event.target.closest('[data-modal]');
       const button = event.target.closest('.modal-footer .btn');
-      if (!modal || !button || button.matches('[data-modal-close], [data-modal-target], [data-new-project-next], [data-new-project-back]')) return;
+      if (!modal || !button || button.matches('[data-modal-close], [data-modal-target], [data-new-project-next], [data-new-project-back], [data-package-next], [data-package-back]')) return;
       event.preventDefault();
       event.stopPropagation();
       handleModalSubmit(modal);
