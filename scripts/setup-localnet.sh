@@ -15,6 +15,27 @@ PM_KEY="9hSR6S7WPtxmTojgo6GG3k4yDPecgJY292j7xrsUGWBu"         # fill(2)
 DIRECTOR_KEY="GyGKxMyg1p9SsHfm15MkNUu1u9TN2JtTspcdmrtGUdse"   # fill(3)
 CONTRACTOR_KEY="EdmxWPmx2WH6WgFfTdu9xfkYf3k1g5wD1zccTVySEEh1"  # fill(4)
 
+wait_for_validator() {
+  for _ in $(seq 1 30); do
+    if solana cluster-version >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
+airdrop_with_retry() {
+  local key="$1"
+  for _ in $(seq 1 5); do
+    if solana airdrop 10 "$key"; then
+      return 0
+    fi
+    sleep 1
+  done
+  return 1
+}
+
 echo "==> Checking toolchain..."
 if ! command -v solana >/dev/null 2>&1; then
   echo "ERROR: Solana CLI not found. Install Solana CLI in WSL first."
@@ -38,15 +59,22 @@ solana-test-validator \
   --reset \
   --quiet &
 VALIDATOR_PID=$!
+trap 'kill "$VALIDATOR_PID" 2>/dev/null || true' EXIT
 echo "    Validator PID: $VALIDATOR_PID"
 
 echo "==> Waiting for validator..."
-sleep 5
+if ! wait_for_validator; then
+  echo "ERROR: Validator did not become ready in time."
+  exit 1
+fi
 solana config set --url http://localhost:8899
 
 echo "==> Airdropping SOL to demo wallets..."
 for KEY in "$FINANCE_KEY" "$PM_KEY" "$DIRECTOR_KEY" "$CONTRACTOR_KEY"; do
-  solana airdrop 10 "$KEY" || true
+  if ! airdrop_with_retry "$KEY"; then
+    echo "ERROR: Failed to airdrop SOL to $KEY."
+    exit 1
+  fi
 done
 
 echo ""

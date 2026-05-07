@@ -1,11 +1,15 @@
-import { Keypair, PublicKey, Connection } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
-import type { MetadataClient, MetadataWriter } from "./metadataClient";
+import type {
+  MetadataClient,
+  MetadataSnapshot,
+  MetadataWriter,
+} from "./metadataClient";
 import {
   LocalStorageMetadataClient,
   MockMetadataClient,
 } from "./metadataClient";
-import { seedDemoMetadata } from "./metadataSeed";
+import { demoProjectRef, seedDemoMetadata } from "./metadataSeed";
 import { MockConstruktClient } from "./mockClient";
 import type { DemoWorld } from "./mockSeed";
 import { seedHospitalFitOut } from "./mockSeed";
@@ -17,6 +21,15 @@ import {
 import type { ConstruktClient } from "./program";
 import type { DemoRole } from "./theme";
 
+export interface AppWorld {
+  finance: DemoWorld["finance"];
+  pm: DemoWorld["pm"];
+  director: DemoWorld["director"];
+  contractor: DemoWorld["contractor"];
+  mint: DemoWorld["mint"];
+  project: DemoWorld["project"];
+}
+
 export interface AppClients {
   client: ConstruktClient;
   metadata: MetadataClient;
@@ -27,7 +40,7 @@ export interface AppClients {
    * handle the `null` case rather than assuming write capability.
    */
   metadataWriter: MetadataWriter | null;
-  world: DemoWorld;
+  world: AppWorld;
 }
 
 /**
@@ -50,7 +63,14 @@ export const buildDemoClients = async (): Promise<AppClients> => {
     client: construktClient,
     metadata,
     metadataWriter: metadata,
-    world,
+    world: {
+      finance: world.finance,
+      pm: world.pm,
+      director: world.director,
+      contractor: world.contractor,
+      mint: world.mint,
+      project: world.project,
+    },
   };
 };
 
@@ -63,41 +83,26 @@ const browserLocalStorage = (): Storage | null => {
   }
 };
 
-/**
- * Build the Anchor-backed client bundle for localnet/devnet mode.
- * The world shape stays deterministic so existing UI routes and
- * selector assumptions keep working without extra chain lookups.
- */
-export const buildAnchorClients = async (
-  rpcUrl: string,
-): Promise<AppClients> => {
-  const { createAnchorClient } = await import("./anchorClient");
-  const finance = Keypair.fromSeed(new Uint8Array(32).fill(1));
-  const pm = Keypair.fromSeed(new Uint8Array(32).fill(2));
-  const director = Keypair.fromSeed(new Uint8Array(32).fill(3));
-  const contractor = Keypair.fromSeed(new Uint8Array(32).fill(4));
-  const mintKp = Keypair.fromSeed(new Uint8Array(32).fill(10));
-
-  const connection = new Connection(rpcUrl, "confirmed");
-  const client = createAnchorClient({
-    programId: CONSTRUKT_PROGRAM_ID,
-    connection,
-    keypairs: [finance, pm, director, contractor, mintKp],
-  });
-
-  const programId = CONSTRUKT_PROGRAM_ID;
+const buildDeterministicAnchorSeedWorld = (
+  programId: PublicKey,
+  finance: Keypair,
+  pm: Keypair,
+  director: Keypair,
+  contractor: Keypair,
+  mint: PublicKey,
+): DemoWorld => {
   const project = deriveProjectAddress(programId, finance.publicKey, 1n);
   const pkgAddr = (id: bigint): PublicKey =>
     deriveWorkPackageAddress(programId, project, id);
   const reqAddr = (pkg: PublicKey, id: bigint): PublicKey =>
     derivePaymentRequestAddress(programId, pkg, id);
 
-  const world: DemoWorld = {
+  return {
     finance,
     pm,
     director,
     contractor,
-    mint: mintKp.publicKey,
+    mint,
     project,
     packages: {
       foundation: {
@@ -138,28 +143,126 @@ export const buildAnchorClients = async (
       },
     },
   };
+};
+
+const supportsSnapshots = (
+  metadata: MetadataClient,
+): metadata is MetadataClient &
+  MetadataWriter & {
+    toSnapshot(): MetadataSnapshot;
+    loadSnapshot(snapshot: Partial<MetadataSnapshot>): void;
+  } =>
+  "toSnapshot" in metadata &&
+  typeof metadata.toSnapshot === "function" &&
+  "loadSnapshot" in metadata &&
+  typeof metadata.loadSnapshot === "function";
+
+const mergeSnapshots = (
+  seeded: MetadataSnapshot,
+  existing: MetadataSnapshot,
+): MetadataSnapshot => ({
+  projects: { ...seeded.projects, ...existing.projects },
+  packages: { ...seeded.packages, ...existing.packages },
+  documents: { ...seeded.documents, ...existing.documents },
+  notes: { ...seeded.notes, ...existing.notes },
+  holds: { ...seeded.holds, ...existing.holds },
+});
+
+const maybeSeedDemoMetadata = async (
+  metadata: MetadataClient & MetadataWriter,
+  world: DemoWorld,
+): Promise<void> => {
+  if ((await metadata.resolveProject(demoProjectRef())) !== null) return;
+
+  if (supportsSnapshots(metadata)) {
+    const seeded = new MockMetadataClient();
+    seedDemoMetadata(seeded, world);
+    metadata.loadSnapshot(
+      mergeSnapshots(seeded.toSnapshot(), metadata.toSnapshot()),
+    );
+    return;
+  }
+
+  seedDemoMetadata(metadata, world);
+};
+
+const hasSeededAnchorDemo = async (
+  client: ConstruktClient,
+  world: DemoWorld,
+): Promise<boolean> => {
+  const project = await client.fetchProject(world.project);
+  if (!project) return false;
+  for (const summary of Object.values(world.packages)) {
+    const workPackage = await client.fetchWorkPackage(summary.address);
+    if (!workPackage) return false;
+  }
+  return true;
+};
+
+/**
+ * Build the Anchor-backed client bundle for localnet/devnet mode.
+ * Demo wallets are deterministic, but package/request state must still
+ * be proven by chain reads before any matching metadata is seeded.
+ */
+export const buildAnchorClients = async (
+  rpcUrl: string,
+): Promise<AppClients> => {
+  const { createAnchorClient } = await import("./anchorClient");
+  const finance = Keypair.fromSeed(new Uint8Array(32).fill(1));
+  const pm = Keypair.fromSeed(new Uint8Array(32).fill(2));
+  const director = Keypair.fromSeed(new Uint8Array(32).fill(3));
+  const contractor = Keypair.fromSeed(new Uint8Array(32).fill(4));
+  const mintKp = Keypair.fromSeed(new Uint8Array(32).fill(10));
+
+  const connection = new Connection(rpcUrl, "confirmed");
+  const client = createAnchorClient({
+    programId: CONSTRUKT_PROGRAM_ID,
+    connection,
+    keypairs: [finance, pm, director, contractor, mintKp],
+  });
+
+  const seedWorld = buildDeterministicAnchorSeedWorld(
+    CONSTRUKT_PROGRAM_ID,
+    finance,
+    pm,
+    director,
+    contractor,
+    mintKp.publicKey,
+  );
 
   const metadataStorage = browserLocalStorage();
   const metadata = metadataStorage
     ? new LocalStorageMetadataClient(metadataStorage)
     : new MockMetadataClient();
-  seedDemoMetadata(metadata, world);
+  if (await hasSeededAnchorDemo(client, seedWorld)) {
+    await maybeSeedDemoMetadata(metadata, seedWorld);
+  }
 
   return {
     client,
     metadata,
     metadataWriter: metadata,
-    world,
+    world: {
+      finance: seedWorld.finance,
+      pm: seedWorld.pm,
+      director: seedWorld.director,
+      contractor: seedWorld.contractor,
+      mint: seedWorld.mint,
+      project: seedWorld.project,
+    },
   };
 };
 
 /**
  * Map a demo role to the seeded demo wallet that would sign for it on
- * chain. V0 only — Phase 4 must replace this with a real connected
+ * chain. V0 only â€” Phase 4 must replace this with a real connected
  * wallet (which may not match the visible role; that mismatch is the
  * whole reason "role visibility is not authorization").
  */
-export const walletForRole = (world: DemoWorld, role: DemoRole): PublicKey => {
+export const walletForRole = (
+  world: Pick<AppWorld, "finance" | "pm" | "director" | "contractor">,
+  role: DemoRole,
+): PublicKey => {
   switch (role) {
     case "financeDirector":
       return world.finance.publicKey;

@@ -177,7 +177,11 @@ const parseSnapshot = (raw: string): MetadataSnapshot =>
       BIGINT_MARKER in value &&
       typeof value[BIGINT_MARKER as keyof typeof value] === "string"
     ) {
-      return BigInt(value[BIGINT_MARKER as keyof typeof value] as string);
+      try {
+        return BigInt(value[BIGINT_MARKER as keyof typeof value] as string);
+      } catch {
+        return value;
+      }
     }
     return value;
   }) as MetadataSnapshot;
@@ -282,6 +286,7 @@ export class LocalStorageMetadataClient
   private readonly client = new MockMetadataClient();
   private readonly storage: MetadataStorage;
   private readonly key: string;
+  private warnedPersistFailure = false;
 
   constructor(storage: MetadataStorage, key = DEFAULT_METADATA_STORAGE_KEY) {
     this.storage = storage;
@@ -330,6 +335,11 @@ export class LocalStorageMetadataClient
     return this.client.toSnapshot();
   }
 
+  loadSnapshot(snapshot: Partial<MetadataSnapshot>): void {
+    this.client.loadSnapshot(snapshot);
+    this.persist();
+  }
+
   private loadStoredSnapshot(): void {
     const raw = this.storage.getItem(this.key);
     if (!raw) {
@@ -349,9 +359,16 @@ export class LocalStorageMetadataClient
         this.key,
         stringifySnapshot(this.client.toSnapshot()),
       );
-    } catch {
+    } catch (err) {
       // Storage can be unavailable in private mode or locked-down browsers.
       // The in-memory client still carries the current session safely.
+      if (!this.warnedPersistFailure) {
+        this.warnedPersistFailure = true;
+        console.warn(
+          "Construkt metadata persistence is unavailable; browser refreshes may discard local demo metadata.",
+          err,
+        );
+      }
     }
   }
 }
