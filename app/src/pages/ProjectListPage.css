@@ -1,0 +1,112 @@
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.project-list__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.project-list__head h1 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.project-list__lead {
+  color: var(--color-text-muted);
+  font-size: var(--text-md);
+}
+
+.project-list__empty {
+  color: var(--color-text-muted);
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.project-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: var(--space-4);
+}
+
+.project-list__item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.project-list__item:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.project-list__link {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  color: inherit;
+}
+
+.project-list__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.project-list__title h2 {
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+
+.project-list__client {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.project-list__client strong {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.project-list__metrics {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3) var(--space-4);
+}
+
+.project-list__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.project-list__metric dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-faint);
+}
+
+.project-list__metric dd {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.project-list__held {
+  margin-top: var(--space-1);
+}
