@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
+import { Dashboard2Page } from "./pages/Dashboard2Page";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
@@ -44,6 +45,8 @@ const RouteSwitch = ({
   role: DemoRole;
 }) => {
   switch (route.key) {
+    case "dashboard2":
+      return <Dashboard2Page role={role} />;
     case "projects":
       return <ProjectListPage role={role} />;
     case "projectDetail":
@@ -67,6 +70,9 @@ const HomePlaceholder = () => (
       surfaces land in the next steps.
     </p>
     <div className="home-placeholder__cta">
+      <a className="home-placeholder__button" href="#dashboard2">
+        Open dashboard
+      </a>
       <a className="home-placeholder__button" href="#projects">
         Browse projects
       </a>
