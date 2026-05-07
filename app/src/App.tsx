@@ -3,6 +3,7 @@ import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
+import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
 import type { ParsedRoute } from "./lib/router";
@@ -47,6 +48,8 @@ const RouteSwitch = ({
       return <ProjectListPage role={role} />;
     case "projectDetail":
       return <ProjectDetailPage address={route.params.address} />;
+    case "workPackageView":
+      return <WorkPackageViewPage address={route.params.address} />;
     case "home":
     default:
       return <HomePlaceholder />;
