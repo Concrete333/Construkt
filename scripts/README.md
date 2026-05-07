@@ -16,7 +16,7 @@ Run these in order from WSL:
 bash scripts/setup-localnet.sh
 
 # 2. (optional) Seed with demo wallets, mint, project, and work packages
-npx ts-node scripts/seed-localnet.ts
+npm run seed:localnet
 ```
 
 Once localnet is running, execute the integration tests from the repo root:

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import {
@@ -9,8 +8,7 @@ import {
   getAssociatedTokenAddressSync,
   mintTo,
 } from "@solana/spl-token";
-
-const IDL = require("../app/src/idl/construkt.json");
+import IDL from "../app/src/idl/construkt.json";
 
 const PROGRAM_ID = new anchor.web3.PublicKey(IDL.address);
 const RPC_URL = process.env.ANCHOR_RPC_URL ?? "http://localhost:8899";
@@ -109,17 +107,30 @@ const deriveApprovalRecordAddress = (
     PROGRAM_ID,
   )[0];
 
-const makeWallet = (keypair: anchor.web3.Keypair) => ({
-  publicKey: keypair.publicKey,
-  signTransaction<T extends anchor.web3.Transaction>(tx: T): Promise<T> {
+type SignableTransaction =
+  | anchor.web3.Transaction
+  | anchor.web3.VersionedTransaction;
+
+const signTransaction = <T extends SignableTransaction>(
+  tx: T,
+  keypair: anchor.web3.Keypair,
+): T => {
+  if (tx instanceof anchor.web3.VersionedTransaction) {
+    tx.sign([keypair]);
+  } else {
     tx.partialSign(keypair);
-    return Promise.resolve(tx);
+  }
+  return tx;
+};
+
+const makeWallet = (keypair: anchor.web3.Keypair): anchor.Wallet => ({
+  payer: keypair,
+  publicKey: keypair.publicKey,
+  signTransaction<T extends SignableTransaction>(tx: T): Promise<T> {
+    return Promise.resolve(signTransaction(tx, keypair));
   },
-  signAllTransactions<T extends anchor.web3.Transaction>(
-    txs: T[],
-  ): Promise<T[]> {
-    txs.forEach((tx) => tx.partialSign(keypair));
-    return Promise.resolve(txs);
+  signAllTransactions<T extends SignableTransaction>(txs: T[]): Promise<T[]> {
+    return Promise.resolve(txs.map((tx) => signTransaction(tx, keypair)));
   },
 });
 

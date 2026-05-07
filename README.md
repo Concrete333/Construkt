@@ -39,7 +39,7 @@ bash scripts/setup-localnet.sh
 npm run anchor:test
 
 # 3. Optional — seed localnet with demo data
-npx ts-node scripts/seed-localnet.ts
+npm run seed:localnet
 ```
 
 ### Develop the React app

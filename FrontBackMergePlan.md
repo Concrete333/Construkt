@@ -546,7 +546,7 @@ Use this exact sequence for repeatable local validation of the full integrated f
 3. Start local validator and fund demo wallets:
    - `bash scripts/setup-localnet.sh`
 4. Seed on-chain demo state:
-   - `npx ts-node scripts/seed-localnet.ts`
+   - `npm run seed:localnet`
 5. Start frontend in Anchor mode (new terminal):
    - `cd /mnt/c/Users/hfche/Documents/GitHub/Construkt/app`
    - `VITE_ANCHOR_RPC=http://localhost:8899 npm run dev`

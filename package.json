@@ -5,6 +5,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "anchor:test": "anchor test --provider.cluster localnet",
+    "seed:localnet": "ts-node -P tsconfig.scripts.json scripts/seed-localnet.ts",
+    "typecheck:scripts": "tsc -p tsconfig.scripts.json",
     "test:frontend": "ts-mocha -p ./tsconfig.json -t 10000 \"frontend-prototype/tests/construkt.frontend.ts\"",
     "lint": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" --check",
     "lint:fix": "prettier \"migrations/**/*.ts\" \"tests/**/*.ts\" -w"
@@ -17,10 +19,12 @@
     "@types/bn.js": "^5.1.0",
     "@types/chai": "^4.3.0",
     "@types/mocha": "^9.0.0",
+    "@types/node": "^25.6.1",
     "chai": "^4.3.4",
     "mocha": "^11.7.5",
     "prettier": "^2.6.2",
     "ts-mocha": "^10.0.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.7.3"
   }
 }
