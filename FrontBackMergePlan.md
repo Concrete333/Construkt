@@ -535,6 +535,53 @@ These are entry points for the on-chain instructions and gate the demo flow. Eac
   - release before approvals
   - release during hold
 
+#### Phase 5 Validator Runbook (WSL)
+
+Use this exact sequence for repeatable local validation of the full integrated flow.
+
+1. Start in WSL at repo root:
+   - `cd /mnt/c/Users/hfche/Documents/GitHub/Construkt`
+2. Build program binary (required for validator preload):
+   - `anchor build`
+3. Start local validator and fund demo wallets:
+   - `bash scripts/setup-localnet.sh`
+4. Seed on-chain demo state:
+   - `npx ts-node scripts/seed-localnet.ts`
+5. Start frontend in Anchor mode (new terminal):
+   - `cd /mnt/c/Users/hfche/Documents/GitHub/Construkt/app`
+   - `VITE_ANCHOR_RPC=http://localhost:8899 npm run dev`
+6. Open the exact Vite URL printed in terminal (port may be `5173`, `5174`, etc.).
+
+Validation checklist:
+
+- Confirm the six package states render: `released`, `highApproved`, `lowApproved`, `submittedOnHold`, `noRequest`, `rejected`.
+- Walk one full happy path:
+  - contractor submits request
+  - PM approves
+  - Director approves
+  - Finance releases
+- Validate blocked states show friendly messages:
+  - early Director approval
+  - duplicate approval
+  - release before high approval
+  - release while hold is active
+
+Reset and cleanup rules:
+
+- `test-ledger/` is local validator runtime data, not source code.
+- Deleting `test-ledger/` wipes local chain state and logs only.
+- Never delete `test-ledger/` while validator is running.
+- Safe reset sequence:
+  1. stop validator (`Ctrl+C` in validator terminal, or `pkill -f solana-test-validator`)
+  2. remove ledger (`rm -rf /mnt/c/Users/hfche/Documents/GitHub/Construkt/test-ledger`)
+  3. rerun setup + seed (steps 3 and 4 above)
+
+Troubleshooting notes:
+
+- If app page is blank, verify you opened the same port Vite printed.
+- If Anchor mode fails to bootstrap, restart Vite after any dependency reinstall.
+- If `Buffer is not defined` appears, confirm latest `app/src/main.tsx` is loaded (hard refresh).
+
 ## Frontend-Specific Merge Tasks From Current Prototype
 
 - Replace the prototype `store` with a `ConstruktClient` mock adapter that mirrors Anchor account shapes.
@@ -637,3 +684,4 @@ Backend mapping note: Project Manager package creation is mostly off-chain/proje
 - 2026-05-07: Step 16 — All remaining V0 Modals land, completing Phase 2. Six write-action forms added across three pages: (1) **Create project** (`initializeProject`) — Finance sees "+ New project" inline form on `ProjectListPage` (name + client fields; generates a timestamp-based `projectId` and `metadataRef`, writes metadata before the on-chain call). (2) **Add work package** (`createWorkPackage`) — Finance/PM see "+ Add package" inline form on `ProjectDetailPage` (scope description + cap amount + contractor wallet pre-filled from world; derives `packageId` from existing package count + 1, writes `scopeRef` metadata). (3) **Fund package** (`fundEscrow`) — Finance sees a "Fund…" inline form per-package card on `ProjectDetailPage` (amount field; `FundCtx` struct passed through to `PackageCard`). (4) **Submit invoice** (`submitPaymentRequest`) — Contractor sees inline invoice form in `ActionPanel` when no active request exists (amount + document filename; derives `requestId = requestCounter + 1n`, writes `documentRef` metadata). (5) **Add/edit document** (`addDocumentReference`) — Contractor sees inline document form in the Documents panel when an active non-terminal request exists (filename field; writes new `documentRef` and calls `addDocumentReference`). (6) **Assign team member** (`assignRole`) — Finance sees inline assign form in `RolesPanel` (wallet address + role dropdown; calls `assignRole` on submit). All forms follow the existing reject/hold inline-form pattern: required-field guards, `parseMockUsdc` for amounts, `try-catch` for wallet inputs, `onAct` handler with shared pending/feedback/refreshKey. `App.tsx` updated to pass `role` to `ProjectDetailPage`. Phase 2 is now complete. Suite still at 134/134; bundle 524.17 kB JS / 40.53 kB CSS.
 - 2026-05-07: Step 15 — `#settings` read-only stub lands. `SettingsPage` (`app/src/pages/SettingsPage.tsx`) renders three groups: Demo session (active role label + theme name, each with a header-control hint), Network (network badge label + short program ID with full address on hover), and Deferred (wallet connection, RPC override, notifications, document storage backend — each flagged "Coming in a later phase"). `App.tsx` threads `theme` and `network` through `RouteSwitch` to satisfy the new props; the `settings` case was already in the router from Step 7a. No new tests (no logic; the render depends on props already covered by theme/router tests). Suite still 134/134; bundle 510.81 kB (+2.11 kB).
 - 2026-05-07: Step 14 — `#signin` page lands as the demo persona picker. `SignInPage` (`app/src/pages/SignInPage.tsx`) iterates `DEMO_ROLES` and renders one card per role with the role label, the seeded demo wallet's short address, and a one-line blurb of what's on the dashboard for that persona. Clicking a card calls the role setter hoisted from `App.tsx` and routes to `#dashboard2` via the anchor's `href`, so the picked role survives the navigation. `App.tsx` plumbs `onSelectRole={setRole}` through `RouteSwitch`. The `#home` placeholder CTA collapses from two buttons (`#dashboard2` / `#projects`) to a single `Sign in to demo` (`#signin`) per the V0 Screen Scope rule "Public landing page; one CTA into `#signin`". The router already had `signin` wired in Step 7a; the existing `parseHash` test covers it. Suite still at 134/134; bundle 508.70 kB (+1.39 kB).
+- 2026-05-07: Added a Phase 5 "Validator Runbook (WSL)" with exact setup/seed/dev commands, validation checklist, troubleshooting notes, and safe `test-ledger/` reset instructions (including "stop validator before deleting ledger").
