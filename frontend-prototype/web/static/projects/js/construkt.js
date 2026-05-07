@@ -3536,13 +3536,6 @@ const store = {
       return `${Math.max(1, Math.round(bytes / 1024))} KB`;
     }
 
-    function selectedContractModel() {
-      const title = document.querySelector('[data-contract-model-card].is-selected h3')?.textContent || 'Milestone-Based';
-      if (title.includes('Valuation')) return 'valuation';
-      if (title.includes('Bespoke')) return 'bespoke';
-      return 'milestone';
-    }
-
     function selectedProjectContractModel() {
       return document.querySelector('[data-project-contract-model-card].is-selected')?.dataset.projectContractModel || 'milestone';
     }
@@ -4447,18 +4440,6 @@ const store = {
       if (step === 2) renderMilestoneBuilder(getMilestoneRowValues());
       validateMilestoneProjectForm();
     }
-
-    document.querySelectorAll('[data-contract-model-card]').forEach((card) => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('[data-contract-model-card]').forEach((item) => {
-          const isSelected = item === card;
-          item.classList.toggle('is-selected', isSelected);
-          item.setAttribute('aria-pressed', String(isSelected));
-        });
-        const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-        renderNewProjectStep(Math.min(activeStep, selectedContractModel() === 'milestone' ? 3 : 2));
-      });
-    });
 
     document.querySelector('[data-new-project-next]')?.addEventListener('click', () => {
       renderNewProjectStep(2);
