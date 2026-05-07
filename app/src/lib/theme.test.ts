@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DEMO_ROLE_LABEL, networkBadgeContent, nextTheme } from "./theme";
+import {
+  DEMO_ROLE_LABEL,
+  DEMO_ROLES,
+  networkBadgeContent,
+  nextTheme,
+} from "./theme";
 
 describe("nextTheme", () => {
   it("flips light to dark and back", () => {
@@ -33,5 +38,21 @@ describe("DEMO_ROLE_LABEL", () => {
     expect(DEMO_ROLE_LABEL.projectManager).toBe("Project Manager");
     expect(DEMO_ROLE_LABEL.director).toBe("Director");
     expect(DEMO_ROLE_LABEL.contractor).toBe("Contractor");
+  });
+});
+
+describe("DEMO_ROLES", () => {
+  it("lists Finance first so it's the default landing role", () => {
+    expect(DEMO_ROLES[0]).toBe("financeDirector");
+  });
+
+  it("covers exactly the four DemoRole values", () => {
+    expect([...DEMO_ROLES].sort()).toEqual(Object.keys(DEMO_ROLE_LABEL).sort());
+  });
+
+  it("has a label for every entry", () => {
+    for (const role of DEMO_ROLES) {
+      expect(DEMO_ROLE_LABEL[role]).toBeTruthy();
+    }
   });
 });

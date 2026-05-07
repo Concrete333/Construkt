@@ -14,7 +14,7 @@ import "./App.css";
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>("light");
   const [network] = useState<DemoNetwork>("localnet");
-  const [role] = useState<DemoRole>("financeDirector");
+  const [role, setRole] = useState<DemoRole>("financeDirector");
   const route = useHashRoute();
 
   useEffect(() => {
@@ -26,6 +26,7 @@ const App = () => {
       header={{
         network,
         role,
+        onChangeRole: setRole,
         theme,
         onToggleTheme: () => setTheme((t) => nextTheme(t)),
       }}

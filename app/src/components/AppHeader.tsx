@@ -1,5 +1,5 @@
 import { NetworkBadge } from "./NetworkBadge";
-import { RoleBadge } from "./RoleBadge";
+import { RoleSwitcher } from "./RoleSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
 import type { DemoNetwork, DemoRole, ThemeMode } from "../lib/theme";
 import "./AppHeader.css";
@@ -7,6 +7,7 @@ import "./AppHeader.css";
 export interface AppHeaderProps {
   network: DemoNetwork;
   role: DemoRole;
+  onChangeRole: (next: DemoRole) => void;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
@@ -14,6 +15,7 @@ export interface AppHeaderProps {
 export const AppHeader = ({
   network,
   role,
+  onChangeRole,
   theme,
   onToggleTheme,
 }: AppHeaderProps) => (
@@ -28,7 +30,7 @@ export const AppHeader = ({
     </a>
     <div className="app-header__right">
       <NetworkBadge network={network} />
-      <RoleBadge role={role} />
+      <RoleSwitcher role={role} onChange={onChangeRole} />
       <ThemeToggle theme={theme} onToggle={onToggleTheme} />
     </div>
   </header>

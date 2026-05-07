@@ -49,3 +49,14 @@ export const DEMO_ROLE_LABEL: Record<DemoRole, string> = {
   director: "Director",
   contractor: "Contractor",
 };
+
+/**
+ * Iteration order for the role switcher. Finance first because it's the
+ * default landing role and the most frequently demoed surface.
+ */
+export const DEMO_ROLES: readonly DemoRole[] = [
+  "financeDirector",
+  "projectManager",
+  "director",
+  "contractor",
+] as const;
