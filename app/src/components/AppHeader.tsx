@@ -1,6 +1,8 @@
 import { NetworkBadge } from "./NetworkBadge";
 import { RoleSwitcher } from "./RoleSwitcher";
 import { ThemeToggle } from "./ThemeToggle";
+import { WalletDisplay } from "./WalletDisplay";
+import type { PublicKey } from "@solana/web3.js";
 import type { DemoNetwork, DemoRole, ThemeMode } from "../lib/theme";
 import "./AppHeader.css";
 
@@ -8,6 +10,8 @@ export interface AppHeaderProps {
   network: DemoNetwork;
   role: DemoRole;
   onChangeRole: (next: DemoRole) => void;
+  /** Demo wallet for the current role; absent until clients seed in. */
+  wallet: PublicKey | null;
   theme: ThemeMode;
   onToggleTheme: () => void;
 }
@@ -16,6 +20,7 @@ export const AppHeader = ({
   network,
   role,
   onChangeRole,
+  wallet,
   theme,
   onToggleTheme,
 }: AppHeaderProps) => (
@@ -31,6 +36,7 @@ export const AppHeader = ({
     <div className="app-header__right">
       <NetworkBadge network={network} />
       <RoleSwitcher role={role} onChange={onChangeRole} />
+      {wallet && <WalletDisplay wallet={wallet} />}
       <ThemeToggle theme={theme} onToggle={onToggleTheme} />
     </div>
   </header>

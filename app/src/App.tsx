@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
+import { useClients } from "./components/clientsContext";
 import { Dashboard2Page } from "./pages/Dashboard2Page";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
 import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
+import { walletForRole } from "./lib/clients";
 import type { ParsedRoute } from "./lib/router";
 import type { DemoNetwork, DemoRole, ThemeMode } from "./lib/theme";
 import "./App.css";
@@ -21,21 +24,38 @@ const App = () => {
     applyTheme(theme);
   }, [theme]);
 
+  const headerCommon = {
+    network,
+    role,
+    onChangeRole: setRole,
+    theme,
+    onToggleTheme: () => setTheme((t) => nextTheme(t)),
+  };
+
   return (
-    <AppShell
-      header={{
-        network,
-        role,
-        onChangeRole: setRole,
-        theme,
-        onToggleTheme: () => setTheme((t) => nextTheme(t)),
-      }}
+    <ClientsProvider
+      fallback={
+        <AppShell header={{ ...headerCommon, wallet: null }}>
+          <DemoSeedingNotice />
+        </AppShell>
+      }
     >
-      <ClientsProvider fallback={<DemoSeedingNotice />}>
+      <SeededShell headerCommon={headerCommon}>
         <RouteSwitch route={route} role={role} />
-      </ClientsProvider>
-    </AppShell>
+      </SeededShell>
+    </ClientsProvider>
   );
+};
+
+interface SeededShellProps {
+  headerCommon: Omit<React.ComponentProps<typeof AppShell>["header"], "wallet">;
+  children: ReactNode;
+}
+
+const SeededShell = ({ headerCommon, children }: SeededShellProps) => {
+  const { world } = useClients();
+  const wallet = walletForRole(world, headerCommon.role);
+  return <AppShell header={{ ...headerCommon, wallet }}>{children}</AppShell>;
 };
 
 const RouteSwitch = ({
