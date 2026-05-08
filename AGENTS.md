@@ -12,7 +12,8 @@ Use lowercase `construkt` for code-level names:
 
 - Anchor workspace/program: `construkt`
 - Program folder: `programs/construkt`
-- Test file: `tests/construkt.ts`
+- Anchor test files: `tests/construkt.b1-accounts.ts` through `tests/construkt.b4-release.ts`
+- Shared Anchor test fixture: `tests/setup.ts`
 - Frontend app folder: `app`
 - Frontend package name: `construkt-app`
 
@@ -29,9 +30,9 @@ Construkt is a Solana-backed escrow and approval engine for construction work-pa
 The MVP must prove one thing:
 
 1. A contractor submits a construction payment request.
-2. The right roles approve it in the right order.
+2. The PM/LowApprover approves it, with an optional HighApprover step available when a package uses that control.
 3. Release is blocked when rules are not satisfied.
-4. Finance releases funds only after all rules are satisfied.
+4. Finance releases funds only after PM approval and all hold, cap, funding, and token-account checks are satisfied.
 5. The app shows a clear audit trail.
 
 Target demo network: Solana localnet or devnet only. Do not target mainnet.
@@ -62,7 +63,7 @@ Preferred stack:
 Backendless demo path:
 
 - `frontend-prototype/web/index.html` is the canonical backendless demo entry point.
-- Treat it as a standalone static browser demo for presentation, product-flow exploration, and UX iteration before full Anchor integration.
+- Treat it as a standalone static browser demo for presentation, product-flow exploration, and UX iteration alongside the Anchor-integrated app.
 - It should not require Django, a REST API, wallet connection, localnet, devnet, or an Anchor client.
 - Business state in this backendless demo may be mocked/local-only and must not be described as on-chain truth.
 - When building the Solana-integrated V0 frontend, keep `app/` as the target runtime and migrate useful UX from the backendless demo deliberately.
@@ -83,7 +84,7 @@ For v0:
 4. Only `ProjectAccount.authority` can place/remove holds.
 5. Only `ProjectAccount.authority` can release funds.
 6. Role assignments are scoped to work packages.
-7. Only Contractor, LowApprover, and HighApprover require role assignment.
+7. Contractor and LowApprover require role assignment. HighApprover is supported and requires role assignment only when an optional high-approval step is used.
 8. Request-level holds only. Package-level holds are deferred.
 9. One active unreleased payment request per work package.
 10. Use standard SPL Token only, not Token-2022.
@@ -111,7 +112,9 @@ For v0:
   - Cannot release funds.
 
 - HighApprover / Director
-  - Second approval stage.
+  - Optional higher approval stage.
+  - Can approve only after LowApprover has approved.
+  - Not required before Finance release in the current PM-to-Finance flow.
   - Can reject.
   - Cannot act while request is on hold.
   - Cannot release funds in v0.
@@ -124,6 +127,8 @@ For v0:
   - Cannot release funds.
 
 ## Minimum On-Chain Model
+
+The backend is one deployed Anchor program. Projects, work packages, payment requests, approval records, role assignments, and vaults are PDA/accounts under that program; Construkt does not deploy a new smart contract per project, work package, or milestone in the current backend.
 
 Use PDAs where appropriate and validate account relationships on every instruction.
 
@@ -186,6 +191,7 @@ Stable role bytes:
 - requested amount
 - document hash/reference
 - status: submitted, low approved, high approved, rejected, released
+- `high approved` is an optional/custom state, not a mandatory release gate in the current flow.
 - timestamps
 - released amount
 - request-level hold state
@@ -253,11 +259,11 @@ Enforce these in the program, not just in the UI:
 - Every instruction validates account ownership and expected parent/child relationships.
 - Contractor can submit only for their assigned work package.
 - Contractor cannot approve their own request.
-- Low-level approval must happen before high-level approval.
+- Low-level approval must happen before high-level approval when the optional high step is used.
 - Duplicate approvals for the same role are rejected.
 - A work package can have only one active unreleased request.
 - Release is blocked if:
-  - required approvals are missing
+  - PM/LowApprover approval is missing
   - request is rejected
   - request is on hold
   - request exceeds package cap, tracked funded remaining amount, or vault token balance
@@ -274,19 +280,32 @@ Build one clean end-to-end flow:
 
 1. Select/connect demo wallets for each role.
 2. Create project/work package.
-3. Assign Contractor, PM, and Director wallet addresses.
+3. Assign Contractor and PM wallet addresses, and optionally assign a Director/HighApprover for packages that demonstrate the extra review step.
 4. Fund escrow with mock USDC.
 5. Contractor submits payment request.
 6. Contractor adds document hash/reference.
 7. PM approves or rejects.
-8. Director approves or rejects.
+8. Optional Director/HighApprover approves or rejects when that higher-control path is being demonstrated.
 9. Finance attempts release and sees blocked states when appropriate.
-10. Finance releases after approvals and no hold.
+10. Finance releases after PM approval, no hold, and valid cap/funding/token checks.
 11. Dashboard/audit trail shows statuses, tx signatures, and event history.
 
 Role switching is a demo/navigation aid only. Program permissions are enforced by the signer wallet, not UI selection.
 
 ## Tests
+
+Commands:
+
+- `npm run test:frontend` runs the backendless demo helper unit tests from the repository root. It uses `frontend-prototype/tests/construkt.frontend.ts`, does not require WSL, Django, a browser, localnet, devnet, or Anchor.
+- `npm run anchor:test` runs the Anchor/localnet program tests. Run Anchor/Solana program commands inside WSL Ubuntu.
+
+Frontend helper tests currently cover:
+
+- money formatting/parsing, easing, percent clamping, and date progress helpers
+- role labels, initials, chip tones, timeline dots, and model labels
+- project totals, contractor assignment detection, finance approval status, package status labels/classes, and bespoke timeline generation
+
+These tests are useful regression checks for expected frontend helper behavior, but they copy pure helper logic into the test file instead of importing the browser bundle directly. Keep that limitation in mind when changing `frontend-prototype/web/static/projects/js/construkt.js`.
 
 Anchor tests should cover at least:
 
@@ -296,6 +315,8 @@ Anchor tests should cover at least:
 - wrong approval order blocked
 - duplicate approval blocked
 - inactive approver role blocked
+- release after PM approval without high approval
+- release after optional high approval
 - second active request blocked
 - empty document reference blocked
 - over-cap request blocked
@@ -331,7 +352,7 @@ Prefer the smallest working vertical slice over broad scaffolding.
 2. Implement `initialize_project`, `create_work_package`, and `assign_role`.
 3. Implement SPL token escrow funding.
 4. Implement request submission and document reference storage.
-5. Implement ordered approvals and rejection.
+5. Implement PM approval, optional high approval, and rejection.
 6. Implement request hold/remove hold.
 7. Implement guarded `release_payment`.
 8. Add Anchor tests for the required rule set.

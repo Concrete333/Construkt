@@ -20,7 +20,7 @@ const ROLE_BLURB: Record<DemoRole, string> = {
   projectManager:
     "Approve contractor invoices as PM (low approver), reject with notes, drive package progress.",
   director:
-    "Approve invoices as Director (high approver) once PM has signed off.",
+    "Use an optional high-approver role when a package requires another sign-off after PM approval.",
   contractor:
     "Submit invoices on assigned packages, attach documents, track release status.",
 };

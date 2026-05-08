@@ -3,7 +3,6 @@ import type {
   ApprovalRecord,
   Fetched,
   PaymentRequestAccount,
-  PaymentRequestStatus,
   WorkPackageAccount,
 } from "../lib/program";
 
@@ -41,10 +40,10 @@ export const paymentRequestDisplayStatus = (
 const STATUS_LABELS: Record<PaymentRequestDisplayStatus, string> = {
   submitted: "Submitted — pending PM",
   submittedOnHold: "On hold (submitted)",
-  lowApproved: "PM approved — pending Director",
+  lowApproved: "PM approved — pending Finance release",
   lowApprovedOnHold: "On hold (PM approved)",
-  highApproved: "Director approved — pending Finance release",
-  highApprovedOnHold: "On hold (Director approved)",
+  highApproved: "High approver cleared — pending Finance release",
+  highApprovedOnHold: "On hold (high approver cleared)",
   released: "Released",
   rejected: "Rejected",
 };
@@ -126,7 +125,8 @@ export const selectApprovalTracker = (
  */
 export type ReleaseBlockedReason =
   | "AlreadyReleased"
-  | "NotHighApproved"
+  | "NotApprovedForRelease"
+  | "RequestRejected"
   | "PackageNotActive"
   | "OnHold"
   | "InsufficientRemainingCap"
@@ -145,8 +145,13 @@ export const selectReleaseReadiness = (
 
   if (request.status === "released") {
     reasons.push("AlreadyReleased");
-  } else if (request.status !== "highApproved") {
-    reasons.push("NotHighApproved");
+  } else if (request.status === "rejected") {
+    reasons.push("RequestRejected");
+  } else if (
+    request.status !== "lowApproved" &&
+    request.status !== "highApproved"
+  ) {
+    reasons.push("NotApprovedForRelease");
   }
   if (workPackage.status !== "active") reasons.push("PackageNotActive");
   if (request.holdActive) reasons.push("OnHold");
@@ -166,8 +171,10 @@ export const releaseBlockedReasonLabel = (
   switch (reason) {
     case "AlreadyReleased":
       return "This request has already been released.";
-    case "NotHighApproved":
-      return "Director approval is required before release.";
+    case "NotApprovedForRelease":
+      return "PM approval is required before release.";
+    case "RequestRejected":
+      return "This request was rejected and cannot be released.";
     case "PackageNotActive":
       return "Work package is no longer active.";
     case "OnHold":
@@ -209,10 +216,3 @@ export const selectPaymentRequestSummary = (
     isTerminal: request.status === "released" || request.status === "rejected",
   };
 };
-
-export const PAYMENT_REQUEST_PIPELINE_ORDER: PaymentRequestStatus[] = [
-  "submitted",
-  "lowApproved",
-  "highApproved",
-  "released",
-];

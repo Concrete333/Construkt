@@ -1,11 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { MockMetadataClient } from "./metadataClient";
+import { describe, expect, it, vi } from "vitest";
+import {
+  LocalStorageMetadataClient,
+  MockMetadataClient,
+} from "./metadataClient";
 import type {
   DocumentMetadata,
   HoldMetadata,
   NoteMetadata,
   PackageScopeMetadata,
   ProjectMetadata,
+  MetadataStorage,
 } from "./metadataClient";
 
 const sampleProject: ProjectMetadata = {
@@ -62,6 +66,93 @@ describe("MockMetadataClient — null on miss", () => {
     expect(await client.resolveDocument("missing")).toBeNull();
     expect(await client.resolveNote("missing")).toBeNull();
     expect(await client.resolveHold("missing")).toBeNull();
+  });
+});
+
+class MemoryStorage implements MetadataStorage {
+  private readonly values = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.values.set(key, value);
+  }
+}
+
+class ThrowingStorage implements MetadataStorage {
+  getItem(): string | null {
+    return null;
+  }
+
+  setItem(): void {
+    throw new Error("quota exceeded");
+  }
+}
+
+describe("LocalStorageMetadataClient", () => {
+  it("persists writes across client instances", async () => {
+    const storage = new MemoryStorage();
+    const first = new LocalStorageMetadataClient(storage, "test");
+    first.putProject("p1", sampleProject);
+    first.putPackageScope("pkg1", {
+      ...samplePackage,
+      internalMilestones: [
+        {
+          id: "m1",
+          name: "Milestone 1",
+          amount: 10n,
+          status: "uninvoiced",
+        },
+      ],
+    });
+
+    const second = new LocalStorageMetadataClient(storage, "test");
+    expect(await second.resolveProject("p1")).toEqual(sampleProject);
+    expect(await second.resolvePackageScope("pkg1")).toMatchObject({
+      internalMilestones: [{ amount: 10n }],
+    });
+  });
+
+  it("falls back to an empty store when persisted JSON is invalid", async () => {
+    const storage = new MemoryStorage();
+    storage.setItem("test", "{not-json");
+    const client = new LocalStorageMetadataClient(storage, "test");
+    expect(await client.resolveProject("p1")).toBeNull();
+  });
+
+  it("does not reset the store when a bigint marker is malformed", async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "test",
+      JSON.stringify({
+        projects: {
+          p1: {
+            ...sampleProject,
+            description: { __construktBigInt: "not-a-number" },
+          },
+        },
+        packages: {},
+        documents: {},
+        notes: {},
+        holds: {},
+      }),
+    );
+    const client = new LocalStorageMetadataClient(storage, "test");
+    expect(await client.resolveProject("p1")).not.toBeNull();
+  });
+
+  it("warns once when persistence is unavailable", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new LocalStorageMetadataClient(
+      new ThrowingStorage(),
+      "test",
+    );
+    client.putProject("p1", sampleProject);
+    client.putProject("p2", sampleProject);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
 

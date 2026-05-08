@@ -83,7 +83,7 @@ describe("seedDemoMetadata — documents", () => {
 });
 
 describe("seedDemoMetadata — notes", () => {
-  it("provides PM and Director notes for the released foundation request", async () => {
+  it("provides PM and optional high-approval notes for the released foundation request", async () => {
     const { metadata, world } = await seedBoth();
     const pmNote = await metadata.resolveNote(
       demoNoteRef(world.packages.foundation.name, "pm-approve"),

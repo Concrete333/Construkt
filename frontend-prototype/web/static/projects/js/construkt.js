@@ -195,12 +195,126 @@ const store = {
           status: 'Active',
           contractModel: 'valuation',
           contractRef: 'CLR-201',
+          budget: 500000,
           startDate: '2026-01-10',
           endDate: '2027-03-01',
-          team: [],
-          packages: [],
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Daniel Okafor', role: 'contractor', org: 'Okafor Builders Ltd' },
+          ],
+          packages: [
+            {
+              id: 'wp-201',
+              name: 'Package 1 - Enabling Works',
+              cap: 120000,
+              funded: 120000,
+              released: 120000,
+              status: 'Completed',
+              contractor: 'Daniel Okafor',
+              contractModel: 'valuation',
+              completionDate: '2026-03-18',
+              requests: [
+                {
+                  id: 'req-201',
+                  ref: 'INV-CLR-001',
+                  amount: 120000,
+                  submittedBy: 'Daniel Okafor',
+                  date: '2026-03-10',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-03-12',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-03-15',
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-202',
+              name: 'Package 2 - Structural Repairs',
+              cap: 95000,
+              funded: 95000,
+              released: 95000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              contractModel: 'valuation',
+              completionDate: '2026-04-02',
+              requests: [
+                {
+                  id: 'req-202',
+                  ref: 'INV-CLR-002',
+                  amount: 95000,
+                  submittedBy: 'Northline Structures',
+                  date: '2026-03-24',
+                  status: 'Released',
+                  pmApproved: true,
+                  pmApprovedBy: 'Eleanor Lane',
+                  pmApprovedDate: '2026-03-27',
+                  fdApproved: true,
+                  fdApprovedBy: 'Maya Shah',
+                  fdApprovedDate: '2026-03-30',
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-203',
+              name: 'Package 3 - Reading Room Fit-Out',
+              cap: 105000,
+              funded: 105000,
+              released: 62000,
+              status: 'In Progress',
+              contractor: 'Daniel Okafor',
+              contractModel: 'valuation',
+              completionDate: '2026-05-20',
+              requests: [],
+            },
+            {
+              id: 'wp-204',
+              name: 'Package 4 - MEP Refurbishment',
+              cap: 80000,
+              funded: 40000,
+              released: 0,
+              status: 'Partially Funded',
+              contractor: 'Northline Structures',
+              contractModel: 'valuation',
+              completionDate: '2026-06-18',
+              requests: [
+                {
+                  id: 'req-204',
+                  ref: 'INV-CLR-004',
+                  amount: 40000,
+                  submittedBy: 'Northline Structures',
+                  date: '2026-04-12',
+                  status: 'Submitted',
+                  pmApproved: false,
+                  fdApproved: false,
+                  documents: [],
+                },
+              ],
+            },
+            {
+              id: 'wp-205',
+              name: 'Package 5 - Final Commissioning',
+              cap: 100000,
+              funded: 0,
+              released: 0,
+              status: 'Estimated',
+              contractor: 'Unassigned estimate',
+              contractModel: 'valuation',
+              completionDate: '2027-02-15',
+              requests: [],
+            },
+          ],
           milestones: [],
-          auditLog: [],
+          auditLog: [
+            { event: 'Package 1 enabling works released', actor: 'Maya Shah', date: '2026-03-15T10:20:00', type: 'released' },
+            { event: 'Package 2 structural repairs released', actor: 'Maya Shah', date: '2026-03-30T14:05:00', type: 'released' },
+            { event: 'Package 4 MEP invoice submitted for PM review', actor: 'Northline Structures', date: '2026-04-12T09:30:00', type: 'pending' },
+          ],
         },
         {
           id: 'proj-003',
@@ -209,12 +323,57 @@ const store = {
           status: 'Active',
           contractModel: 'bespoke',
           contractRef: 'SW-088',
+          budget: 650000,
           startDate: '2025-11-01',
           endDate: '2026-12-01',
-          team: [],
-          packages: [],
+          team: [
+            { name: 'Maya Shah', role: 'finance_director', org: 'Northstar Capital' },
+            { name: 'Eleanor Lane', role: 'project_manager', org: 'Construct PM Ltd' },
+            { name: 'Northline Structures', role: 'contractor', org: 'Northline Structures' },
+          ],
+          packages: [
+            {
+              id: 'wp-301',
+              name: 'Package 1 - Platform Survey',
+              cap: 150000,
+              funded: 150000,
+              released: 150000,
+              status: 'Completed',
+              contractor: 'Northline Structures',
+              contractModel: 'bespoke',
+              completionDate: '2026-01-28',
+              requests: [],
+            },
+            {
+              id: 'wp-302',
+              name: 'Package 2 - Trackside Civils',
+              cap: 125000,
+              funded: 125000,
+              released: 88000,
+              status: 'In Progress',
+              contractor: 'Northline Structures',
+              contractModel: 'bespoke',
+              completionDate: '2026-05-08',
+              requests: [],
+            },
+            {
+              id: 'wp-303',
+              name: 'Package 3 - Access Works',
+              cap: 125000,
+              funded: 60000,
+              released: 0,
+              status: 'Partially Funded',
+              contractor: 'Unassigned estimate',
+              contractModel: 'bespoke',
+              completionDate: '2026-08-14',
+              requests: [],
+            },
+          ],
           milestones: [],
-          auditLog: [],
+          auditLog: [
+            { event: 'Platform survey package completed', actor: 'Eleanor Lane', date: '2026-01-28T12:15:00', type: 'released' },
+            { event: 'Trackside civils evidence pack requested', actor: 'Eleanor Lane', date: '2026-04-08T16:40:00', type: 'pending' },
+          ],
         },
         {
           id: 'proj-004',
@@ -615,7 +774,6 @@ const store = {
 
     const routes = {
       home: { layout: 'public', page: 'home' },
-      signin: { layout: 'public', page: 'signin' },
       dashboard2: { layout: 'app', page: 'dashboard2' },
       'chart-fullscreen': { layout: 'app', page: 'chart-fullscreen', nav: 'dashboard2' },
       'work-package-view': { layout: 'app', page: 'work-package-view', nav: 'dashboard2' },
@@ -683,6 +841,12 @@ const store = {
     let roleIndex = 0;
     let currentRole = 'finance_director';
 
+    const landingRoleToAppRole = {
+      finance: 'finance_director',
+      pm: 'project_manager',
+      contractor: 'contractor',
+    };
+
     function applyInitialTheme() {
       const storedTheme = localStorage.getItem('construkt-theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -708,8 +872,10 @@ const store = {
       publicScreen.classList.toggle('is-active', route.layout === 'public');
       appScreen.classList.toggle('is-active', route.layout === 'app');
 
-      document.getElementById('home-page').hidden = route.page !== 'home';
-      document.getElementById('signin-page').hidden = route.page !== 'signin';
+      const homePage = document.getElementById('home-page');
+      const signinPage = document.getElementById('signin-page');
+      if (homePage) homePage.hidden = route.page !== 'home';
+      if (signinPage) signinPage.hidden = route.page !== 'signin';
 
       document.querySelectorAll('[data-app-page]').forEach((page) => {
         page.hidden = page.dataset.appPage !== route.page;
@@ -724,6 +890,15 @@ const store = {
       }
       if (name === 'chart-fullscreen') {
         renderChartFullscreen();
+      }
+      if (name === 'upload-task') {
+        renderUploadTask();
+      }
+      if (name === 'review-task') {
+        renderReviewTask();
+      }
+      if (name === 'response-task') {
+        renderResponseTask();
       }
       if (name === 'projects') {
         renderProjectsList();
@@ -938,7 +1113,7 @@ const store = {
       if (store.currentRole === 'finance_director' && approval === 'Awaiting Finance Approval') {
         return `<button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${project.id}', '${pkg.id}')">Approve escrow</button>`;
       }
-      return `<a class="text-link" href="#work-package-view" onclick="openWorkPackageView('${project.id}', '${pkg.id}'); return false;">View</a>`;
+      return `<a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">View</a>`;
     }
 
     function timelineDot(type) {
@@ -1034,6 +1209,14 @@ const store = {
     }
 
     function getTimelineNodes(project) {
+      if (project.milestones?.length) {
+        if (project.contractModel === 'milestone') syncMilestoneStatuses(project);
+        return project.milestones.map((milestone) => ({
+          name: milestone.name,
+          targetDate: milestone.targetDate,
+          status: milestone.status,
+        }));
+      }
       if (project.contractModel === 'milestone') {
         syncMilestoneStatuses(project);
         return project.milestones.map((milestone) => ({
@@ -1078,6 +1261,45 @@ const store = {
 
     function packageFor(project, packageId) {
       return project?.packages.find((pkg) => pkg.id === packageId);
+    }
+
+    function projectQuickActionTarget(project) {
+      if (!project?.packages?.length) return null;
+      return project.packages.find((pkg) => pkg.requests.some((request) => request.pmApproved && !request.fdApproved && request.status !== 'Rejected'))
+        || project.packages.find((pkg) => (pkg.funded || 0) < (pkg.cap || 0))
+        || project.packages[0];
+    }
+
+    function renderProjectQuickActions(project) {
+      const card = document.querySelector('.project-detail-side .quick-actions');
+      const context = document.getElementById('project-quick-actions-context');
+      const fundButton = document.getElementById('project-quick-fund');
+      const holdButton = document.getElementById('project-quick-hold');
+      if (!card || !context || !fundButton || !holdButton) return;
+
+      if (store.currentRole !== 'finance_director') {
+        card.hidden = true;
+        return;
+      }
+
+      const targetPkg = projectQuickActionTarget(project);
+      if (!targetPkg) {
+        card.hidden = true;
+        return;
+      }
+
+      const remaining = Math.max((targetPkg.cap || 0) - (targetPkg.funded || 0), 0);
+      card.hidden = false;
+      context.textContent = remaining > 0
+        ? `Actions for ${targetPkg.name}. ${formatGBP(remaining)} remains to be funded on this project package.`
+        : `Actions for ${targetPkg.name}. Use these controls on the current project package.`;
+
+      fundButton.dataset.projectId = project.id;
+      fundButton.dataset.packageId = targetPkg.id;
+      holdButton.dataset.projectId = project.id;
+      holdButton.dataset.packageId = targetPkg.id;
+      fundButton.textContent = `Fund ${targetPkg.name}`;
+      holdButton.textContent = `Hold ${targetPkg.name}`;
     }
 
     function getAllRequests(project) {
@@ -1215,20 +1437,21 @@ const store = {
         acc.totalReleased += pkg.released || 0;
         return acc;
       }, { contractValue: 0, escrowFunded: 0, totalReleased: 0 });
-      totals.remaining = totals.contractValue - totals.totalReleased;
-      const fundedPct = totals.contractValue ? Math.round((totals.escrowFunded / totals.contractValue) * 100) : 0;
-      const releasedPct = totals.contractValue ? Math.round((totals.totalReleased / totals.contractValue) * 100) : 0;
+      const contractValue = totals.contractValue || project.budget || 0;
+      totals.remaining = contractValue - totals.totalReleased;
+      const fundedPct = contractValue ? Math.round((totals.escrowFunded / contractValue) * 100) : 0;
+      const releasedPct = contractValue ? Math.round((totals.totalReleased / contractValue) * 100) : 0;
 
       document.getElementById('project-title').textContent = project.name;
       document.querySelector('[data-project-detail-breadcrumb]').textContent = `Projects → ${project.name}`;
       document.getElementById('project-meta').innerHTML = `
         <span>${project.client}</span>
         ${statusChip(project.status)}
-        <span class="model-badge">${project.endClient || project.contractModel === 'mixed' ? 'Package-level contracts' : `Reference: ${modelLabel(project.contractModel)}`}</span>
+        <span class="model-badge">Reference: ${modelLabel(project.contractModel)}</span>
         <span>Started ${formatDate(project.startDate)}</span>
       `;
       document.getElementById('project-kpis').innerHTML = `
-        <article class="kpi-card"><span class="kpi-label">Contract Value</span><strong class="kpi-value">${formatGBP(totals.contractValue)}</strong><span class="kpi-note">Across ${visiblePackages.length} ${store.currentRole === 'contractor' ? 'assigned' : 'active'} packages</span></article>
+        <article class="kpi-card"><span class="kpi-label">Contract Value</span><strong class="kpi-value">${formatGBP(contractValue)}</strong><span class="kpi-note">${visiblePackages.length ? `Across ${visiblePackages.length} ${store.currentRole === 'contractor' ? 'assigned' : 'active'} packages` : 'Project budget before packages are added'}</span></article>
         <article class="kpi-card"><span class="kpi-label">Escrow Funded</span><strong class="kpi-value">${formatGBP(totals.escrowFunded)}</strong><div class="kpi-progress-pct-row"><span class="kpi-progress-pct">${fundedPct}% funded</span></div><div class="kpi-progress-track" aria-hidden="true"><span class="kpi-progress-fill kpi-progress-fill--funded" style="width:${fundedPct}%"></span></div><span class="kpi-note">${fundedPct}% currently locked</span></article>
         <article class="kpi-card" data-visible-to="finance_director project_manager"><span class="kpi-label">Total Released</span><strong class="kpi-value">${formatGBP(totals.totalReleased)}</strong><div class="kpi-progress-pct-row"><span class="kpi-progress-pct">${releasedPct}% released</span></div><div class="kpi-progress-track" aria-hidden="true"><span class="kpi-progress-fill kpi-progress-fill--released" style="width:${releasedPct}%"></span></div><span class="kpi-note">Paid against approved work</span></article>
         <article class="kpi-card"><span class="kpi-label">Remaining</span><strong class="kpi-value">${formatGBP(totals.remaining)}</strong><span class="kpi-note">Contract value less released</span></article>
@@ -1238,8 +1461,8 @@ const store = {
       const modelHeader = document.querySelector('[data-model-column-label]');
       if (modelHeader) modelHeader.textContent = modelColumn;
       const packageRow = (pkg, index) => `
-        <tr>
-          <td>${pkg.name}</td>
+        <tr class="clickable-row" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" tabindex="0" role="link" aria-label="Open ${pkg.name} work package">
+          <td><a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">${pkg.name}</a></td>
           <td>${formatGBP(pkg.cap)}</td>
           <td>${modelLabel(pkg.contractModel || project.contractModel || 'milestone')}</td>
           <td data-visible-to="finance_director project_manager">${formatGBP(pkg.funded)}</td>
@@ -1298,78 +1521,9 @@ const store = {
       renderTimeline(projectId);
       renderDocuments(projectId);
       renderPayments(projectId);
+      renderProjectQuickActions(project);
       applyRoleUI(store.currentRole);
       syncProjectDetailEmptyStates();
-    }
-
-    function renderPackageDetail(projectId, packageId) {
-      const project = projectFor(projectId);
-      const pkg = packageFor(project, packageId);
-      if (!project || !pkg) return;
-      store.currentProjectId = projectId;
-      store.currentPackageId = packageId;
-      store.activeProjectId = projectId;
-      store.activePackageId = packageId;
-      const request = pkg.requests[pkg.requests.length - 1] || null;
-      store.activeRequestId = request?.id || null;
-      const docs = store.documents.filter((doc) => doc.projectId === projectId && doc.packageId === packageId);
-      const variations = pkg.variationRequests || [];
-      const packageAudit = project.auditLog.filter((item) => item.event.includes(pkg.name) || item.event.toLowerCase().includes(pkg.name.split(' ')[0].toLowerCase()));
-
-      document.getElementById('package-title').innerHTML = `${pkg.name} ${statusChip(pkg.status)}`;
-      const packageBack = document.querySelector('[data-package-back]');
-      if (packageBack) {
-        packageBack.querySelector('span').textContent = `Back to ${project.name}`;
-        packageBack.onclick = () => showProjectDetail(project.id);
-      }
-      document.querySelector('#work-package-detail-page .back-link').textContent = `Projects → ${project.name} → ${pkg.name}`;
-      document.querySelector('#work-package-detail-page .back-link').setAttribute('onclick', `showProjectDetail('${projectId}'); return false;`);
-      document.querySelector('[data-package-contract-context]').textContent = `Contract type: ${modelLabel(pkg.contractModel || 'milestone')} · ${pkg.contractRef || project.contractRef}`;
-      document.getElementById('package-kpis').innerHTML = `
-        <article class="kpi-card"><span class="kpi-label">Budget</span><strong class="kpi-value">${formatGBP(pkg.cap)}</strong><span class="kpi-note">${financeApprovalStatus(pkg) === 'Approved' ? 'Finance-approved package cap' : 'Estimated package budget'}</span></article>
-        <article class="kpi-card"><span class="kpi-label">Escrow</span><strong class="kpi-value">${formatGBP(pkg.funded)}</strong><span class="kpi-note">${financeApprovalStatus(pkg) === 'Approved' ? 'Locked by smart contract flow' : 'Awaiting finance approval'}</span></article>
-        <article class="kpi-card"><span class="kpi-label">Released</span><strong class="kpi-value">${formatGBP(pkg.released)}</strong><span class="kpi-note">Paid to contractor</span></article>
-        <article class="kpi-card"><span class="kpi-label">Remaining</span><strong class="kpi-value">${formatGBP(pkg.cap - pkg.released)}</strong><span class="kpi-note">Cap less released</span></article>
-      `;
-
-      document.getElementById('package-request').innerHTML = request ? `
-        <div class="request-head"><span class="assignment-meta">Current Request</span><div class="chip-row"><span class="assignment-chip">${request.ref}</span><span class="assignment-chip">${formatDate(request.date)}</span></div></div>
-        <h2 class="request-title">${request.ref}</h2>
-        <strong class="request-amount">${formatGBP(request.amount)}</strong>
-        <span class="assignment-meta">Submitted by ${request.submittedBy}</span>
-        <p class="assignment-description">${statusChip(request.status)}</p>
-      ` : `
-        <div class="request-head"><span class="assignment-meta">Package Setup</span><div class="chip-row">${statusChip(financeApprovalStatus(pkg))}${statusChip(pkg.status)}</div></div>
-        <h2 class="request-title">${financeApprovalStatus(pkg) === 'Approved' ? 'Escrow locked and contractor work can proceed' : 'Estimated package awaiting contract readiness'}</h2>
-        <p class="assignment-description">Project Managers create estimated packages. Finance approves the package after contractor selection and budget agreement, which is where escrow locking will connect to the smart contract backend.</p>
-        ${store.currentRole === 'finance_director' && financeApprovalStatus(pkg) === 'Awaiting Finance Approval' ? `<button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${project.id}', '${pkg.id}')">Approve package and lock escrow</button>` : ''}
-      `;
-
-      document.getElementById('package-approval').innerHTML = request ? `
-        <div class="card-head"><h2>Approval Progress</h2></div>
-        <div class="approval-flow">
-          <div class="flow-step complete line-complete"><span class="flow-dot"></span><span class="flow-label">Submitted</span><span class="flow-meta">${request.submittedBy} · ${formatDate(request.date)}</span></div>
-          <div class="flow-step ${request.pmApproved ? 'complete line-complete' : 'current'}"><span class="flow-dot"></span><span class="flow-label">PM Review</span><span class="flow-meta">${request.pmApproved ? `${request.pmApprovedBy} · ${formatDate(request.pmApprovedDate)}` : 'Pending'}</span></div>
-          <div class="flow-step ${request.fdApproved ? 'complete line-complete' : request.pmApproved ? 'current' : ''}"><span class="flow-dot"></span><span class="flow-label">Finance Review</span><span class="flow-meta">${request.fdApproved ? `${request.fdApprovedBy} · ${formatDate(request.fdApprovedDate)}` : 'Pending'}</span></div>
-          <div class="flow-step ${request.status === 'Released' ? 'complete' : ''}"><span class="flow-dot"></span><span class="flow-label">Released</span><span class="flow-meta">${request.status}</span></div>
-        </div>
-      ` : `<div class="card-head"><h2>Approval Progress</h2></div><p class="assignment-description">Approval flow starts after an invoice is submitted.</p>`;
-
-      document.getElementById('package-docs').innerHTML = `
-        <div class="card-head"><h2>Supporting Documents</h2><button class="btn btn-primary small" data-visible-to="finance_director project_manager contractor" data-modal-target="add-document" data-document-scope="package" type="button">Add document</button></div>
-        ${docs.length ? `<div class="table-card"><table class="action-table"><thead><tr><th>Document</th><th>Type</th><th>Ref</th><th>Version</th><th>Chain</th></tr></thead><tbody>${docs.map((doc) => `<tr><td><a class="document-link" href="#">${doc.name}</a></td><td>${doc.type}</td><td>${doc.ref}</td><td><span class="version-badge">V${doc.version}</span></td><td><a class="doc-chain-link" href="#">View on chain ↗</a></td></tr>`).join('')}</tbody></table></div>` : `<div class="records-empty is-visible"><h3 class="records-empty__title">No documents uploaded</h3><p class="records-empty__body">Supporting documents will appear here once added.</p></div>`}
-      `;
-
-      document.getElementById('package-docs').insertAdjacentHTML('beforeend', `
-        <div class="card-head" style="margin-top:var(--space-4);"><h2>Variation Requests</h2></div>
-        ${variations.length ? `<div class="table-card"><table class="action-table"><thead><tr><th>Reference</th><th>Type</th><th>Amount</th><th>Time</th><th>Status</th></tr></thead><tbody>${variations.map((variation) => `<tr><td>${variation.ref}</td><td>${variation.type}</td><td>${formatGBP(variation.amountChange)}</td><td>${variation.timeChange ? `${variation.timeChange} days` : 'No change'}</td><td>${statusChip(variation.status)}</td></tr>`).join('')}</tbody></table></div>` : `<p class="assignment-description">No variation requests submitted for this package.</p>`}
-      `);
-
-      document.getElementById('package-audit').innerHTML = `
-        <div class="section-tabs"><div class="tab-buttons" role="tablist" aria-label="Package audit trail"><button class="section-tab is-active" type="button">Audit Trail</button></div><a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></div>
-        <ul class="timeline-list">${packageAudit.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.actor} · ${formatDateTime(item.date)}</span></div></li>`).join('')}</ul>
-      `;
-      applyRoleUI(store.currentRole);
     }
 
     function renderDashboard() {
@@ -1427,33 +1581,59 @@ const store = {
     }
 
     function normalizeProjectFundingPackages(project) {
+      if (Array.isArray(project.packages) && project.packages.length) {
+        const packages = project.packages.map((pkg, index) => {
+          const amount = pkg.cap || Math.max(pkg.funded || 0, pkg.released || 0);
+          let status = 'estimated';
+          if (isPackageComplete(pkg)) {
+            status = 'completed';
+          } else if ((pkg.requests || []).length || (pkg.funded || 0) > 0 || /funded|progress/i.test(pkg.status || '')) {
+            status = 'in-progress';
+          }
+          return {
+            id: pkg.id,
+            projectId: project.id,
+            name: pkg.name || `Package ${index + 1}`,
+            amount,
+            status,
+          };
+        });
+        const total = project.budget || packages.reduce((sum, pkg) => sum + pkg.amount, 0);
+        const allocated = packages.reduce((sum, pkg) => sum + pkg.amount, 0);
+        const unallocated = total > allocated
+          ? [{ name: 'Unallocated Budget', amount: total - allocated, status: 'unallocated' }]
+          : [];
+        return [...packages, ...unallocated];
+      }
+
       const completed = (project.completedPackages || project.spentPayments || []).map((amount, index) => ({
-        name: `Completed Package ${index + 1}`,
+        name: `Package ${index + 1}`,
         amount,
         status: 'completed',
       }));
       const inProgress = (project.inProgressPackages || project.pendingPayments || []).map((amount, index) => ({
-        name: `In Progress Package ${index + 1}`,
+        name: `Package ${completed.length + index + 1}`,
         amount,
         status: 'in-progress',
       }));
       let estimated = (project.estimatedPackages || []).map((amount, index) => ({
-        name: `Estimated Package ${index + 1}`,
+        name: `Package ${completed.length + inProgress.length + index + 1}`,
         amount,
         status: 'estimated',
       }));
+      const projectTotal = project.total || project.budget || 0;
       const allocatedBeforeEstimated = [...completed, ...inProgress].reduce((sum, pkg) => sum + pkg.amount, 0);
-      const remainingBudget = Math.max(project.total - allocatedBeforeEstimated, 0);
+      const remainingBudget = Math.max(projectTotal - allocatedBeforeEstimated, 0);
 
       if (!estimated.length && remainingBudget > 0) {
         const estimatedAmount = Math.round((remainingBudget * 0.65) / 1000) * 1000;
         if (estimatedAmount > 0) {
-          estimated = [{ name: 'Estimated Package 1', amount: Math.min(estimatedAmount, remainingBudget), status: 'estimated' }];
+          estimated = [{ name: `Package ${completed.length + inProgress.length + 1}`, amount: Math.min(estimatedAmount, remainingBudget), status: 'estimated' }];
         }
       }
 
       const allocated = [...completed, ...inProgress, ...estimated].reduce((sum, pkg) => sum + pkg.amount, 0);
-      const unallocatedAmount = Math.max(project.total - allocated, 0);
+      const unallocatedAmount = Math.max(projectTotal - allocated, 0);
       const unallocated = unallocatedAmount > 0
         ? [{ name: 'Unallocated Budget', amount: unallocatedAmount, status: 'unallocated' }]
         : [];
@@ -1463,7 +1643,7 @@ const store = {
 
     function renderFundingSegments(project) {
       const packages = normalizeProjectFundingPackages(project);
-      const total = project.total || packages.reduce((sum, pkg) => sum + pkg.amount, 0) || 1;
+      const total = project.total || project.budget || packages.reduce((sum, pkg) => sum + pkg.amount, 0) || 1;
 
       return packages.map((pkg) => {
         const percent = (pkg.amount / total) * 100;
@@ -1476,8 +1656,66 @@ const store = {
           return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs}></div>`;
         }
 
+        if (pkg.projectId && pkg.id) {
+          return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs} onclick="openWorkPackageView('${pkg.projectId}', '${pkg.id}', event)"></div>`;
+        }
         return `<div class="chart-bar-segment ${statusClass}" ${segmentAttrs} onclick="showWorkPackage('${project.name}', '${pkg.name}', '${formatGBP(pkg.amount)}', '${label}', event)"></div>`;
       }).join('');
+    }
+
+    function packageHasPendingApprovals(pkg) {
+      return (pkg.requests || []).some((request) => !['Released', 'Rejected'].includes(request.status))
+        || (pkg.variationRequests || []).some((variation) => !['Approved', 'Rejected'].includes(variation.status));
+    }
+
+    function packageNeedsAttention(pkg) {
+      return !isPackageComplete(pkg) || packageHasPendingApprovals(pkg);
+    }
+
+    function projectDueInfo(project) {
+      if (isProjectComplete(project)) {
+        return {
+          label: project.endDate ? `Completed ${formatDate(project.endDate)}` : 'Completed',
+          daysUntil: null,
+          isOverdue: false,
+          sortValue: Number.POSITIVE_INFINITY,
+        };
+      }
+
+      const dateValues = [
+        ...(project.packages || [])
+          .filter((pkg) => packageNeedsAttention(pkg))
+          .map((pkg) => pkg.completionDate),
+        project.endDate,
+      ].filter(Boolean);
+      const dates = dateValues
+        .map((date) => new Date(`${date}T00:00:00`))
+        .filter((date) => !Number.isNaN(date.getTime()))
+        .sort((a, b) => a - b);
+
+      if (!dates.length) {
+        return {
+          label: 'No due date',
+          daysUntil: null,
+          isOverdue: false,
+          sortValue: 999,
+        };
+      }
+
+      const nextDate = dates[0];
+      const daysUntil = Math.ceil((nextDate - new Date()) / (1000 * 60 * 60 * 24));
+      return {
+        label: daysUntil < 0
+          ? 'Overdue'
+          : daysUntil === 0
+            ? 'Due today'
+            : daysUntil === 1
+              ? 'Due in 1 day'
+              : `Due in ${daysUntil} days`,
+        daysUntil,
+        isOverdue: daysUntil < 0,
+        sortValue: daysUntil,
+      };
     }
 
     function assignedContractorPackages() {
@@ -1514,6 +1752,12 @@ const store = {
       }).join('');
     }
 
+    function contractorPackageDateLabel(pkg) {
+      const due = pkg.completionDate || pkg.project?.endDate;
+      if (!due) return modelLabel(pkg.contractModel);
+      return isPackageComplete(pkg) ? `Completed ${formatDate(due)}` : `Due ${formatDate(due)}`;
+    }
+
     function renderContractorPackages(chartContent) {
       const assigned = assignedContractorPackages();
       if (!assigned.length) {
@@ -1527,14 +1771,13 @@ const store = {
         return `
           <div class="contractor-project-heading">${projectName}</div>
           ${projectPackages.map((pkg) => {
-            const due = pkg.completionDate || pkg.project.endDate;
             return `
               <div class="chart-row">
                 <div class="chart-label chart-label-clickable" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">${pkg.name}</div>
                 <div class="chart-bar-container" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">
                   ${renderContractorPackageSegments(pkg)}
                 </div>
-                <div class="chart-value">${due ? formatDate(due) : modelLabel(pkg.contractModel)}</div>
+                <div class="chart-value">${escapeHtml(contractorPackageDateLabel(pkg))}</div>
               </div>
             `;
           }).join('')}
@@ -1631,77 +1874,22 @@ const store = {
 
       // Chart rendering functions
       function renderBarChart(chartContent) {
-        // Render chart with dummy data (same data as fullscreen)
-        const projects = [
-        { name: 'Civic Library Retrofit', total: 500000,
-          spentPayments: [120000, 95000, 105000],
-          pendingPayments: [40000, 40000],
-          unspent: 100000, daysUntilDue: 3 },
-        { name: 'Demo Hospital Fit-Out', total: 800000,
-          spentPayments: [180000, 140000, 130000],
-          pendingPayments: [75000, 75000],
-          unspent: 200000, daysUntilDue: 12 },
-        { name: 'Station Works', total: 650000,
-          spentPayments: [150000, 125000, 125000],
-          pendingPayments: [60000, 40000],
-          unspent: 150000, daysUntilDue: 7 },
-        { name: 'Office Complex', total: 450000,
-          spentPayments: [80000, 70000, 50000],
-          pendingPayments: [60000, 60000],
-          unspent: 130000, daysUntilDue: 18 },
-        { name: 'Retail Park Development', total: 920000,
-          spentPayments: [250000, 200000, 150000],
-          pendingPayments: [90000, 90000],
-          unspent: 140000, daysUntilDue: 5 },
-        { name: 'School Extension', total: 380000,
-          spentPayments: [120000, 90000, 70000],
-          pendingPayments: [30000, 20000],
-          unspent: 50000, daysUntilDue: 9 },
-        { name: 'Warehouse Conversion', total: 720000,
-          spentPayments: [200000, 180000, 120000],
-          pendingPayments: [70000, 50000],
-          unspent: 100000, daysUntilDue: 14 },
-        { name: 'Community Center', total: 550000,
-          spentPayments: [140000, 120000, 90000],
-          pendingPayments: [50000, 40000],
-          unspent: 110000, daysUntilDue: 4 },
-        { name: 'Shopping Mall Renovation', total: 1200000,
-          spentPayments: [320000, 280000, 200000],
-          pendingPayments: [130000, 120000],
-          unspent: 150000, daysUntilDue: 21 },
-        { name: 'Bridge Repair', total: 680000,
-          spentPayments: [170000, 140000, 110000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 6 },
-        { name: 'Park Infrastructure', total: 290000,
-          spentPayments: [80000, 60000, 40000],
-          pendingPayments: [35000, 25000],
-          unspent: 50000, daysUntilDue: 11 },
-        { name: 'Apartment Complex', total: 950000,
-          spentPayments: [240000, 200000, 160000],
-          pendingPayments: [100000, 100000],
-          unspent: 150000, daysUntilDue: 16 }
-      ];
+        const displayProjects = projectsForCurrentRole()
+          .map((project) => ({ ...project, dueInfo: projectDueInfo(project) }))
+          .sort((a, b) => a.dueInfo.sortValue - b.dueInfo.sortValue)
+          .slice(0, 7);
 
-      // Sort by most pressing (soonest deadline)
-      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
-
-      // Limit to 7 projects on dashboard
-      const displayProjects = projects.slice(0, 7);
-
-      chartContent.innerHTML = displayProjects.map(project => {
-        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
-
-        return `
-          <div class="chart-row">
-            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
-            <div class="chart-bar-container">
-              ${renderFundingSegments(project)}
+        chartContent.innerHTML = displayProjects.map((project) => {
+          return `
+            <div class="chart-row">
+              <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
+              <div class="chart-bar-container">
+                ${renderFundingSegments(project)}
+              </div>
+              <div class="chart-value">${escapeHtml(project.dueInfo.label)}</div>
             </div>
-            <div class="chart-value">${daysText}</div>
-          </div>
-        `;
-      }).join('');
+          `;
+        }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
       }
 
       function renderContractorDial(chartContent) {
@@ -2088,129 +2276,21 @@ const store = {
         };
       }
 
-      // Render all projects with individual payment breakdowns
-      const projects = [
-        { name: 'Civic Library Retrofit', total: 500000,
-          spentPayments: [120000, 95000, 105000],
-          pendingPayments: [40000, 40000],
-          unspent: 100000, daysUntilDue: 3 },
-        { name: 'Demo Hospital Fit-Out', total: 800000,
-          spentPayments: [180000, 140000, 130000],
-          pendingPayments: [75000, 75000],
-          unspent: 200000, daysUntilDue: 12 },
-        { name: 'Station Works', total: 650000,
-          spentPayments: [150000, 125000, 125000],
-          pendingPayments: [60000, 40000],
-          unspent: 150000, daysUntilDue: 7 },
-        { name: 'Office Complex', total: 450000,
-          spentPayments: [80000, 70000, 50000],
-          pendingPayments: [60000, 60000],
-          unspent: 130000, daysUntilDue: 18 },
-        { name: 'Retail Park Development', total: 920000,
-          spentPayments: [250000, 200000, 150000],
-          pendingPayments: [90000, 90000],
-          unspent: 140000, daysUntilDue: 5 },
-        { name: 'School Extension', total: 380000,
-          spentPayments: [120000, 90000, 70000],
-          pendingPayments: [30000, 20000],
-          unspent: 50000, daysUntilDue: 9 },
-        { name: 'Warehouse Conversion', total: 720000,
-          spentPayments: [200000, 180000, 120000],
-          pendingPayments: [70000, 50000],
-          unspent: 100000, daysUntilDue: 14 },
-        { name: 'Community Center', total: 550000,
-          spentPayments: [140000, 120000, 90000],
-          pendingPayments: [50000, 40000],
-          unspent: 110000, daysUntilDue: 4 },
-        { name: 'Shopping Mall Renovation', total: 1200000,
-          spentPayments: [320000, 280000, 200000],
-          pendingPayments: [130000, 120000],
-          unspent: 150000, daysUntilDue: 21 },
-        { name: 'Bridge Repair', total: 680000,
-          spentPayments: [170000, 140000, 110000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 6 },
-        { name: 'Park Infrastructure', total: 290000,
-          spentPayments: [80000, 60000, 40000],
-          pendingPayments: [35000, 25000],
-          unspent: 50000, daysUntilDue: 11 },
-        { name: 'Apartment Complex', total: 950000,
-          spentPayments: [240000, 200000, 160000],
-          pendingPayments: [100000, 100000],
-          unspent: 150000, daysUntilDue: 16 },
-        { name: 'Theatre Restoration', total: 620000,
-          spentPayments: [150000, 130000, 100000],
-          pendingPayments: [60000, 50000],
-          unspent: 130000, daysUntilDue: 8 },
-        { name: 'Industrial Estate', total: 1100000,
-          spentPayments: [280000, 240000, 200000],
-          pendingPayments: [110000, 110000],
-          unspent: 160000, daysUntilDue: 22 },
-        { name: 'Sports Complex', total: 780000,
-          spentPayments: [190000, 160000, 130000],
-          pendingPayments: [75000, 65000],
-          unspent: 160000, daysUntilDue: 13 },
-        { name: 'Hotel Expansion', total: 1400000,
-          spentPayments: [380000, 320000, 250000],
-          pendingPayments: [140000, 140000],
-          unspent: 170000, daysUntilDue: 25 },
-        { name: 'Museum Addition', total: 540000,
-          spentPayments: [130000, 110000, 100000],
-          pendingPayments: [50000, 45000],
-          unspent: 105000, daysUntilDue: 10 },
-        { name: 'University Building', total: 890000,
-          spentPayments: [220000, 190000, 150000],
-          pendingPayments: [85000, 85000],
-          unspent: 160000, daysUntilDue: 15 },
-        { name: 'Medical Clinic', total: 420000,
-          spentPayments: [110000, 90000, 70000],
-          pendingPayments: [40000, 35000],
-          unspent: 75000, daysUntilDue: 6 },
-        { name: 'Town Hall Renovation', total: 750000,
-          spentPayments: [190000, 170000, 130000],
-          pendingPayments: [70000, 60000],
-          unspent: 130000, daysUntilDue: 17 },
-        { name: 'Data Center', total: 980000,
-          spentPayments: [250000, 220000, 170000],
-          pendingPayments: [95000, 95000],
-          unspent: 150000, daysUntilDue: 19 },
-        { name: 'Fire Station', total: 510000,
-          spentPayments: [130000, 110000, 80000],
-          pendingPayments: [50000, 45000],
-          unspent: 95000, daysUntilDue: 9 },
-        { name: 'Police Headquarters', total: 860000,
-          spentPayments: [220000, 190000, 140000],
-          pendingPayments: [80000, 80000],
-          unspent: 150000, daysUntilDue: 20 },
-        { name: 'Market Square', total: 340000,
-          spentPayments: [85000, 70000, 55000],
-          pendingPayments: [35000, 30000],
-          unspent: 65000, daysUntilDue: 7 },
-        { name: 'Swimming Pool', total: 670000,
-          spentPayments: [170000, 145000, 115000],
-          pendingPayments: [60000, 60000],
-          unspent: 120000, daysUntilDue: 14 },
-        { name: 'Conference Center', total: 1050000,
-          spentPayments: [270000, 230000, 180000],
-          pendingPayments: [100000, 100000],
-          unspent: 170000, daysUntilDue: 23 }
-      ];
+      const liveProjects = projectsForCurrentRole()
+        .map((project) => ({ ...project, dueInfo: projectDueInfo(project) }))
+        .sort((a, b) => a.dueInfo.sortValue - b.dueInfo.sortValue);
 
-      projects.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
-
-      chartContent.innerHTML = projects.map(project => {
-        const daysText = project.daysUntilDue === 1 ? '1 day' : `${project.daysUntilDue} days`;
-
+      chartContent.innerHTML = liveProjects.map((project) => {
         return `
           <div class="chart-row">
-            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.name}')">${project.name}</div>
+            <div class="chart-label chart-label-clickable" onclick="showProjectDetail('${project.id}')">${escapeHtml(project.name)}</div>
             <div class="chart-bar-container">
               ${renderFundingSegments(project)}
             </div>
-            <div class="chart-value">${daysText}</div>
+            <div class="chart-value">${escapeHtml(project.dueInfo.label)}</div>
           </div>
         `;
-      }).join('');
+      }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
     }
 
     function renderUploadTask() {
@@ -2552,7 +2632,7 @@ const store = {
         }));
       }
 
-      const total = parsePackageAmount(pkg?.amount) || 120000;
+      const total = parsePackageAmount(pkg?.amount || pkg?.cap) || 120000;
       const amounts = [0.2, 0.3, 0.3, 0.2].map((share) => Math.round(total * share));
       const statusSets = {
         Completed: ['paid', 'paid', 'paid', 'paid'],
@@ -3477,10 +3557,6 @@ const store = {
       window.location.hash = 'project-detail';
     }
 
-    function showPackageDetail(projectId, packageId) {
-      openWorkPackageView(projectId, packageId);
-    }
-
     function openPackageModal(projectId, packageId, modalName, requestId = '', variationId = '') {
       store.activeProjectId = projectId;
       store.currentProjectId = projectId;
@@ -3495,7 +3571,10 @@ const store = {
     }
 
     function openWorkPackageView(projectId, packageId, event) {
-      if (event) event.stopPropagation();
+      if (event) {
+        event.preventDefault?.();
+        event.stopPropagation?.();
+      }
       const project = projectFor(projectId);
       const pkg = packageFor(project, packageId);
       if (!project || !pkg) return;
@@ -3520,7 +3599,11 @@ const store = {
       };
       sessionStorage.setItem('currentWorkPackage', JSON.stringify(packageData));
       sessionStorage.setItem('workPackagePreviousPage', currentRoute() || 'dashboard2');
-      window.location.hash = 'work-package-view';
+      if (currentRoute() === 'work-package-view') {
+        renderWorkPackageView();
+      } else {
+        window.location.hash = 'work-package-view';
+      }
     }
 
     function showWorkPackage(projectName, packageName, amount, type, event) {
@@ -3578,13 +3661,6 @@ const store = {
       return `${Math.max(1, Math.round(bytes / 1024))} KB`;
     }
 
-    function selectedContractModel() {
-      const title = document.querySelector('[data-contract-model-card].is-selected h3')?.textContent || 'Milestone-Based';
-      if (title.includes('Valuation')) return 'valuation';
-      if (title.includes('Bespoke')) return 'bespoke';
-      return 'milestone';
-    }
-
     function selectedProjectContractModel() {
       return document.querySelector('[data-project-contract-model-card].is-selected')?.dataset.projectContractModel || 'milestone';
     }
@@ -3596,9 +3672,7 @@ const store = {
     function syncProjectClientMode() {
       const endClient = document.querySelector('[data-project-end-client]')?.checked ?? true;
       const clientField = document.querySelector('[data-project-client-field]');
-      const contractReference = document.querySelector('[data-project-contract-reference]');
       if (clientField) clientField.hidden = endClient;
-      if (contractReference) contractReference.hidden = endClient;
     }
 
     function roleKeyFromFormLabel(label) {
@@ -3617,6 +3691,24 @@ const store = {
         requestId: request?.id,
         variationId: activeVariation(pkg)?.id,
       };
+    }
+
+    function syncContextFromTrigger(trigger) {
+      if (!trigger?.dataset) return;
+      if (trigger.dataset.projectId) {
+        store.activeProjectId = trigger.dataset.projectId;
+        store.currentProjectId = trigger.dataset.projectId;
+      }
+      if (trigger.dataset.packageId) {
+        store.activePackageId = trigger.dataset.packageId;
+        store.currentPackageId = trigger.dataset.packageId;
+      }
+      if (trigger.dataset.requestId) {
+        store.activeRequestId = trigger.dataset.requestId;
+      }
+      if (trigger.dataset.variationId) {
+        store.activeVariationId = trigger.dataset.variationId;
+      }
     }
 
     function syncMilestoneStatuses(project) {
@@ -3641,7 +3733,8 @@ const store = {
         name: formData.name,
         client: formData.endClient ? 'End client' : formData.client,
         contractRef: formData.contractRef,
-        contractModel: formData.endClient ? 'mixed' : formData.contractModel,
+        budget: parsePackageAmount(formData.budget || 0),
+        contractModel: formData.contractModel,
         endClient: Boolean(formData.endClient),
         startDate: formData.startDate,
         endDate: formData.endDate,
@@ -3652,7 +3745,15 @@ const store = {
         ],
         packages: [],
         documents: [],
-        milestones: milestones || [],
+        milestones: (milestones || []).map((milestone, index) => ({
+          id: milestone.id || `ms-${Date.now()}-${index + 1}`,
+          name: milestone.name || `Payment section ${index + 1}`,
+          targetDate: milestone.targetDate || formData.endDate,
+          budget: milestone.budget || 0,
+          releaseTrigger: milestone.releaseTrigger || '',
+          status: milestone.status || 'upcoming',
+          packageIds: milestone.packageIds || [],
+        })),
         auditLog: [],
       };
       store.projects.push(project);
@@ -3662,14 +3763,14 @@ const store = {
       showProjectDetail(project.id);
     }
 
-    function addPackage(projectId, formData) {
+    function addPackage(projectId, formData, milestones = []) {
       const project = projectFor(projectId);
       if (!project) return;
       const contractor = formData.contractor === 'Unassigned estimate' ? 'Unassigned estimate' : formData.contractor;
       const pkg = {
         id: 'wp-' + Date.now(),
         name: formData.name,
-        cap: parseFloat(formData.cap) || 0,
+        cap: parsePackageAmount(formData.cap) || 0,
         contractModel: formData.contractModel || 'milestone',
         funded: 0,
         released: 0,
@@ -3682,12 +3783,19 @@ const store = {
         requests: [],
         variationRequests: [],
         documentRequests: [],
+        milestones: milestones.map((milestone) => ({
+          name: milestone.name,
+          paymentDate: milestone.paymentDate,
+          amount: milestone.amount,
+          status: milestone.status || 'uninvoiced',
+        })),
       };
       project.packages.push(pkg);
       syncMilestoneStatuses(project);
       store.activePackageId = pkg.id;
       logAudit(project, 'Estimated package added by Project Manager: ' + pkg.name, 'info');
       renderProjectDetail(projectId);
+      renderDashboard2();
     }
 
     function approveWorkPackage(projectId, packageId) {
@@ -3759,7 +3867,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Invoice submitted: ' + request.ref + ' for ' + formatGBP(request.amount), 'pending');
       logChainAction('Payment request account created', project, pkg, `${request.ref} opened for ${formatGBP(request.amount)} against package escrow.`, `request_${request.id}`);
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3789,8 +3896,8 @@ const store = {
       };
       pkg.variationRequests.push(variation);
       logAudit(project, 'Variation request submitted for ' + pkg.name + ': ' + variation.ref, 'pending');
-      renderPackageDetail(projectId, packageId);
       renderProjectDetail(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
       renderDashboard2();
     }
@@ -3812,7 +3919,6 @@ const store = {
       pkg.documentRequests.push(request);
       logAudit(project, 'Document requested from contractor for ' + pkg.name + ': ' + request.type, 'pending');
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard2();
     }
 
@@ -3844,7 +3950,6 @@ const store = {
         logAudit(project, 'Variation agreed by contractor: ' + variation.ref, 'released');
       }
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard();
       renderDashboard2();
     }
@@ -3860,7 +3965,6 @@ const store = {
       variation.rejectedDate = new Date().toISOString().split('T')[0];
       logAudit(project, 'Variation rejected: ' + variation.ref + ' — ' + variation.rejectionReason, 'rejected');
       renderWorkPackageView();
-      renderPackageDetail(projectId, packageId);
       renderDashboard();
       renderDashboard2();
     }
@@ -3878,7 +3982,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Request approved by PM: ' + req.ref, 'released');
       logChainAction('Approval recorded', project, pkg, `Project Manager approval recorded for ${req.ref}.`, `approval_${req.id}_pm`);
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3895,8 +3998,8 @@ const store = {
       req.rejectionReason = reason;
       syncMilestoneStatuses(project);
       logAudit(project, 'Request rejected: ' + req.ref + ' — ' + reason, 'rejected');
-      renderPackageDetail(projectId, packageId);
       renderPayments(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
     }
 
@@ -3913,7 +4016,6 @@ const store = {
       syncMilestoneStatuses(project);
       logAudit(project, 'Funds released: ' + formatGBP(req.amount) + ' for ' + pkg.name, 'released');
       logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow to the contractor wallet.`, `release_${req.id}`);
-      renderPackageDetail(projectId, packageId);
       renderProjectDetail(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
@@ -3967,7 +4069,6 @@ const store = {
       renderDocuments(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
-      if (store.activePackageId) renderPackageDetail(projectId, store.activePackageId);
     }
 
     function editDocument(docId, formData) {
@@ -3983,7 +4084,7 @@ const store = {
       store.activeEditDocumentId = null;
       renderDocuments(doc.projectId);
       renderPayments(doc.projectId);
-      if (store.activePackageId) renderPackageDetail(doc.projectId, store.activePackageId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
     }
 
     function updateDocument(docId, newRef, note) {
@@ -4043,6 +4144,14 @@ const store = {
       renderDashboard2();
       renderProjectsList();
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
+    }
+
+    function setAppRole(roleKey) {
+      const nextIndex = roles.findIndex((role) => roleKeyFromLabel(role.label) === roleKey);
+      if (nextIndex < 0 || nextIndex === roleIndex) return;
+      roleIndex = nextIndex;
+      renderRole();
+      maybeAnimateDashboardKpis();
     }
 
     function applyProjectContractModel(project) {
@@ -4328,12 +4437,14 @@ const store = {
       return milestoneRows().map((row) => ({
         name: row.querySelector('[data-milestone-name]')?.value.trim() || '',
         targetDate: row.querySelector('[data-milestone-date]')?.value || '',
+        budget: parsePackageAmount(row.querySelector('[data-milestone-budget]')?.value || 0),
+        releaseTrigger: row.querySelector('[data-milestone-trigger]')?.value.trim() || '',
         status: 'upcoming',
         packageIds: [],
       }));
     }
 
-    function renderMilestoneBuilder(rows = [
+    function renderMilestoneBuilderLegacy(rows = [
       { name: 'Foundation & Groundworks', targetDate: '' },
       { name: 'Structural Frame', targetDate: '' },
     ]) {
@@ -4350,24 +4461,283 @@ const store = {
     }
 
     function collectMilestones() {
-      return getMilestoneRowValues().filter((milestone) => milestone.name || milestone.targetDate);
+      return getMilestoneRowValues().filter((milestone) => milestone.name || milestone.targetDate || milestone.budget || milestone.releaseTrigger);
+    }
+
+    function sectionDefaultsForModel(model = selectedProjectContractModel()) {
+      if (model === 'valuation') {
+        return {
+          title: 'Define valuation periods',
+          help: 'Set each valuation period, assessment date, and budget allowance.',
+          nameLabel: 'Valuation period',
+          namePlaceholder: 'Month 1 valuation',
+          triggerPlaceholder: 'Assessment and payment notice complete',
+          rows: [
+            { name: 'Month 1 valuation', targetDate: '', budget: 0, releaseTrigger: 'Assessment approved' },
+            { name: 'Month 2 valuation', targetDate: '', budget: 0, releaseTrigger: 'Assessment approved' },
+          ],
+        };
+      }
+      if (model === 'bespoke') {
+        return {
+          title: 'Define bespoke release stages',
+          help: 'Set each custom payment stage, release trigger, and budget allowance.',
+          nameLabel: 'Release stage',
+          namePlaceholder: 'Design package approval',
+          triggerPlaceholder: 'Named approval or document condition',
+          rows: [
+            { name: 'Initial release stage', targetDate: '', budget: 0, releaseTrigger: 'Named approval complete' },
+            { name: 'Final release stage', targetDate: '', budget: 0, releaseTrigger: 'Completion evidence accepted' },
+          ],
+        };
+      }
+      return {
+        title: 'Define project milestones',
+        help: 'Set the milestone names, target dates, and budget allowance for each stage.',
+        nameLabel: 'Milestone',
+        namePlaceholder: 'Foundation & Groundworks',
+        triggerPlaceholder: 'Completion certificate and PM approval',
+        rows: [
+          { name: 'Foundation & Groundworks', targetDate: '', budget: 0, releaseTrigger: 'Stage complete and approved' },
+          { name: 'Structural Frame', targetDate: '', budget: 0, releaseTrigger: 'Stage complete and approved' },
+        ],
+      };
+    }
+
+    function syncNewProjectBudgetSummary() {
+      const summary = document.querySelector('[data-new-project-budget-summary]');
+      if (!summary) return;
+      const overallBudget = parsePackageAmount(document.querySelector('[data-new-project-budget]')?.value || 0);
+      const sectionTotal = getMilestoneRowValues().reduce((sum, row) => sum + (row.budget || 0), 0);
+      const remaining = overallBudget - sectionTotal;
+      summary.textContent = `Overall budget: ${formatGBP(overallBudget)} | Sections: ${formatGBP(sectionTotal)} | Remaining: ${formatGBP(remaining)}`;
+      summary.classList.toggle('is-over', overallBudget > 0 && remaining < 0);
+    }
+
+    function renderMilestoneBuilder(rows) {
+      const builder = document.querySelector('[data-milestone-builder]');
+      if (!builder) return;
+      const config = sectionDefaultsForModel();
+      const title = document.querySelector('[data-payment-section-title]');
+      const help = document.querySelector('[data-payment-section-help]');
+      if (title) title.textContent = config.title;
+      if (help) help.textContent = config.help;
+      const nextRows = rows?.length ? rows : config.rows;
+      builder.innerHTML = nextRows.map((row) => `
+        <div class="new-project-section-row" data-milestone-row>
+          <div class="form-field">
+            <label>${config.nameLabel} name</label>
+            <input type="text" value="${escapeHtml(row.name || '')}" placeholder="${escapeHtml(config.namePlaceholder)}" data-milestone-name>
+          </div>
+          <div class="form-field">
+            <label>Target date</label>
+            <input type="date" value="${escapeHtml(row.targetDate || '')}" data-milestone-date>
+          </div>
+          <div class="form-field">
+            <label>Budget - GBP</label>
+            <input type="number" min="0" step="1000" value="${row.budget || ''}" placeholder="0" data-milestone-budget>
+          </div>
+          <div class="form-field">
+            <label>Release condition</label>
+            <input type="text" value="${escapeHtml(row.releaseTrigger || '')}" placeholder="${escapeHtml(config.triggerPlaceholder)}" data-milestone-trigger>
+          </div>
+          <button class="new-project-remove-section" type="button" data-remove-milestone-row aria-label="Remove section" ${nextRows.length === 1 ? 'disabled' : ''}>Remove</button>
+        </div>
+      `).join('');
+      syncNewProjectBudgetSummary();
+      validateMilestoneProjectForm();
+    }
+
+    function selectedPackageContractModel() {
+      return document.querySelector('[data-package-contract-model]')?.value || 'milestone';
+    }
+
+    function packageScheduleRows() {
+      return [...document.querySelectorAll('[data-package-milestone-row]')];
+    }
+
+    function packageBudgetValue() {
+      return parsePackageAmount(document.querySelector('[data-add-package-budget]')?.value || 0);
+    }
+
+    function packageScheduleRequired() {
+      const model = selectedPackageContractModel();
+      return model === 'milestone' || model === 'bespoke';
+    }
+
+    function packageScheduleConfig(model = selectedPackageContractModel()) {
+      if (model === 'bespoke') {
+        return {
+          title: 'Define bespoke payment stages',
+          help: 'Adjust each custom stage name, payment date, and amount before the package is created.',
+          addLabel: 'Add stage',
+          nameLabel: 'Stage name',
+          namePlaceholder: 'Custom release stage',
+          names: ['Initial release', 'Main works release', 'Completion release'],
+          shares: [0.25, 0.5, 0.25],
+        };
+      }
+      return {
+        title: 'Define package milestones',
+        help: 'Adjust each milestone name, payment date, and amount before the package is created.',
+        addLabel: 'Add milestone',
+        nameLabel: 'Milestone name',
+        namePlaceholder: 'Foundation pour',
+        names: ['Mobilisation', 'Works complete', 'Inspection sign-off', 'Retention release'],
+        shares: [0.2, 0.35, 0.35, 0.1],
+      };
+    }
+
+    function addDaysToIso(dateValue, days) {
+      const base = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+      if (Number.isNaN(base.getTime())) return '';
+      base.setDate(base.getDate() + days);
+      return base.toISOString().split('T')[0];
+    }
+
+    function packageScheduleDefaultRows() {
+      const config = packageScheduleConfig();
+      const budget = packageBudgetValue();
+      const packageName = document.querySelector('[data-add-package-name]')?.value.trim() || 'Package';
+      const start = document.querySelector('[data-add-package-start]')?.value || new Date().toISOString().split('T')[0];
+      const end = document.querySelector('[data-add-package-completion]')?.value || '';
+      return config.names.map((name, index) => {
+        const amount = Math.round((budget * config.shares[index]) / 1000) * 1000;
+        const date = end && index === config.names.length - 1
+          ? end
+          : addDaysToIso(start, (index + 1) * 14);
+        return {
+          name: `${packageName} ${name}`.trim(),
+          paymentDate: date,
+          amount,
+          status: 'uninvoiced',
+        };
+      });
+    }
+
+    function getPackageMilestoneRowValues() {
+      return packageScheduleRows().map((row) => ({
+        name: row.querySelector('[data-package-milestone-name]')?.value.trim() || '',
+        paymentDate: row.querySelector('[data-package-milestone-date]')?.value || '',
+        amount: parsePackageAmount(row.querySelector('[data-package-milestone-amount]')?.value || 0),
+        status: row.querySelector('[data-package-milestone-status]')?.value || 'uninvoiced',
+      }));
+    }
+
+    function syncPackageScheduleSummary() {
+      const summary = document.querySelector('[data-package-schedule-summary]');
+      if (!summary) return;
+      const budget = packageBudgetValue();
+      const rows = getPackageMilestoneRowValues();
+      const total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
+      const remaining = budget - total;
+      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
+      const hasDuplicateDates = new Set(dates).size !== dates.length;
+      summary.textContent = hasDuplicateDates
+        ? `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Dates cannot overlap`
+        : `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Remaining: ${formatGBP(remaining)}`;
+      summary.classList.toggle('is-over', budget > 0 && remaining < 0 && !hasDuplicateDates);
+      summary.classList.toggle('is-error', hasDuplicateDates);
+    }
+
+    function validatePackageSchedule() {
+      const createButton = document.querySelector('[data-add-package-create]');
+      if (!createButton) return;
+      if (!packageScheduleRequired()) {
+        createButton.disabled = false;
+        return;
+      }
+      const rows = getPackageMilestoneRowValues();
+      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
+      const hasDuplicateDates = new Set(dates).size !== dates.length;
+      createButton.disabled = rows.length < 1
+        || rows.some((row) => !row.name || !row.paymentDate || row.amount <= 0)
+        || hasDuplicateDates;
+      syncPackageScheduleSummary();
+    }
+
+    function renderPackageMilestoneBuilder(rows = packageScheduleDefaultRows()) {
+      const builder = document.querySelector('[data-package-milestone-builder]');
+      if (!builder) return;
+      const config = packageScheduleConfig();
+      const title = document.querySelector('[data-package-schedule-title]');
+      const help = document.querySelector('[data-package-schedule-help]');
+      const addButton = document.querySelector('[data-add-package-milestone-row]');
+      if (title) title.textContent = config.title;
+      if (help) help.textContent = config.help;
+      if (addButton) addButton.textContent = config.addLabel;
+      builder.innerHTML = rows.map((row) => `
+        <div class="new-project-section-row" data-package-milestone-row>
+          <div class="form-field">
+            <label>${config.nameLabel}</label>
+            <input type="text" value="${escapeHtml(row.name || '')}" placeholder="${escapeHtml(config.namePlaceholder)}" data-package-milestone-name>
+          </div>
+          <div class="form-field">
+            <label>Payment date</label>
+            <input type="date" value="${escapeHtml(row.paymentDate || '')}" data-package-milestone-date>
+          </div>
+          <div class="form-field">
+            <label>Amount - GBP</label>
+            <input type="number" min="0" step="1000" value="${row.amount || ''}" placeholder="0" data-package-milestone-amount>
+          </div>
+          <div class="form-field">
+            <label>Status</label>
+            <select data-package-milestone-status>
+              <option value="uninvoiced" ${row.status === 'uninvoiced' ? 'selected' : ''}>Uninvoiced</option>
+              <option value="invoiced" ${row.status === 'invoiced' ? 'selected' : ''}>Invoiced</option>
+              <option value="paid" ${row.status === 'paid' ? 'selected' : ''}>Released</option>
+              <option value="contested" ${row.status === 'contested' ? 'selected' : ''}>Contested</option>
+            </select>
+          </div>
+          <button class="new-project-remove-section" type="button" data-remove-package-milestone-row aria-label="Remove schedule row" ${rows.length === 1 ? 'disabled' : ''}>Remove</button>
+        </div>
+      `).join('');
+      syncPackageScheduleSummary();
+      validatePackageSchedule();
+    }
+
+    function collectPackageMilestones() {
+      return packageScheduleRequired()
+        ? getPackageMilestoneRowValues().filter((row) => row.name || row.paymentDate || row.amount)
+        : [];
+    }
+
+    function renderAddPackageStep(step = 1) {
+      const steps = document.querySelectorAll('[data-package-step]');
+      const panels = document.querySelectorAll('[data-package-panel]');
+      const backButton = document.querySelector('[data-package-back]');
+      const nextButton = document.querySelector('[data-package-next]');
+      const createButton = document.querySelector('[data-add-package-create]');
+      const needsSchedule = packageScheduleRequired();
+      steps.forEach((item) => {
+        const itemStep = Number(item.dataset.packageStep);
+        item.classList.toggle('is-active', itemStep === step);
+        item.classList.toggle('is-complete', itemStep < step);
+        item.hidden = itemStep === 2 && !needsSchedule;
+      });
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-active', Number(panel.dataset.packagePanel) === step);
+      });
+      if (backButton) backButton.hidden = step === 1;
+      if (nextButton) nextButton.hidden = !needsSchedule || step !== 1;
+      if (createButton) createButton.hidden = needsSchedule ? step !== 2 : false;
+      if (step === 2) renderPackageMilestoneBuilder(getPackageMilestoneRowValues().length ? getPackageMilestoneRowValues() : packageScheduleDefaultRows());
+      validatePackageSchedule();
     }
 
     function validateMilestoneProjectForm() {
       const createButton = document.querySelector('[data-new-project-create]');
       const builder = document.querySelector('[data-milestone-builder]');
-      if (!createButton || !builder || selectedContractModel() !== 'milestone') {
+      if (!createButton || !builder) {
         if (createButton) createButton.disabled = false;
         return;
       }
-      const milestones = getMilestoneRowValues();
-      const namedCount = milestones.filter((milestone) => milestone.name).length;
-      const allDates = milestones.length > 0 && milestones.every((milestone) => milestone.targetDate);
-      createButton.disabled = namedCount < 2 || !allDates;
+      const sections = collectMilestones();
+      createButton.disabled = sections.length < 1 || sections.some((section) => !section.name);
+      syncNewProjectBudgetSummary();
     }
 
     function renderNewProjectStep(step) {
-      const isMilestone = selectedContractModel() === 'milestone';
       const steps = document.querySelectorAll('[data-new-project-step]');
       const panels = document.querySelectorAll('[data-new-project-panel]');
       const backButton = document.querySelector('[data-new-project-back]');
@@ -4388,43 +4758,27 @@ const store = {
         item.classList.toggle('is-active', itemStep === step);
         item.classList.toggle('is-complete', itemStep < step);
       });
-      document.querySelectorAll('[data-new-project-milestone-step]').forEach((item) => {
-        item.hidden = !isMilestone;
-      });
       panels.forEach((panel) => {
         panel.classList.toggle('is-active', Number(panel.dataset.newProjectPanel) === step);
       });
       if (backButton) backButton.hidden = step === 1;
-      if (nextButton) nextButton.hidden = step !== 1 && !(step === 2 && isMilestone);
-      if (createButton) createButton.hidden = isMilestone ? step !== 3 : step !== 2;
+      if (nextButton) nextButton.hidden = step !== 1;
+      if (createButton) createButton.hidden = step !== 2;
+      if (step === 2) renderMilestoneBuilder(getMilestoneRowValues());
       validateMilestoneProjectForm();
     }
 
-    document.querySelectorAll('[data-contract-model-card]').forEach((card) => {
-      card.addEventListener('click', () => {
-        document.querySelectorAll('[data-contract-model-card]').forEach((item) => {
-          const isSelected = item === card;
-          item.classList.toggle('is-selected', isSelected);
-          item.setAttribute('aria-pressed', String(isSelected));
-        });
-        const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-        renderNewProjectStep(Math.min(activeStep, selectedContractModel() === 'milestone' ? 3 : 2));
-      });
-    });
-
     document.querySelector('[data-new-project-next]')?.addEventListener('click', () => {
-      const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-      renderNewProjectStep(activeStep === 2 && selectedContractModel() === 'milestone' ? 3 : 2);
+      renderNewProjectStep(2);
     });
 
     document.querySelector('[data-new-project-back]')?.addEventListener('click', () => {
-      const activeStep = Number(document.querySelector('.modal-step.is-active[data-new-project-step]')?.dataset.newProjectStep || 1);
-      renderNewProjectStep(activeStep === 3 ? 2 : 1);
+      renderNewProjectStep(1);
     });
 
     document.querySelector('[data-add-milestone-row]')?.addEventListener('click', () => {
       const rows = getMilestoneRowValues();
-      rows.push({ name: '', targetDate: '', status: 'upcoming', packageIds: [] });
+      rows.push({ name: '', targetDate: '', budget: 0, releaseTrigger: '', status: 'upcoming', packageIds: [] });
       renderMilestoneBuilder(rows);
     });
 
@@ -4434,10 +4788,11 @@ const store = {
       const rows = getMilestoneRowValues();
       const index = milestoneRows().indexOf(removeButton.closest('[data-milestone-row]'));
       rows.splice(index, 1);
-      renderMilestoneBuilder(rows.length ? rows : [{ name: '', targetDate: '', status: 'upcoming', packageIds: [] }]);
+      renderMilestoneBuilder(rows.length ? rows : [{ name: '', targetDate: '', budget: 0, releaseTrigger: '', status: 'upcoming', packageIds: [] }]);
     });
 
     document.querySelector('[data-milestone-builder]')?.addEventListener('input', validateMilestoneProjectForm);
+    document.querySelector('[data-new-project-budget]')?.addEventListener('input', syncNewProjectBudgetSummary);
     document.querySelector('[data-project-end-client]')?.addEventListener('change', syncProjectClientMode);
     document.querySelectorAll('[data-project-contract-model-card]').forEach((card) => {
       card.addEventListener('click', () => {
@@ -4446,8 +4801,54 @@ const store = {
           item.classList.toggle('is-selected', isSelected);
           item.setAttribute('aria-pressed', String(isSelected));
         });
+        renderMilestoneBuilder(sectionDefaultsForModel(card.dataset.projectContractModel).rows);
       });
     });
+
+    document.querySelector('[data-package-next]')?.addEventListener('click', () => {
+      renderAddPackageStep(2);
+    });
+
+    document.querySelector('[data-package-back]')?.addEventListener('click', () => {
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-package-contract-model]')?.addEventListener('change', () => {
+      renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-add-package-budget]')?.addEventListener('input', () => {
+      renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      renderAddPackageStep(1);
+    });
+
+    document.querySelector('[data-add-package-name]')?.addEventListener('input', () => {
+      if (!document.querySelector('[data-package-panel="2"]')?.classList.contains('is-active')) {
+        renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+      }
+    });
+
+    document.querySelector('[data-add-package-start]')?.addEventListener('change', () => renderPackageMilestoneBuilder(packageScheduleDefaultRows()));
+    document.querySelector('[data-add-package-completion]')?.addEventListener('change', () => renderPackageMilestoneBuilder(packageScheduleDefaultRows()));
+
+    document.querySelector('[data-add-package-milestone-row]')?.addEventListener('click', () => {
+      const rows = getPackageMilestoneRowValues();
+      rows.push({ name: '', paymentDate: '', amount: 0, status: 'uninvoiced' });
+      renderPackageMilestoneBuilder(rows);
+    });
+
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('click', (event) => {
+      const removeButton = event.target.closest('[data-remove-package-milestone-row]');
+      if (!removeButton) return;
+      const rows = getPackageMilestoneRowValues();
+      const index = packageScheduleRows().indexOf(removeButton.closest('[data-package-milestone-row]'));
+      rows.splice(index, 1);
+      renderPackageMilestoneBuilder(rows.length ? rows : [{ name: '', paymentDate: '', amount: 0, status: 'uninvoiced' }]);
+    });
+
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('input', validatePackageSchedule);
+    document.querySelector('[data-package-milestone-builder]')?.addEventListener('change', validatePackageSchedule);
 
     function handleModalSubmit(modal) {
       const modalName = modal.dataset.modal;
@@ -4458,25 +4859,26 @@ const store = {
           name: modalScopedValue(modal, '[data-new-project-name]') || 'Untitled Project',
           client: modalScopedValue(modal, '[data-new-project-client]') || 'Client Organisation',
           contractRef: modalScopedValue(modal, '[data-new-project-ref]') || 'REF-' + Date.now(),
+          budget: modalScopedValue(modal, '[data-new-project-budget]') || '0',
           startDate: modalScopedValue(modal, '[data-new-project-start]') || new Date().toISOString().split('T')[0],
           endDate: modalScopedValue(modal, '[data-new-project-end]') || new Date().toISOString().split('T')[0],
           pm: modalScopedValue(modal, '[data-new-project-pm]') || 'Eleanor Lane',
           fd: modalScopedValue(modal, '[data-new-project-fd]') || 'Maya Shah',
           contractModel: selectedProjectContractModel(),
           endClient,
-        }, []);
+        }, collectMilestones());
       }
 
       if (modalName === 'add-package') {
         addPackage(context.projectId, {
-          name: modalFieldValue(modal, 0) || 'New Work Package',
-          contractModel: document.querySelector('[data-package-contract-model]')?.value || 'milestone',
-          cap: modalFieldValue(modal, 2) || '0',
-          contractor: modalFieldValue(modal, 3) || 'Unassigned estimate',
-          contractRef: modalFieldValue(modal, 4) || '',
-          startDate: modalFieldValue(modal, 5) || '',
-          completionDate: modalFieldValue(modal, 6) || '',
-        });
+          name: modalScopedValue(modal, '[data-add-package-name]') || 'New Work Package',
+          contractModel: selectedPackageContractModel(),
+          cap: modalScopedValue(modal, '[data-add-package-budget]') || '0',
+          contractor: modalScopedValue(modal, '[data-add-package-contractor]') || 'Unassigned estimate',
+          contractRef: modalScopedValue(modal, '[data-add-package-ref]') || '',
+          startDate: modalScopedValue(modal, '[data-add-package-start]') || '',
+          completionDate: modalScopedValue(modal, '[data-add-package-completion]') || '',
+        }, collectPackageMilestones());
       }
 
       if (modalName === 'fund-package') {
@@ -4658,10 +5060,62 @@ const store = {
         renderNewProjectStep(1);
       }
       if (name === 'new-project') syncProjectClientMode();
+      if (name === 'add-package') {
+        renderPackageMilestoneBuilder(packageScheduleDefaultRows());
+        renderAddPackageStep(1);
+      }
+    }
+
+    function setLandingRole(role) {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+      home.dataset.selectedRole = role;
+      setAppRole(landingRoleToAppRole[role] || 'finance_director');
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        const isActive = button.dataset.landingRole === role;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+      });
+      document.querySelectorAll('[data-role-story]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleStory === role);
+      });
+      document.querySelectorAll('[data-role-board]').forEach((panel) => {
+        panel.classList.toggle('is-active', panel.dataset.roleBoard === role);
+      });
+    }
+
+    function initLandingPage() {
+      const home = document.getElementById('home-page');
+      if (!home) return;
+
+      document.querySelectorAll('[data-landing-role]').forEach((button) => {
+        button.addEventListener('click', () => setLandingRole(button.dataset.landingRole));
+      });
+      document.querySelectorAll('[data-demo-role-link]').forEach((link) => {
+        link.addEventListener('click', () => setLandingRole(link.dataset.demoRoleLink));
+      });
+      setLandingRole(home.dataset.selectedRole || 'finance');
+
+      const reveals = Array.from(document.querySelectorAll('.landing-reveal'));
+      if (!('IntersectionObserver' in window)) {
+        reveals.forEach((section) => section.classList.add('is-visible'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        });
+      }, { threshold: 0.18 });
+
+      reveals.forEach((section) => observer.observe(section));
     }
 
     document.querySelectorAll('[data-modal-target]').forEach((trigger) => {
       trigger.addEventListener('click', () => {
+        syncContextFromTrigger(trigger);
         prepareAddDocumentModal(trigger);
         openModal(trigger.dataset.modalTarget);
       });
@@ -4670,6 +5124,7 @@ const store = {
     document.addEventListener('click', (event) => {
       const trigger = event.target.closest('[data-modal-target]');
       if (!trigger) return;
+      syncContextFromTrigger(trigger);
       prepareAddDocumentModal(trigger);
       openModal(trigger.dataset.modalTarget);
     });
@@ -4677,7 +5132,7 @@ const store = {
     document.addEventListener('click', (event) => {
       const modal = event.target.closest('[data-modal]');
       const button = event.target.closest('.modal-footer .btn');
-      if (!modal || !button || button.matches('[data-modal-close], [data-modal-target], [data-new-project-next], [data-new-project-back]')) return;
+      if (!modal || !button || button.matches('[data-modal-close], [data-modal-target], [data-new-project-next], [data-new-project-back], [data-package-next], [data-package-back]')) return;
       event.preventDefault();
       event.stopPropagation();
       handleModalSubmit(modal);
@@ -4688,6 +5143,22 @@ const store = {
       if (!evidenceToggle) return;
       store.activeEvidenceDocId = store.activeEvidenceDocId === evidenceToggle.dataset.evidenceDoc ? null : evidenceToggle.dataset.evidenceDoc;
       renderEvidenceReviewModal();
+    });
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-open-work-package]');
+      if (!trigger) return;
+      const nestedControl = event.target.closest('a, button, input, select, textarea, label');
+      if (nestedControl && nestedControl !== trigger) return;
+      openWorkPackageView(trigger.dataset.projectId, trigger.dataset.packageId, event);
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const trigger = event.target.closest('tr[data-open-work-package]');
+      if (!trigger) return;
+      event.preventDefault();
+      openWorkPackageView(trigger.dataset.projectId, trigger.dataset.packageId, event);
     });
 
     document.addEventListener('click', (event) => {
@@ -4718,16 +5189,19 @@ const store = {
       maybeAnimateDashboardKpis();
     });
 
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-      const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-      document.documentElement.dataset.theme = nextTheme;
-      localStorage.setItem('construkt-theme', nextTheme);
+    document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
+      toggle.addEventListener('click', () => {
+        const nextTheme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('construkt-theme', nextTheme);
+      });
     });
 
     window.addEventListener('hashchange', renderRoute);
 
     applyInitialTheme();
     initChartTooltips();
+    initLandingPage();
     renderRole();
     renderDashboard();
     renderProjectsList();

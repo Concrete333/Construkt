@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Construkt is a Solana-backed escrow and approval engine for construction work-package payments. The on-chain program (Anchor/Rust) enforces a strict role-based approval flow before finance can release SPL Token funds from an escrow vault to a contractor.
+Construkt is a Solana-backed escrow and approval engine for construction work-package payments. The on-chain program (Anchor/Rust) enforces the current PM-to-Finance release flow: contractor submits, PM/LowApprover approves, and Finance releases SPL Token funds from an escrow vault to a contractor when the rules are satisfied. `HighApproved` remains available as an optional/custom approval state.
 
 Target networks: **localnet and devnet only**. Do not target mainnet.
 
@@ -20,6 +20,12 @@ anchor build
 npm run anchor:test
 # or directly:
 anchor test --provider.cluster localnet
+
+# From Windows PowerShell, call the WSL test wrapper
+npm run anchor:test:wsl
+
+# From Windows PowerShell, seed localnet through WSL
+npm run seed:localnet:wsl
 
 # Run a single test file (ts-mocha reads tsconfig.json)
 npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
@@ -40,6 +46,8 @@ npm run lint:fix
 
 Single Anchor program at `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`. All business logic lives here — no off-chain backend for V0.
 
+The program is deployed once. Projects, work packages, payment requests, role assignments, approval records, and vaults are PDA/accounts under that program; the backend does not deploy a new smart contract per project or work package.
+
 **Account hierarchy:**
 
 ```
@@ -52,6 +60,7 @@ ProjectAccount  (authority = finance wallet)
 ```
 
 **PDA seeds:**
+
 - Project: `["project", authority, project_id_le_bytes]`
 - WorkPackage: `["work_package", project, package_id_le_bytes]`
 - VaultAuthority: `["vault_authority", work_package]`
@@ -62,11 +71,12 @@ ProjectAccount  (authority = finance wallet)
 Role bytes: Contractor=1, LowApprover=2, HighApprover=3
 
 **Payment request lifecycle:**
-`Submitted` → `LowApproved` → `HighApproved` → `Released` (or `Rejected` at any stage)
+`Submitted` -> `LowApproved` -> `Released` (or `Rejected` at any stage). `HighApproved` remains available as an optional/custom approval state.
 
 **Key invariants enforced on-chain:**
+
 - Only one active unreleased request per work package
-- LowApprover must approve before HighApprover
+- If HighApprover is used, LowApprover must approve first
 - Contractor cannot approve their own request
 - Same wallet cannot hold both LowApprover and HighApprover on a package
 - Holds block approval, rejection, document updates, and release
@@ -77,10 +87,10 @@ Role bytes: Contractor=1, LowApprover=2, HighApprover=3
 
 Tests are split into four ordered files (b1–b4) using ts-mocha with shared fixtures from `tests/setup.ts`. The `createFixture()` helper creates isolated per-test keypairs and PDAs so test suites don't share state. Requires WSL + localnet.
 
-- `b1-accounts.ts` — project/package setup, role assignment
-- `b2-funding.ts` — escrow funding
-- `b3-requests.ts` — request submission, document ref, approvals, rejection, holds
-- `b4-release.ts` — payment release and blocked-state guards
+- `construkt.b1-accounts.ts` — project/package setup, role assignment
+- `construkt.b2-funding.ts` — escrow funding
+- `construkt.b3-requests.ts` — request submission, document ref, approvals, rejection, holds
+- `construkt.b4-release.ts` — payment release and blocked-state guards
 
 ### Frontend Unit Tests (`frontend-prototype/tests/construkt.frontend.ts`)
 
@@ -94,12 +104,19 @@ Covers: `formatGBP`, `parseMoneyKpi`, `formatMoneyKpi`, `easeOutCubic`, `clampPe
 
 ### Backendless Demo (`frontend-prototype/web/index.html`)
 
-Static HTML/CSS/JS demo — the canonical presentation entry point. No wallet, no Anchor, no server required. Business state is mocked. Used for UX iteration before the full Solana-integrated frontend (`app/`, not yet built).
+Static HTML/CSS/JS demo — the canonical presentation entry point. No wallet, no Anchor, no server required. Business state is mocked. Used for UX iteration alongside the Solana-integrated React frontend in `app/`.
+
+The older duplicate HTML sources were removed during the front/back merge cleanup. Do not recreate or edit them as active surfaces:
+
+- `frontend-prototype/web/templates/projects/construkt.html`
+- `frontend-prototype/website/construkt.html`
+- Keep product behavior changes in `frontend-prototype/web/static/projects/js/construkt.js` and shared CSS unless a specific HTML source is being updated deliberately.
 
 ## V0 Design Decisions
 
 - Finance = `ProjectAccount.authority` for all privileged actions
 - Standard SPL Token only (not Token-2022)
+- Current release path is `Submitted -> LowApproved -> Released`; `HighApproved` is optional/custom, not mandatory
 - V0 releases are full-amount only (`released_amount` is either 0 or equal to `amount`)
 - All string fields store hashes/references only — no PII or documents on-chain
 - Audit trail is built from account state + approval records + emitted Anchor events; full historical indexing is out of scope

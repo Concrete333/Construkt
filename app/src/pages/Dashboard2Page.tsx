@@ -459,7 +459,7 @@ const roleLead = (role: DemoRole): string => {
     case "projectManager":
       return "Packages on your projects waiting for PM approval, plus team and document activity.";
     case "director":
-      return "Payment requests waiting on Director (HighApprover) sign-off.";
+      return "Payment requests waiting on an optional high-approval step.";
     case "contractor":
       return "Your assigned projects and packages, with submission and release status.";
   }
@@ -523,7 +523,8 @@ const roleMatchesActiveRequest = (
       // Finance acts on requests ready for release, requests on hold, and
       // requests stuck in any pre-release state (so they can place / remove
       // a hold or escalate).
-      if (status === "highApproved") return { action: "Release" };
+      if (status === "lowApproved" || status === "highApproved")
+        return { action: "Release" };
       if (
         status === "submittedOnHold" ||
         status === "lowApprovedOnHold" ||
@@ -536,7 +537,7 @@ const roleMatchesActiveRequest = (
       if (status === "submittedOnHold") return { action: "Review (held)" };
       return null;
     case "director":
-      if (status === "lowApproved") return { action: "Approve as Director" };
+      if (status === "lowApproved") return { action: "Approve high step" };
       if (status === "lowApprovedOnHold") return { action: "Review (held)" };
       return null;
     case "contractor":
@@ -544,7 +545,7 @@ const roleMatchesActiveRequest = (
       // The contractor's own submitted invoices stay in the list as a
       // status reminder until released.
       if (status === "submitted") return { action: "Awaiting PM" };
-      if (status === "lowApproved") return { action: "Awaiting Director" };
+      if (status === "lowApproved") return { action: "Awaiting Finance" };
       if (status === "highApproved") return { action: "Awaiting Finance" };
       return null;
   }

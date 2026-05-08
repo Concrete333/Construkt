@@ -322,7 +322,7 @@ describe("MockConstruktClient invariants", () => {
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
-  it("release before high approval fails with InvalidStatus", async () => {
+  it("release after PM approval succeeds without high approval", async () => {
     const { client, w, project, workPackage } = await seedFundedPackage();
     await client.submitPaymentRequest({
       contractor: w.contractor,
@@ -353,7 +353,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         contractorTokenAccount: Keypair.generate().publicKey,
       }),
-    ).rejects.toMatchObject({ code: "InvalidStatus" });
+    ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
   it("rejecting clears the active request slot so a new request can be submitted", async () => {

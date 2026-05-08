@@ -136,15 +136,69 @@ export interface MetadataWriter {
   putHold(ref: string, data: HoldMetadata): void;
 }
 
+export interface MetadataSnapshot {
+  projects: Record<string, ProjectMetadata>;
+  packages: Record<string, PackageScopeMetadata>;
+  documents: Record<string, DocumentMetadata>;
+  notes: Record<string, NoteMetadata>;
+  holds: Record<string, HoldMetadata>;
+}
+
+export interface MetadataSnapshotStore {
+  toSnapshot(): MetadataSnapshot;
+  loadSnapshot(snapshot: Partial<MetadataSnapshot>): void;
+}
+
+export interface MetadataStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+}
+
+export const DEFAULT_METADATA_STORAGE_KEY = "construkt.demo.metadata.v1";
+
 const cloneOrNull = <T>(value: T | undefined): T | null =>
   value === undefined ? null : structuredClone(value);
+
+const emptySnapshot = (): MetadataSnapshot => ({
+  projects: {},
+  packages: {},
+  documents: {},
+  notes: {},
+  holds: {},
+});
+
+const BIGINT_MARKER = "__construktBigInt";
+
+const stringifySnapshot = (snapshot: MetadataSnapshot): string =>
+  JSON.stringify(snapshot, (_key, value: unknown) =>
+    typeof value === "bigint" ? { [BIGINT_MARKER]: value.toString() } : value,
+  );
+
+const parseSnapshot = (raw: string): MetadataSnapshot =>
+  JSON.parse(raw, (_key, value: unknown) => {
+    if (
+      value &&
+      typeof value === "object" &&
+      BIGINT_MARKER in value &&
+      typeof value[BIGINT_MARKER as keyof typeof value] === "string"
+    ) {
+      try {
+        return BigInt(value[BIGINT_MARKER as keyof typeof value] as string);
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }) as MetadataSnapshot;
 
 /**
  * In-memory `MetadataClient + MetadataWriter`. Suitable for V0 demo and
  * tests. Returned values are deep-cloned so callers can't mutate the
  * stored payload by accident.
  */
-export class MockMetadataClient implements MetadataClient, MetadataWriter {
+export class MockMetadataClient
+  implements MetadataClient, MetadataWriter, MetadataSnapshotStore
+{
   private readonly projects = new Map<string, ProjectMetadata>();
   private readonly packages = new Map<string, PackageScopeMetadata>();
   private readonly documents = new Map<string, DocumentMetadata>();
@@ -181,5 +235,147 @@ export class MockMetadataClient implements MetadataClient, MetadataWriter {
   }
   putHold(ref: string, data: HoldMetadata): void {
     this.holds.set(ref, structuredClone(data));
+  }
+
+  loadSnapshot(snapshot: Partial<MetadataSnapshot>): void {
+    this.projects.clear();
+    this.packages.clear();
+    this.documents.clear();
+    this.notes.clear();
+    this.holds.clear();
+
+    for (const [ref, data] of Object.entries(snapshot.projects ?? {})) {
+      this.putProject(ref, data);
+    }
+    for (const [ref, data] of Object.entries(snapshot.packages ?? {})) {
+      this.putPackageScope(ref, data);
+    }
+    for (const [ref, data] of Object.entries(snapshot.documents ?? {})) {
+      this.putDocument(ref, data);
+    }
+    for (const [ref, data] of Object.entries(snapshot.notes ?? {})) {
+      this.putNote(ref, data);
+    }
+    for (const [ref, data] of Object.entries(snapshot.holds ?? {})) {
+      this.putHold(ref, data);
+    }
+  }
+
+  toSnapshot(): MetadataSnapshot {
+    return {
+      projects: Object.fromEntries(
+        [...this.projects].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+      packages: Object.fromEntries(
+        [...this.packages].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+      documents: Object.fromEntries(
+        [...this.documents].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+      notes: Object.fromEntries(
+        [...this.notes].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+      holds: Object.fromEntries(
+        [...this.holds].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+    };
+  }
+}
+
+/**
+ * Browser/local-demo metadata adapter. It keeps the same in-memory behavior
+ * as `MockMetadataClient`, but mirrors every write into a simple storage
+ * backend so Anchor-mode refs survive page refreshes during local demos.
+ */
+export class LocalStorageMetadataClient
+  implements MetadataClient, MetadataWriter, MetadataSnapshotStore
+{
+  private readonly client = new MockMetadataClient();
+  private readonly storage: MetadataStorage;
+  private readonly key: string;
+  private warnedPersistFailure = false;
+
+  constructor(storage: MetadataStorage, key = DEFAULT_METADATA_STORAGE_KEY) {
+    this.storage = storage;
+    this.key = key;
+    this.loadStoredSnapshot();
+  }
+
+  async resolveProject(ref: string): Promise<ProjectMetadata | null> {
+    return this.client.resolveProject(ref);
+  }
+  async resolvePackageScope(ref: string): Promise<PackageScopeMetadata | null> {
+    return this.client.resolvePackageScope(ref);
+  }
+  async resolveDocument(ref: string): Promise<DocumentMetadata | null> {
+    return this.client.resolveDocument(ref);
+  }
+  async resolveNote(ref: string): Promise<NoteMetadata | null> {
+    return this.client.resolveNote(ref);
+  }
+  async resolveHold(ref: string): Promise<HoldMetadata | null> {
+    return this.client.resolveHold(ref);
+  }
+
+  putProject(ref: string, data: ProjectMetadata): void {
+    this.client.putProject(ref, data);
+    this.persist();
+  }
+  putPackageScope(ref: string, data: PackageScopeMetadata): void {
+    this.client.putPackageScope(ref, data);
+    this.persist();
+  }
+  putDocument(ref: string, data: DocumentMetadata): void {
+    this.client.putDocument(ref, data);
+    this.persist();
+  }
+  putNote(ref: string, data: NoteMetadata): void {
+    this.client.putNote(ref, data);
+    this.persist();
+  }
+  putHold(ref: string, data: HoldMetadata): void {
+    this.client.putHold(ref, data);
+    this.persist();
+  }
+
+  toSnapshot(): MetadataSnapshot {
+    return this.client.toSnapshot();
+  }
+
+  loadSnapshot(snapshot: Partial<MetadataSnapshot>): void {
+    this.client.loadSnapshot(snapshot);
+    this.persist();
+  }
+
+  private loadStoredSnapshot(): void {
+    const raw = this.storage.getItem(this.key);
+    if (!raw) {
+      this.client.loadSnapshot(emptySnapshot());
+      return;
+    }
+    try {
+      this.client.loadSnapshot(parseSnapshot(raw));
+    } catch {
+      this.client.loadSnapshot(emptySnapshot());
+    }
+  }
+
+  private persist(): void {
+    try {
+      this.storage.setItem(
+        this.key,
+        stringifySnapshot(this.client.toSnapshot()),
+      );
+    } catch (err) {
+      // Storage can be unavailable in private mode or locked-down browsers.
+      // The in-memory client still carries the current session safely.
+      if (!this.warnedPersistFailure) {
+        this.warnedPersistFailure = true;
+        console.warn(
+          "Construkt metadata persistence is unavailable; browser refreshes may discard local demo metadata.",
+          err,
+        );
+      }
+    }
   }
 }

@@ -1,5 +1,6 @@
 import type { MetadataWriter } from "./metadataClient";
 import type { DemoPackageSummary, DemoWorld } from "./mockSeed";
+import { packageScopeSlug } from "./slug";
 
 /**
  * Maps the on-chain ref strings produced by `seedHospitalFitOut` onto
@@ -16,20 +17,17 @@ import type { DemoPackageSummary, DemoWorld } from "./mockSeed";
 
 const DEMO_BASE = "metadata://demo";
 
-const slug = (name: string): string =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
 export const demoProjectRef = (): string =>
   `${DEMO_BASE}/project/hospital-fit-out`;
 
 export const demoPackageScopeRef = (packageName: string): string =>
-  `${DEMO_BASE}/package/${slug(packageName)}`;
+  `${DEMO_BASE}/package/${packageScopeSlug(packageName)}`;
 
 export const demoDocumentRef = (packageName: string, version: number): string =>
-  `${DEMO_BASE}/document/${slug(packageName)}-invoice-v${version}`;
+  `${DEMO_BASE}/document/${packageScopeSlug(packageName)}-invoice-v${version}`;
 
 export const demoNoteRef = (packageName: string, kind: string): string =>
-  `${DEMO_BASE}/note/${slug(packageName)}-${kind}`;
+  `${DEMO_BASE}/note/${packageScopeSlug(packageName)}-${kind}`;
 
 export const demoHoldRef = (packageName: string): string =>
   demoNoteRef(packageName, "hold");
@@ -142,7 +140,7 @@ export const seedDemoMetadata = (
   for (const entry of packageEntries) {
     if (entry.summary.request === null) continue;
     metadata.putDocument(demoDocumentRef(entry.summary.name, 1), {
-      filename: `${slug(entry.summary.name)}-invoice-v1.pdf`,
+      filename: `${packageScopeSlug(entry.summary.name)}-invoice-v1.pdf`,
       version: 1,
       uploaderDisplayName: CONTRACTOR.displayName,
       uploaderRole: "contractor",
@@ -152,7 +150,7 @@ export const seedDemoMetadata = (
   }
 
   metadata.putNote(demoNoteRef(world.packages.foundation.name, "pm-approve"), {
-    text: "Foundation pour matches site report; approving for Director review.",
+    text: "Foundation pour matches site report; approving for release review.",
     authorDisplayName: PM.displayName,
     authorRole: "projectManager",
     authoredAt: now(),
@@ -160,14 +158,14 @@ export const seedDemoMetadata = (
   metadata.putNote(
     demoNoteRef(world.packages.foundation.name, "director-approve"),
     {
-      text: "Director sign-off; cleared for Finance release.",
+      text: "Optional high approval recorded; cleared for Finance release.",
       authorDisplayName: DIRECTOR.displayName,
       authorRole: "director",
       authoredAt: now(),
     },
   );
   metadata.putNote(demoNoteRef(world.packages.steelFrame.name, "pm-approve"), {
-    text: "Steel frame complete per site walk; submitting to Director.",
+    text: "Steel frame complete per site walk; PM approval recorded.",
     authorDisplayName: PM.displayName,
     authorRole: "projectManager",
     authoredAt: now(),
@@ -175,7 +173,7 @@ export const seedDemoMetadata = (
   metadata.putNote(
     demoNoteRef(world.packages.steelFrame.name, "director-approve"),
     {
-      text: "Director approval; ready for Finance release.",
+      text: "Optional high approval recorded; ready for Finance release.",
       authorDisplayName: DIRECTOR.displayName,
       authorRole: "director",
       authoredAt: now(),
