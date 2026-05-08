@@ -9,6 +9,7 @@ import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
 import {
   documentMetadataRef,
   holdMetadataRef,
+  nextDocumentVersion,
   nextPaymentRequestId,
   noteMetadataRef,
 } from "../lib/ids";
@@ -281,7 +282,10 @@ export const WorkPackageViewPage = ({
       const result = await op();
       setFeedback({
         kind: "success",
-        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+        message: `Submitted · ${shortAddress(result.signature, {
+          head: 6,
+          tail: 6,
+        })}`,
       });
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -297,10 +301,7 @@ export const WorkPackageViewPage = ({
   const walletDisplayName =
     teamMembers.find((m) => m.wallet === wallet.toBase58())?.displayName ??
     null;
-
-  const existingDocsCount = requests.filter(
-    (r) => r.request.account.documentRef,
-  ).length;
+  const activeRequestRow = requests.find((row) => row.isActive) ?? null;
 
   return (
     <section className="work-package-view">
@@ -374,10 +375,10 @@ export const WorkPackageViewPage = ({
               walletDisplayName={walletDisplayName}
               contractor={rollup.package.contractor}
               activeRequest={activeRequest}
+              activeRequestRow={activeRequestRow}
               activeRequestAddress={activeRequestAddress}
               project={loaded.project.address}
               workPackage={loaded.packageAddress}
-              existingDocsCount={existingDocsCount}
               pending={pending}
               onAct={onAct}
               client={client}
@@ -444,9 +445,8 @@ export const WorkPackageViewPage = ({
             workPackage={loaded.packageAddress}
             packageStatus={rollup.package.status}
             contractor={rollup.package.contractor}
-            activeRequest={requests.find((r) => r.isActive) ?? null}
+            activeRequest={activeRequestRow}
             activeRequestAddress={activeRequestAddress}
-            requestCounter={rollup.package.requestCounter}
             releaseReadiness={releaseReadiness}
             pending={pending}
             feedback={feedback}
@@ -455,7 +455,7 @@ export const WorkPackageViewPage = ({
             metadataWriter={metadataWriter}
           />
           <ApprovalTrackerPanel
-            row={requests.find((r) => r.isActive) ?? null}
+            row={activeRequestRow}
             teamMembers={teamMembers}
           />
           <ReleaseReadinessPanel
@@ -627,7 +627,7 @@ const RequestCard = ({ row }: { row: RequestRow }) => {
           at={approvals.lowApprover.at}
         />
         <ApprovalSlot
-          label="Director"
+          label="Optional high"
           state={approvals.highApprover.state}
           at={approvals.highApprover.at}
         />
@@ -714,7 +714,7 @@ const ApprovalTrackerPanel = ({
         </li>
         <li className="work-package-view__tracker-step">
           <span className="work-package-view__tracker-role">
-            Director approval
+            Optional high approval
           </span>
           <StatusPill tone={APPROVAL_TONES[row.approvals.highApprover.state]}>
             {APPROVAL_LABELS[row.approvals.highApprover.state]}
@@ -966,10 +966,10 @@ interface DocumentPanelProps {
   walletDisplayName: string | null;
   contractor: PublicKey;
   activeRequest: PaymentRequestAccount | null;
+  activeRequestRow: RequestRow | null;
   activeRequestAddress: PublicKey | null;
   project: PublicKey;
   workPackage: PublicKey;
-  existingDocsCount: number;
   pending: boolean;
   onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
   client: ReturnType<typeof useClients>["client"];
@@ -983,10 +983,10 @@ const DocumentPanel = ({
   walletDisplayName,
   contractor,
   activeRequest,
+  activeRequestRow,
   activeRequestAddress,
   project,
   workPackage,
-  existingDocsCount,
   pending,
   onAct,
   client,
@@ -1030,28 +1030,35 @@ const DocumentPanel = ({
     if (!activeRequestAddress || !activeRequest) return;
     const filename = docText.trim();
     if (!filename) return;
+    const version = nextDocumentVersion(
+      activeRequest.documentRef,
+      activeRequestRow?.documentMetadata?.version,
+    );
+    const uploadedAt = new Date().toISOString();
     const docRef = documentMetadataRef(
       workPackage,
       activeRequest.requestId,
-      existingDocsCount + 1,
+      version,
     );
-    metadataWriter?.putDocument(docRef, {
-      filename,
-      version: existingDocsCount + 1,
-      uploaderDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
-      uploaderRole: "contractor",
-      uploadedAt: new Date().toISOString(),
-      documentType: "invoice",
-    });
-    void onAct(() =>
-      client.addDocumentReference({
+    void onAct(async () => {
+      const result = await client.addDocumentReference({
         contractor: wallet,
         project,
         workPackage,
         paymentRequest: activeRequestAddress,
         documentRef: docRef,
-      }),
-    ).then(() => {
+      });
+      metadataWriter?.putDocument(docRef, {
+        filename,
+        version,
+        uploaderDisplayName:
+          walletDisplayName ?? shortAddress(wallet.toBase58()),
+        uploaderRole: "contractor",
+        uploadedAt,
+        documentType: "invoice",
+      });
+      return result;
+    }).then(() => {
       setDocText("");
     });
   };
@@ -1147,7 +1154,6 @@ interface ActionPanelProps {
   contractor: PublicKey;
   activeRequest: RequestRow | null;
   activeRequestAddress: PublicKey | null;
-  requestCounter: bigint;
   releaseReadiness: ReleaseReadiness | null;
   pending: boolean;
   feedback: ActionFeedback | null;
@@ -1166,7 +1172,6 @@ const ActionPanel = ({
   contractor,
   activeRequest,
   activeRequestAddress,
-  requestCounter,
   releaseReadiness,
   pending,
   feedback,
@@ -1200,7 +1205,7 @@ const ActionPanel = ({
     status === "highApproved";
 
   const canPmApprove = role === "projectManager" && status === "submitted";
-  const canDirectorApprove = role === "director" && status === "lowApproved";
+  const canHighApprove = role === "director" && status === "lowApproved";
   const canRelease =
     isFinance && activeRequest != null && releaseReadiness?.ready === true;
   const canReject =
@@ -1212,64 +1217,71 @@ const ActionPanel = ({
   const isContractorAction = role === "contractor";
   const contractorIsSelf = wallet.equals(contractor);
 
-  const composeNoteRef = (kind: "approve" | "reject"): string =>
-    requestAddr ? noteMetadataRef(requestAddr, role, kind) : "";
+  const composeNoteRef = (
+    kind: "approve" | "reject",
+    authoredAt: string,
+  ): string =>
+    requestAddr ? noteMetadataRef(requestAddr, role, kind, authoredAt) : "";
 
-  const composeHoldRef = (): string =>
-    requestAddr ? holdMetadataRef(requestAddr) : "";
+  const composeHoldRef = (authoredAt: string): string =>
+    requestAddr ? holdMetadataRef(requestAddr, authoredAt) : "";
 
-  const writeNote = (ref: string, text: string) => {
+  const writeNote = (ref: string, text: string, authoredAt: string) => {
     if (!metadataWriter) return;
     metadataWriter.putNote(ref, {
       text,
       authorDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
       authorRole: role === "projectManager" ? "projectManager" : "director",
-      authoredAt: new Date().toISOString(),
+      authoredAt,
     });
   };
 
-  const writeHold = (ref: string, reason: string) => {
+  const writeHold = (ref: string, reason: string, authoredAt: string) => {
     if (!metadataWriter) return;
     metadataWriter.putHold(ref, {
       reason,
       authorDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
       authorRole: "financeDirector",
-      authoredAt: new Date().toISOString(),
+      authoredAt,
     });
   };
 
   const onApprove = () => {
     if (!requestAddr) return;
-    const noteRef = composeNoteRef("approve");
-    writeNote(noteRef, "");
-    void onAct(() =>
-      client.approveRequest({
+    const authoredAt = new Date().toISOString();
+    const noteRef = composeNoteRef("approve", authoredAt);
+    void onAct(async () => {
+      const result = await client.approveRequest({
         approver: wallet,
         project,
         workPackage,
         paymentRequest: requestAddr,
         role: role === "projectManager" ? "lowApprover" : "highApprover",
         noteRef,
-      }),
-    );
+      });
+      writeNote(noteRef, "", authoredAt);
+      return result;
+    });
   };
 
   const onReject = () => {
     if (!requestAddr) return;
     const text = rejectText.trim();
     if (text.length === 0) return;
-    const noteRef = composeNoteRef("reject");
-    writeNote(noteRef, text);
-    void onAct(() =>
-      client.rejectRequest({
+    const authoredAt = new Date().toISOString();
+    const noteRef = composeNoteRef("reject", authoredAt);
+    void onAct(async () => {
+      const result = await client.rejectRequest({
         approver: wallet,
         project,
         workPackage,
         paymentRequest: requestAddr,
         role: role === "projectManager" ? "lowApprover" : "highApprover",
         noteRef,
-      }),
-    ).then(() => {
+      });
+      writeNote(noteRef, text, authoredAt);
+      return result;
+    }).then(() => {
       setRejectOpen(false);
       setRejectText("");
     });
@@ -1292,17 +1304,19 @@ const ActionPanel = ({
     if (!requestAddr) return;
     const reason = holdText.trim();
     if (reason.length === 0) return;
-    const holdRef = composeHoldRef();
-    writeHold(holdRef, reason);
-    void onAct(() =>
-      client.placeHold({
+    const authoredAt = new Date().toISOString();
+    const holdRef = composeHoldRef(authoredAt);
+    void onAct(async () => {
+      const result = await client.placeHold({
         authority: wallet,
         project,
         workPackage,
         paymentRequest: requestAddr,
         holdRef,
-      }),
-    ).then(() => {
+      });
+      writeHold(holdRef, reason, authoredAt);
+      return result;
+    }).then(() => {
       setHoldOpen(false);
       setHoldText("");
     });
@@ -1329,33 +1343,44 @@ const ActionPanel = ({
       return;
     }
     setInvoiceAmountError(null);
-    const requestId = nextPaymentRequestId({ requestCounter });
-    const docRef = documentMetadataRef(workPackage, requestId);
-    metadataWriter?.putDocument(docRef, {
-      filename: invoiceDoc.trim() || "Invoice.pdf",
-      version: 1,
-      uploaderDisplayName: walletDisplayName ?? shortAddress(wallet.toBase58()),
-      uploaderRole: "contractor",
-      uploadedAt: new Date().toISOString(),
-      documentType: "invoice",
-    });
-    void onAct(() =>
-      client.submitPaymentRequest({
+    void onAct(async () => {
+      const latestWorkPackage = await client.fetchWorkPackage(workPackage);
+      if (!latestWorkPackage) {
+        throw new Error("Work package no longer exists.");
+      }
+      const latestRequests =
+        await client.fetchPaymentRequestsForPackage(workPackage);
+      const requestId = nextPaymentRequestId(latestWorkPackage, latestRequests);
+      const uploadedAt = new Date().toISOString();
+      const docRef = documentMetadataRef(workPackage, requestId);
+      const result = await client.submitPaymentRequest({
         contractor: wallet,
         project,
         workPackage,
         requestId,
         amount: parsedAmount,
         documentRef: docRef,
-      }),
-    ).then(() => {
+      });
+      metadataWriter?.putDocument(docRef, {
+        filename: invoiceDoc.trim() || "Invoice.pdf",
+        version: 1,
+        uploaderDisplayName:
+          walletDisplayName ?? shortAddress(wallet.toBase58()),
+        uploaderRole: "contractor",
+        uploadedAt,
+        documentType: "invoice",
+      });
+      return result;
+    }).then(() => {
       setInvoiceOpen(false);
       setInvoiceAmount("");
       setInvoiceDoc("");
     });
   };
 
-  const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(wallet.toBase58())}`;
+  const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(
+    wallet.toBase58(),
+  )}`;
 
   return (
     <section className="work-package-view__aside-panel work-package-view__action-panel">
@@ -1458,7 +1483,7 @@ const ActionPanel = ({
         </div>
       )}
 
-      {canDirectorApprove && (
+      {canHighApprove && (
         <div className="work-package-view__action-buttons">
           <button
             type="button"
@@ -1466,7 +1491,7 @@ const ActionPanel = ({
             onClick={onApprove}
             disabled={pending}
           >
-            Approve as Director
+            Approve high step
           </button>
         </div>
       )}
@@ -1600,7 +1625,7 @@ const ActionPanel = ({
       {/* No-op explainers so the panel never feels blank for a role. */}
       {activeRequest &&
         !canPmApprove &&
-        !canDirectorApprove &&
+        !canHighApprove &&
         !canRelease &&
         !canPlaceHold &&
         !canRemoveHold && (
@@ -1623,7 +1648,7 @@ const ActionPanel = ({
                   ? status === "submitted"
                     ? "Awaiting PM approval first."
                     : status === "highApproved" || status === "released"
-                      ? "Already Director-approved."
+                      ? "Already high-approved."
                       : status === "rejected"
                         ? "Request was rejected."
                         : "Held — actions blocked."

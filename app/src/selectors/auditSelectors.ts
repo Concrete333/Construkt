@@ -46,7 +46,7 @@ export interface AuditEvent {
 const ROLE_LABEL: Record<Role, string> = {
   contractor: "Contractor",
   lowApprover: "PM",
-  highApprover: "Director",
+  highApprover: "High approver",
 };
 
 export interface AuditTimelineSources {
@@ -155,8 +155,8 @@ export const selectAuditTimeline = (
             : "requestHighApproved",
         label:
           high.decision === "rejected"
-            ? "Request rejected by Director"
-            : "Director approved the request",
+            ? "Request rejected by high approver"
+            : "High approver cleared the request",
         projectAddress: projectAddr,
         workPackageAddress: wpAddr,
         paymentRequestAddress: requestAddr,

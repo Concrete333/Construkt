@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   LocalStorageMetadataClient,
   MockMetadataClient,
@@ -81,6 +81,16 @@ class MemoryStorage implements MetadataStorage {
   }
 }
 
+class ThrowingStorage implements MetadataStorage {
+  getItem(): string | null {
+    return null;
+  }
+
+  setItem(): void {
+    throw new Error("quota exceeded");
+  }
+}
+
 describe("LocalStorageMetadataClient", () => {
   it("persists writes across client instances", async () => {
     const storage = new MemoryStorage();
@@ -110,6 +120,39 @@ describe("LocalStorageMetadataClient", () => {
     storage.setItem("test", "{not-json");
     const client = new LocalStorageMetadataClient(storage, "test");
     expect(await client.resolveProject("p1")).toBeNull();
+  });
+
+  it("does not reset the store when a bigint marker is malformed", async () => {
+    const storage = new MemoryStorage();
+    storage.setItem(
+      "test",
+      JSON.stringify({
+        projects: {
+          p1: {
+            ...sampleProject,
+            description: { __construktBigInt: "not-a-number" },
+          },
+        },
+        packages: {},
+        documents: {},
+        notes: {},
+        holds: {},
+      }),
+    );
+    const client = new LocalStorageMetadataClient(storage, "test");
+    expect(await client.resolveProject("p1")).not.toBeNull();
+  });
+
+  it("warns once when persistence is unavailable", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const client = new LocalStorageMetadataClient(
+      new ThrowingStorage(),
+      "test",
+    );
+    client.putProject("p1", sampleProject);
+    client.putProject("p2", sampleProject);
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
 

@@ -5,11 +5,14 @@ Single Anchor/Rust program that enforces the Construkt escrow and approval workf
 **Program ID:** `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`
 **Target networks:** localnet and devnet only. Do not target mainnet.
 
+The program is deployed once. Projects, work packages, payment requests, approval records, role assignments, and vaults are PDA/accounts under this program; the backend does not deploy a new smart contract per project, work package, or milestone.
+
 ## Prerequisites
 
 All commands must run inside **WSL (Ubuntu)**. Solana CLI and Anchor CLI are installed in WSL only — they do not work on the Windows side.
 
 Required tools (WSL):
+
 - Rust + Cargo
 - Solana CLI
 - Anchor CLI
@@ -46,30 +49,33 @@ ProjectAccount          (authority = finance wallet)
 
 ## PDA seeds
 
-| Account | Seeds |
-|---|---|
-| Project | `["project", authority, project_id_le_bytes]` |
-| WorkPackage | `["work_package", project, package_id_le_bytes]` |
-| VaultAuthority | `["vault_authority", work_package]` |
-| RoleAssignment | `["role", work_package, role_byte, wallet]` |
+| Account        | Seeds                                                    |
+| -------------- | -------------------------------------------------------- |
+| Project        | `["project", authority, project_id_le_bytes]`            |
+| WorkPackage    | `["work_package", project, package_id_le_bytes]`         |
+| VaultAuthority | `["vault_authority", work_package]`                      |
+| RoleAssignment | `["role", work_package, role_byte, wallet]`              |
 | PaymentRequest | `["payment_request", work_package, request_id_le_bytes]` |
-| ApprovalRecord | `["approval", payment_request, role_byte]` |
+| ApprovalRecord | `["approval", payment_request, role_byte]`               |
 
 Role bytes: `Contractor=1`, `LowApprover=2`, `HighApprover=3`
 
 ## Payment request lifecycle
 
 ```
-Submitted → LowApproved → HighApproved → Released
+Submitted → LowApproved → Released
                                         (or Rejected at any stage)
 ```
+
+`HighApproved` is retained as an optional/custom approval state. It is not required before release in the current PM-to-finance demo flow.
 
 Holds block approval, rejection, document updates, and release at any stage.
 
 ## Key invariants
 
 - Only one active unreleased request per work package
-- LowApprover must approve before HighApprover
+- If HighApprover is used, LowApprover must approve first
+- Release accepts `LowApproved` or `HighApproved`; the current PM-to-Finance flow does not require high approval
 - Contractor cannot approve their own request
 - Same wallet cannot hold both LowApprover and HighApprover on a package
 - Release checks cap, tracked funded balance, and real vault token balance

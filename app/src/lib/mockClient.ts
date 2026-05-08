@@ -424,7 +424,8 @@ export class MockConstruktClient implements ConstruktClient {
     if (!pr.workPackage.equals(p.workPackage))
       fail("InvalidAccountRelationship");
     if (pr.status === "released") fail("RequestAlreadyReleased");
-    if (pr.status !== "highApproved") fail("InvalidStatus");
+    if (pr.status !== "lowApproved" && pr.status !== "highApproved")
+      fail("InvalidStatus");
     if (wp.status !== "active") fail("InvalidStatus");
     if (pr.holdActive) fail("RequestOnHold");
 

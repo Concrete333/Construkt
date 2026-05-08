@@ -5,6 +5,7 @@ import {
   deriveWorkPackageAddress,
 } from "./pda";
 import type { ConstruktClient } from "./program";
+import { packageScopeSlug } from "./slug";
 
 /**
  * Deterministic keypair generator for demo data. The fill byte makes each
@@ -39,17 +40,16 @@ const PACKAGE_CAP = 200_000_000n;
  */
 const PROJECT_METADATA_REF = "metadata://demo/project/hospital-fit-out";
 
-const slug = (name: string): string =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
 const scopeRefFor = (packageName: string): string =>
-  `metadata://demo/package/${slug(packageName)}`;
+  `metadata://demo/package/${packageScopeSlug(packageName)}`;
 
 const documentRefFor = (packageName: string, version: number): string =>
-  `metadata://demo/document/${slug(packageName)}-invoice-v${version}`;
+  `metadata://demo/document/${packageScopeSlug(
+    packageName,
+  )}-invoice-v${version}`;
 
 const noteRefFor = (packageName: string, kind: string): string =>
-  `metadata://demo/note/${slug(packageName)}-${kind}`;
+  `metadata://demo/note/${packageScopeSlug(packageName)}-${kind}`;
 
 export interface DemoPackageSummary {
   name: string;
@@ -100,8 +100,8 @@ export interface SeedOptions {
  *
  * Status coverage across the six packages:
  *   - foundation:    released
- *   - steelFrame:    highApproved (waiting on finance to release)
- *   - mepFirstFix:   lowApproved (waiting on director)
+ *   - steelFrame:    highApproved (optional high approval recorded; waiting on finance)
+ *   - mepFirstFix:   lowApproved (PM-approved and ready for finance release)
  *   - facade:        submitted + held (waiting on finance to remove the hold)
  *   - interior:      funded but no request yet
  *   - rejectedDelta: rejected (request was rejected; package is unblocked
@@ -194,7 +194,7 @@ export const seedHospitalFitOut = async (
     return derivePaymentRequestAddress(opts.programId, workPackage, requestId);
   };
 
-  // Package 1 — released (the completed-payment exemplar)
+  // Package 1 — released after PM plus optional high approval
   const foundation = await setupPackage("Foundation Pour Bay A");
   const foundationRequest = await submitRequest(
     foundation.address,
@@ -224,7 +224,7 @@ export const seedHospitalFitOut = async (
     contractorTokenAccount: contractor.publicKey,
   });
 
-  // Package 2 — highApproved, waiting on finance release
+  // Package 2 — highApproved via optional high step, waiting on finance release
   const steelFrame = await setupPackage("Steel Frame Section B");
   const steelFrameRequest = await submitRequest(
     steelFrame.address,
@@ -247,7 +247,7 @@ export const seedHospitalFitOut = async (
     noteRef: noteRefFor("Steel Frame Section B", "director-approve"),
   });
 
-  // Package 3 — lowApproved, waiting on director
+  // Package 3 — lowApproved, release-ready without optional high approval
   const mepFirstFix = await setupPackage("MEP First Fix");
   const mepFirstFixRequest = await submitRequest(
     mepFirstFix.address,

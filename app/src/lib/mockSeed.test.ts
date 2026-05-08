@@ -81,7 +81,7 @@ describe("seedHospitalFitOut — per-package final state", () => {
     expect(request?.holdActive).toBe(false);
   });
 
-  it("mepFirstFix is lowApproved and waiting on director", async () => {
+  it("mepFirstFix is lowApproved and ready for finance release", async () => {
     const { client, world } = await seed();
     const request = await client.fetchPaymentRequest(
       world.packages.mepFirstFix.request!,

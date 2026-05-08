@@ -307,11 +307,11 @@ const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
   InactiveRoleAssignment: "Your role assignment on this package is inactive.",
   RoleAlreadyInRequestedState: "Role state is already what you requested.",
   ApproverRoleConflict:
-    "The same wallet cannot hold both PM and Director on this package.",
+    "The same wallet cannot hold both PM and high-approver roles on this package.",
   InvalidAccountRelationship:
     "Accounts don't match each other (project / package / request).",
   InvalidStatus: "The current request status doesn't allow that action.",
-  InvalidApprovalOrder: "PM must approve before Director can.",
+  InvalidApprovalOrder: "PM must approve before the high approver can.",
   ContractorCannotApprove:
     "The contractor wallet cannot approve their own request.",
   InvalidRequestId: "Request ID doesn't match the package's counter.",

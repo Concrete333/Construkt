@@ -35,4 +35,4 @@ frontend-prototype/
     └── construkt.frontend.ts              # 75 unit tests
 ```
 
-Behavior changes should go into `web/static/projects/js/construkt.js` (and shared CSS) unless a specific HTML source is being updated deliberately.
+Behavior changes should go into `web/static/projects/js/construkt.js`, `web/index.html`, and shared CSS as needed. The old duplicate Django/standalone HTML exports were removed during the front/back merge cleanup and should not be treated as active surfaces.

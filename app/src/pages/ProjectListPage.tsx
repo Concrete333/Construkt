@@ -46,6 +46,7 @@ interface ProjectListPageProps {
 export const ProjectListPage = ({ role }: ProjectListPageProps) => {
   const { client, metadata, metadataWriter, world } = useClients();
   const [loaded, setLoaded] = useState<LoadedProject[] | null>(null);
+  const [allProjects, setAllProjects] = useState<Fetched<ProjectAccount>[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [pending, setPending] = useState(false);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
@@ -114,6 +115,7 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
         });
       }
       if (!cancelled) setLoaded(next);
+      if (!cancelled) setAllProjects(allProjects);
     })();
     return () => {
       cancelled = true;
@@ -123,13 +125,8 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
   const onCreateSubmit = () => {
     const name = nameText.trim();
     if (!name) return;
-    const projectId = nextProjectId(
-      (loaded ?? []).map((entry) => ({
-        address: entry.rollup.address,
-        account: entry.rollup.project,
-      })),
-    );
-    const metadataRef = projectMetadataRef(projectId);
+    const projectId = nextProjectId(allProjects);
+    const metadataRef = projectMetadataRef(wallet, projectId);
     metadataWriter?.putProject(metadataRef, {
       client: clientText.trim() || name,
       contractModel: "milestone",
