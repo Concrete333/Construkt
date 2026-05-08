@@ -6,14 +6,15 @@ Solana-backed escrow and approval engine for construction work-package payments.
 
 ## Repository layout
 
-| Directory                                    | What it is                                           |
-| -------------------------------------------- | ---------------------------------------------------- |
-| [`programs/construkt/`](programs/construkt/) | Anchor/Rust on-chain program                         |
-| [`tests/`](tests/)                           | On-chain integration tests (requires WSL + localnet) |
-| [`frontend-prototype/`](frontend-prototype/) | Static demo UI + frontend unit tests                 |
-| [`app/`](app/)                               | React + Vite full frontend (development phase)       |
-| [`scripts/`](scripts/)                       | Localnet setup and seed utilities                    |
-| [`migrations/`](migrations/)                 | Anchor migration scripts                             |
+| Directory | What it is |
+|---|---|
+| [`programs/construkt/`](programs/construkt/) | Anchor/Rust on-chain program |
+| [`tests/`](tests/) | On-chain integration tests (requires WSL + localnet) |
+| [`frontend-prototype/`](frontend-prototype/) | Static demo UI + frontend unit tests |
+| [`app/`](app/) | React + Vite full frontend (development phase) |
+| [`scripts/`](scripts/) | Localnet setup and seed utilities |
+| [`migrations/`](migrations/) | Anchor migration scripts |
+| [`docs/`](docs/) | Product plans (V0/V1/V2 MVP) and front/back integration log |
 
 ## Quick start
 
