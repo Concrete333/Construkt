@@ -1,6 +1,6 @@
 # Frontend / Backend Convergence Plan
 
-This plan defines how Construkt should move from two parallel demos into one backend-backed product experience.
+This plan defines how Construkt moves from two parallel demos into one backend-backed product experience.
 
 The static frontend in `frontend-prototype/web/index.html` is the clearest expression of the intended product flow. The React app in `app/` is the target runtime for the backend-backed product. The Anchor program in `programs/construkt/` is the source of truth for payment-control rules.
 
@@ -21,7 +21,7 @@ The static prototype currently demonstrates:
 - invoice submission, approval, holds, release, and audit trail
 - polished UX copy and presentation-focused flow
 
-This surface is presentation-first. It is allowed to use mocked/local state, but it must not be described as on-chain truth.
+This surface is presentation-first. It can use mocked/local state, but it must not be described as on-chain truth.
 
 ### React App
 
@@ -71,55 +71,102 @@ Contractor submits -> PM/LowApprover approves -> Finance releases
 8. Optional higher approval should be configurable, not hard-coded as mandatory Director review.
 9. Milestones should be account-backed payment-control units, not separate deployed programs.
 10. Every backend feature should have an Anchor test and a corresponding React app path.
+11. Backend workstreams that change account layout must regenerate and commit the IDL.
+
+## Migration Policy
+
+Anchor accounts are fixed-layout. Adding fields to `ProjectAccount`, `WorkPackageAccount`, `PaymentRequestAccount`, or new account relationships is a breaking account-layout change.
+
+For V0:
+
+- Localnet/devnet are resettable demo networks. Backend workstreams that change account layout should ship with `--reset` instructions and a fresh `npm run seed:localnet` flow, not migration code.
+- Every backend workstream that changes the program must include `anchor build`, regenerated IDL JSON under `app/src/idl/`, and any required updates to `app/src/lib/anchorClient.ts`.
+- Devnet testers should expect old accounts to become unreadable after layout changes. Reset/redeploy/reseed is the supported V0 path.
+- Any future non-resettable environment needs a separate migration plan before account layout changes are merged.
 
 ## Capability Gap Map
 
 | Product capability from the frontend | Current backend support | Convergence target |
 | --- | --- | --- |
-| Project-level budget | Partial: package caps only | Store project budget and validate package/milestone caps against it |
-| Project type selection | Metadata/display only | Store package/payment model metadata off-chain; enforce only the payment rules on-chain |
-| Work package cap | Supported | Keep; validate against project budget |
+| Project-level budget | Partial: package caps only | Store project budget, project mint, tracked allocated cap, and enforce package/milestone caps against them |
+| Project type selection | Metadata/display only | Store package/payment model metadata off-chain; enforce only payment-control rules on-chain |
+| Work package cap | Supported | Keep; validate against project budget and project mint |
 | Milestone packages | Not first-class | Add milestone/tranche accounts under work packages |
-| Milestone names/dates/amounts | Metadata only | Store compact milestone refs, dates, amounts, status on-chain or split long copy off-chain |
-| No overlapping milestone dates | Not supported | Enforce for milestones under the same package |
-| PM package creation | Not supported; Finance creates packages | Add PM draft flow or keep Finance-only creation and adjust UX |
+| Milestone names/dates/amounts | Metadata only | Store compact milestone metadata ref, date bounds, amount/cap, released amount, and status |
+| Milestone date overlap | UI/local only | Validate overlap off-chain/UI; on-chain only enforces `start_at < end_at` and money invariants |
+| PM package creation | Not supported; Finance creates packages | Add project-level drafter authorization before PM draft package flow |
 | Contractor assignment after package setup | Limited | Allow controlled pre-activity contractor assignment/update |
-| Contractor invoice submission | Supported | Extend to package-level or milestone-level request targets |
-| PM approval | Supported | Keep as default release gate |
-| Optional high approval | Supported as fixed role | Move toward configurable approval policies |
-| Finance release | Supported | Keep; release from PM-approved or high-approved states |
-| Holds | Supported at request level | Keep; consider package/milestone holds later only if needed |
+| Contractor invoice submission | Supported at package level | Extend to package-level or milestone-level request targets |
+| Approval behavior and role labels | Fixed role enum; optional high approval exists | Add package-level high-approval policy flag first; use metadata for labels; defer dynamic roles |
+| Finance release | Supported | Keep; release from PM-approved or high-approved states depending on package policy |
+| Holds | Supported at request level | Keep request-level holds; consider package/milestone holds only if a product need appears |
 | Audit trail | Partial | Strengthen event coverage and off-chain indexing/display |
 | Dashboard history | Partial | Build app-side state summaries from chain reads plus metadata/events |
-| Custom roles | Not supported beyond fixed roles | Add configurable labels first; dynamic role policies later |
 
 ## Backend Workstreams
+
+### 0. Project-Level Role Prerequisite
+
+Objective: define who can act on a project before a work package exists.
+
+This is a prerequisite for PM draft packages. Current `RoleAssignmentAccount` is package-scoped:
+
+```text
+["role", work_package, role_byte, wallet]
+```
+
+There is no "PM of the project" account today.
+
+Recommended V0 path:
+
+- Add a small project-level drafter authorization account rather than full dynamic project roles.
+- PDA seed: `["project_drafter", project, wallet]`.
+- Finance/project authority can add or deactivate project drafters.
+- Project drafters can create package drafts once Workstream 4 exists.
+
+Tests:
+
+- Finance can add a project drafter
+- non-Finance cannot add a project drafter
+- inactive drafter cannot create draft package once drafts exist
+- project drafter PDA validates parent project and wallet
 
 ### 1. Project Budget And Package Cap Controls
 
 Objective: make project creation and package setup match the frontend's budget expectations.
 
+V0 budget assumptions:
+
+- One mint per project.
+- `ProjectAccount` stores `mint`, `budget_amount`, and `allocated_amount`.
+- `create_work_package` validates `work_package.mint == project.mint`.
+- Allocation is tracked on `ProjectAccount`; it is not derived by iterating package accounts inside instructions.
+- Cancellation is out of scope until a `cancel_work_package` instruction exists.
+
 Backend tasks:
 
-- Add `budget_amount` or equivalent to `ProjectAccount`.
-- Add tracked allocated amount or derive allocation from package caps.
-- Reject package creation when total active package caps exceed project budget.
-- Decide whether cancelled packages return budget capacity.
-- Add events for project budget and package allocation.
+- Add `mint`, `budget_amount`, and `allocated_amount` to `ProjectAccount`.
+- Update `initialize_project` to set project mint and budget.
+- Update `create_work_package` to reject caps that exceed `budget_amount - allocated_amount`.
+- Increment `ProjectAccount.allocated_amount` during package creation.
+- Emit events that include project budget and allocation after package creation.
+- Regenerate and commit the IDL.
 
 React app tasks:
 
 - Add project budget input to Anchor-backed project creation.
-- Show project budget, allocated package budget, funded amount, released amount, and remaining budget.
+- Show project budget, allocated package budget, funded amount, released amount, and remaining allocatable budget.
 - Display clear validation errors when caps exceed budget.
 
 Tests:
 
-- project can initialize with a valid budget
-- zero budget rejected if budget is required
+- `tests/construkt.b5-budget.ts`
+- project can initialize with a valid budget and mint
+- zero budget is rejected if budget is required
+- package mint must match project mint
 - package cap cannot exceed project remaining budget
-- multiple packages accumulate against project budget
-- cancelled package budget behavior is tested once cancellation exists
+- multiple packages accumulate against `allocated_amount`
+- IDL/client/seed script are updated with the new fields
 
 ### 2. Milestone / Tranche Accounts
 
@@ -134,20 +181,37 @@ ProjectAccount
     PaymentRequestAccount
 ```
 
-A `PaymentRequestAccount` should reference either:
+Milestones are payable units under a work package. They are not separate deployed programs.
 
-- the whole work package, for simple package requests
-- a milestone/tranche account, for milestone-based requests
+Resolved V0 decisions:
+
+- Milestone names should follow existing metadata convention: compact `metadata_ref` on-chain, rich name/description off-chain.
+- On-chain milestone validation should not enforce date overlap. Date overlap is UI/off-chain validation because it does not protect funds and is awkward to enforce safely in Solana without requiring all sibling milestones as accounts.
+- On-chain date validation should enforce `start_at < end_at`.
+- On-chain money validation should enforce `amount > 0` and milestone caps within remaining work package cap.
+
+Active request invariant:
+
+- Non-milestone packages keep the current package-scoped `has_active_request` and `active_request`.
+- Milestone packages use a milestone-scoped active request flag on `MilestoneAccount`.
+- `submit_payment_request` branches on whether the request targets a milestone:
+  - no milestone target: check and set `WorkPackageAccount.has_active_request`
+  - milestone target: check and set `MilestoneAccount.has_active_request`
+- A package with milestones can have parallel active requests across different milestones, but not two active requests on the same milestone.
+- A package should not mix whole-package payment requests and milestone payment requests once milestone accounts exist.
 
 Backend tasks:
 
-- Add `MilestoneAccount` with package reference, milestone id, cap/amount, start date, end date, released amount, status, and metadata ref.
-- Add `create_milestone` instruction.
-- Enforce milestone amount/cap within work package cap.
-- Enforce non-overlapping milestone date ranges within the same work package.
-- Allow payment requests to target a milestone.
-- Update release logic to mark milestone complete when fully released.
-- Decide whether work package completion is based on total released amount, all milestones complete, or both.
+- Add `MilestoneAccount` with package reference, milestone id, amount/cap, released amount, start/end timestamps, status, metadata ref, active request flag, and bump.
+- Add `create_milestone`.
+- Track allocated milestone amount on `WorkPackageAccount`, or otherwise store enough state to prevent milestone caps exceeding package cap without scanning all milestone accounts.
+- Extend `PaymentRequestAccount` with optional milestone target fields.
+- Update `submit_payment_request` to support package-level or milestone-level targets.
+- Update `release_payment` to update milestone totals/status when a milestone target exists.
+- Define package completion rules:
+  - simple package: completed when package released amount equals package cap
+  - milestone package: completed when all milestone value is released or package released amount equals package cap
+- Regenerate and commit the IDL.
 
 React app tasks:
 
@@ -158,47 +222,18 @@ React app tasks:
 
 Tests:
 
+- `tests/construkt.b6-milestones.ts`
 - milestone creation succeeds within package cap
-- milestone amount exceeding package remaining cap fails
-- overlapping milestone dates fail
-- adjacent non-overlapping milestone dates succeed
+- milestone amount exceeding package remaining milestone allocation fails
+- `start_at >= end_at` fails
+- overlapping dates can be blocked by app tests, not Anchor tests
 - payment request can target a milestone
+- two milestones can have parallel active requests
+- the same milestone cannot have two active requests
+- package-level request is blocked once milestone mode is used
 - release updates milestone and package totals correctly
 
-### 3. Package Draft And Activation Flow
-
-Objective: reconcile the frontend's PM package workflow with Finance control over money.
-
-Decision needed:
-
-- Option A: Finance remains the only creator of work packages.
-- Option B: PM can create draft packages, but Finance must activate/fund before payment requests.
-
-Recommended for product fit: Option B.
-
-Backend tasks:
-
-- Add package status such as `Draft`, `Active`, `Completed`, `Cancelled`.
-- Add `create_package_draft` for PM/LowApprover or an assigned project manager role.
-- Add `activate_work_package` for Finance.
-- Block funding, requests, approvals, and release until package is active.
-- Preserve Finance-only escrow funding and release.
-
-React app tasks:
-
-- Let PM create a draft package/milestone schedule.
-- Let Finance review, set/confirm funding, and activate.
-- Make draft vs active states obvious on dashboards.
-
-Tests:
-
-- PM can create draft package if assigned
-- unassigned wallet cannot create draft package
-- contractor cannot submit request against draft package
-- Finance can activate and fund draft package
-- active package follows normal request/approval/release flow
-
-### 4. Contractor Assignment And Package Ownership
+### 3. Contractor Assignment And Package Ownership
 
 Objective: support the frontend's contractor-picking workflow without weakening backend invariants.
 
@@ -207,48 +242,102 @@ Backend tasks:
 - Add controlled contractor update before first payment request or before package activation.
 - Ensure contractor role assignment and `work_package.contractor` stay consistent.
 - Prevent contractor changes after payment activity begins.
+- Regenerate and commit the IDL if account or instruction shapes change.
 
 React app tasks:
 
-- Let Finance or PM draft select a contractor at the expected point in the flow.
+- Let Finance or an authorized project drafter select a contractor at the expected point in the flow.
 - Show whether contractor assignment is pending, confirmed, or locked.
 
 Tests:
 
+- `tests/construkt.b7-contractor-assignment.ts`
 - contractor can be assigned before activation/activity
 - contractor role assignment is created or validated
 - contractor cannot be changed after request submission
 - old contractor cannot submit after reassignment
 
-### 5. Approval Policies And Custom Roles
+### 4. Package Draft And Activation Flow
 
-Objective: move from hard-coded role language to configurable approval behavior.
+Objective: reconcile the frontend's PM package workflow with Finance control over money.
 
-Practical staged approach:
+Prerequisite:
 
-1. Keep current role enum for backend safety.
-2. Add metadata-driven display labels for roles.
-3. Add approval policy account once custom approval paths are needed.
+- Workstream 0 project-level drafter authorization must exist.
 
-Backend tasks for first policy version:
+Resolved V0 direction:
 
-- Add `ApprovalPolicyAccount` scoped to package or project.
-- Store whether high approval is required, optional, or disabled.
-- Keep `LowApprover` as the minimum release gate.
-- Make `release_payment` consult policy when high approval is required.
+- PM/project drafter can create draft packages.
+- Finance activates packages and funds escrow.
+- Finance remains the only release and escrow-funding authority.
+
+Vault timing decision:
+
+- Draft package creation should not create the vault ATA.
+- `activate_work_package` creates the vault ATA and vault authority relationship, using the same associated token program and mint accounts that `create_work_package` uses today.
+- This avoids PM/drafter paying ATA rent for drafts that Finance may reject.
+
+Backend tasks:
+
+- Add package status such as `Draft`, `Active`, `Completed`, `Cancelled`.
+- Add `create_package_draft` for authorized project drafters.
+- Add `activate_work_package` for Finance/project authority.
+- Move vault creation to activation for draft-created packages.
+- Keep a direct Finance-created active package path only if it materially reduces demo friction.
+- Block funding, requests, approvals, and release until package is active.
+- Regenerate and commit the IDL.
 
 React app tasks:
 
-- Let package setup choose approval policy.
-- Explain which approvals are required for release.
-- Hide optional Director/high controls when disabled.
+- Let PM create a draft package/milestone schedule.
+- Let Finance review, set/confirm funding, activate, and fund.
+- Make draft vs active states obvious on dashboards.
 
 Tests:
 
+- `tests/construkt.b8-package-drafts.ts`
+- authorized drafter can create draft package
+- unassigned wallet cannot create draft package
+- draft package has no vault ATA until activation
+- contractor cannot submit request against draft package
+- Finance can activate and fund draft package
+- active package follows normal request/approval/release flow
+
+### 5. Approval Policy And Role Labels
+
+Objective: move from hard-coded role language to configurable approval behavior without overbuilding dynamic roles too early.
+
+Resolved V0 direction:
+
+- Do not add an `ApprovalPolicyAccount` yet.
+- Add `high_approval_required: bool` to `WorkPackageAccount`.
+- Default is `false`, matching the current PM-to-Finance flow.
+- Continue using the fixed role enum for program safety.
+- Store role display labels in metadata/off-chain config first.
+- Promote to a dedicated policy account only when a second policy dimension appears.
+
+Backend tasks:
+
+- Add `high_approval_required` to `WorkPackageAccount`.
+- Update `release_payment`:
+  - if `high_approval_required == false`, release accepts `LowApproved` or `HighApproved`
+  - if `high_approval_required == true`, release requires `HighApproved`
+- Add or update package creation/activation params to set the flag.
+- Regenerate and commit the IDL.
+
+React app tasks:
+
+- Let package setup choose whether high approval is required.
+- Explain which approvals are required for release.
+- Hide optional Director/high controls when disabled by product choice, or label them as optional when available.
+
+Tests:
+
+- `tests/construkt.b9-approval-policy.ts`
 - default policy releases after PM approval
 - required-high policy blocks release until high approval
-- disabled-high policy rejects high approval attempts or hides them at UI level
-- policy cannot be changed after active request unless explicitly allowed
+- required-high policy releases after high approval
+- UI selector tests show required vs optional approval labels correctly
 
 ### 6. Audit And Dashboard Convergence
 
@@ -258,6 +347,8 @@ Backend/app tasks:
 
 - Review emitted events for all user-facing state changes.
 - Ensure all events include enough account keys for indexing.
+- Use the existing `MetadataClient` / `LocalStorageMetadataClient` seam for off-chain display metadata.
+- Add event-derived notes or summaries where current local metadata is not enough.
 - Add app selectors for project-level summaries:
   - total budget
   - allocated package cap
@@ -267,13 +358,12 @@ Backend/app tasks:
   - released amount
   - held amount
   - overdue packages/milestones
-- Persist off-chain metadata and event-derived audit notes for demo continuity.
 
 Tests:
 
 - selector tests for every dashboard metric
 - event/account tests for key state transitions
-- app tests for release-ready, held, rejected, completed, and draft states
+- app tests for release-ready, held, rejected, completed, draft, and milestone states
 
 ### 7. Demo Seed Alignment
 
@@ -281,13 +371,15 @@ Objective: make localnet seed data tell the same story as the polished static de
 
 Seed targets:
 
-- one project with realistic budget
+- one project with realistic budget and project mint
 - simple package, no request
 - milestone package with multiple milestones
 - package with PM-approved request ready for Finance
 - package with optional high approval recorded
+- package requiring high approval before Finance release
 - package on hold
 - rejected request with package unblocked for a new request
+- second successful request after rejection, if we want the seed to demonstrate retry behavior
 - released package with audit trail
 
 Tests:
@@ -296,38 +388,45 @@ Tests:
 - seeded account presence check passes
 - seeded package metadata refs resolve
 - app can load seeded state in Anchor mode
+- rejected-then-retried seed path is covered if added
 
 ## Implementation Order
 
+### Phase 0: Account Layout And IDL Discipline
+
+Deliverable: every backend PR follows reset/seed instructions and commits regenerated IDL.
+
+Why first: all later phases change account layouts.
+
 ### Phase 1: Budget And Validation
 
-Deliverable: project budget exists on-chain and package caps cannot exceed it.
+Deliverable: project budget, project mint, tracked allocation, and package cap validation exist on-chain.
 
 Why first: every later workflow depends on knowing what budget is being allocated.
 
-### Phase 2: Real Milestones
+### Phase 2: Milestone Backend
 
-Deliverable: milestone/tranche accounts with names/refs, dates, amounts, and non-overlap validation.
+Deliverable: milestone/tranche accounts, active-request semantics, and milestone-targeted payment requests exist on-chain.
 
 Why second: this is the largest frontend/backend mismatch in package setup.
 
-### Phase 3: React App Package Builder
+### Phase 3: Milestone React Flow
 
 Deliverable: the React app can create real backend packages and milestones using the UX shape from the static prototype.
 
-Why third: once the backend supports milestones, the app can stop using placeholder schedules.
+Why third: this is the frontend convergence step that consumes the Phase 1 and Phase 2 backend work.
 
-### Phase 4: PM Drafts And Finance Activation
+### Phase 4: Project Drafters And Package Drafts
 
-Deliverable: PM can prepare package/milestone structure; Finance activates and funds it.
+Deliverable: authorized project drafters can prepare package/milestone structure; Finance activates and funds it.
 
-Why fourth: this matches the demo's role workflow while keeping Finance in control of money.
+Why fourth: this matches the demo's PM workflow while keeping Finance in control of money.
 
-### Phase 5: Approval Policy
+### Phase 5: High-Approval Policy Flag
 
-Deliverable: optional vs required high approval is a package policy, not just a hard-coded role convention.
+Deliverable: optional vs required high approval is a package field, not just a convention.
 
-Why fifth: it converts "customizable roles" from copy into real product behavior.
+Why fifth: it turns "customizable approval path" from copy into real product behavior without overbuilding full dynamic roles.
 
 ### Phase 6: Dashboard And Audit Polish
 
@@ -335,33 +434,57 @@ Deliverable: dashboards and audit trails in `app/` match the clarity of the stat
 
 Why sixth: this becomes most valuable once richer backend state exists.
 
-### Phase 7: Static Prototype Retirement Or Repositioning
+### Phase 7: Static Prototype Audit
 
-Deliverable: either retire the static demo as the canonical walkthrough or clearly label it as a pitch/demo artifact.
+Deliverable: walk through `frontend-prototype/web/index.html` and `frontend-prototype/web/static/projects/js/construkt.js`; every core product claim is either backed by a workstream, backed by current backend behavior, or removed/reworded.
 
 Why seventh: after `app/` converges, maintaining two product surfaces will create avoidable drift.
 
 ## Near-Term First Slice
 
-Start with Phase 1 and a small piece of Phase 2:
+Start with Phase 0 and Phase 1:
 
-1. Add project budget to `ProjectAccount`.
-2. Validate package caps against project budget.
-3. Add tests for budget allocation and over-allocation.
-4. Add a minimal `MilestoneAccount` design document or scaffold.
+1. Add project `mint`, `budget_amount`, and `allocated_amount` to `ProjectAccount`.
+2. Update `initialize_project`, `create_work_package`, seed script, mock client, app client, and IDL.
+3. Validate package caps against project remaining allocation.
+4. Add `tests/construkt.b5-budget.ts`.
 5. Update localnet seed data to include a realistic project budget.
 6. Update the React app to show project budget and remaining allocatable budget.
+7. Document the reset/reseed expectation for the account layout change.
 
 This is the smallest useful slice because it improves the real backend while immediately making the package creation flow feel closer to the frontend demo.
 
+## Resolved Decisions
+
+1. Project budget should be hard on-chain enforcement and displayed in the app.
+2. Project budget is mint-scoped; V0 supports one mint per project.
+3. Allocation is tracked on `ProjectAccount`, not derived by scanning package accounts.
+4. Milestone display names/descriptions stay off-chain behind compact metadata refs.
+5. Milestone date overlap is UI/off-chain validation; on-chain validates only date order and money invariants.
+6. High approval starts as `high_approval_required: bool` on `WorkPackageAccount`, not a separate policy account.
+7. Package drafts require project-level drafter authorization before they can be implemented safely.
+8. Draft packages should create vault ATA only at Finance activation.
+9. `cancel_work_package` is out of scope until explicitly added.
+
 ## Open Decisions
 
-1. Should PMs be able to create package drafts, or should Finance remain the only package creator for V0?
-2. Should milestones be required for milestone packages, or can a work package remain payable as a single unit?
-3. Should project budget be hard on-chain enforcement, display metadata, or both?
-4. Should milestone names live on-chain, or should on-chain accounts store only compact metadata refs?
-5. Should high approval be optional, required, or disabled per project or per package?
-6. How much audit history must be reconstructable from chain events alone versus off-chain metadata/indexing?
+1. Should milestone packages require all payment requests to target milestones, or allow a one-time conversion from package-level mode before activity?
+2. Should package completion for milestone packages depend on all milestones being complete, released amount equaling package cap, or both?
+3. Should project drafters be limited to PM-style users, or can Finance authorize any wallet as a drafter?
+4. How much audit history must be reconstructable from chain events alone versus off-chain metadata/indexing?
+5. Should the static prototype be retired once `app/` converges, or kept as a pitch-only artifact with explicit labels?
+
+## Test File Convention
+
+Current Anchor tests are split into `b1` through `b4`. New backend workstreams should add focused files rather than keep growing the existing suites indefinitely:
+
+- `tests/construkt.b5-budget.ts`
+- `tests/construkt.b6-milestones.ts`
+- `tests/construkt.b7-contractor-assignment.ts`
+- `tests/construkt.b8-package-drafts.ts`
+- `tests/construkt.b9-approval-policy.ts`
+
+Shared fixtures should remain in `tests/setup.ts`.
 
 ## Definition Of Converged
 
@@ -372,7 +495,7 @@ The frontend/backend convergence is successful when:
 - package and milestone caps are enforced by the backend
 - contractors can submit requests against the right payable unit
 - PM approval unlocks Finance release by default
-- optional high approval can be configured when needed
+- required high approval can be configured when needed
 - holds, rejection, release, and audit trail behave consistently across app screens
 - seeded localnet data tells the same story as the demo
-- the static prototype no longer promises core behavior that the backend cannot represent
+- `frontend-prototype/web/index.html` and `frontend-prototype/web/static/projects/js/construkt.js` have been audited so every core product claim is backed by current backend behavior, assigned to a workstream, or removed/reworded
