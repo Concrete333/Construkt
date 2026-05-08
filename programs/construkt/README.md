@@ -5,6 +5,8 @@ Single Anchor/Rust program that enforces the Construkt escrow and approval workf
 **Program ID:** `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`
 **Target networks:** localnet and devnet only. Do not target mainnet.
 
+The program is deployed once. Projects, work packages, payment requests, approval records, role assignments, and vaults are PDA/accounts under this program; the backend does not deploy a new smart contract per project, work package, or milestone.
+
 ## Prerequisites
 
 All commands must run inside **WSL (Ubuntu)**. Solana CLI and Anchor CLI are installed in WSL only — they do not work on the Windows side.
@@ -73,6 +75,7 @@ Holds block approval, rejection, document updates, and release at any stage.
 
 - Only one active unreleased request per work package
 - If HighApprover is used, LowApprover must approve first
+- Release accepts `LowApproved` or `HighApproved`; the current PM-to-Finance flow does not require high approval
 - Contractor cannot approve their own request
 - Same wallet cannot hold both LowApprover and HighApprover on a package
 - Release checks cap, tracked funded balance, and real vault token balance

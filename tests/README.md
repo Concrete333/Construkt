@@ -15,6 +15,9 @@ npm run anchor:test
 # or directly:
 anchor test --provider.cluster localnet
 
+# From Windows PowerShell
+npm run anchor:test:wsl
+
 # Single file (in WSL)
 npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
 ```
@@ -26,7 +29,7 @@ npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
 | `construkt.b1-accounts.ts` | Project and work package creation, role assignment |
 | `construkt.b2-funding.ts` | Escrow vault funding |
 | `construkt.b3-requests.ts` | Payment request submission, document references, approvals, rejections, holds |
-| `construkt.b4-release.ts` | Payment release and blocked-state guards |
+| `construkt.b4-release.ts` | Payment release and blocked-state guards, including both PM-approved release and optional high-approved release |
 
 Files must run in order (b1 → b4) because later suites depend on state established by earlier ones.
 

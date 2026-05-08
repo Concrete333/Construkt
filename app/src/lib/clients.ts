@@ -46,9 +46,8 @@ export interface AppClients {
 /**
  * Build the V0 demo bundle: a mock on-chain client seeded with the
  * Demo Hospital Fit-Out world plus a metadata client populated with
- * matching display copy. Phase 4 will introduce a parallel
- * `buildAnchorClients` that targets localnet/devnet without changing
- * any consumer of this interface.
+ * matching display copy. `buildAnchorClients` exposes the same shape
+ * for localnet/devnet without changing any consumer of this interface.
  */
 export const buildDemoClients = async (): Promise<AppClients> => {
   const construktClient = new MockConstruktClient({

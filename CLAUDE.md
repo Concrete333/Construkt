@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Construkt is a Solana-backed escrow and approval engine for construction work-package payments. The on-chain program (Anchor/Rust) enforces a strict role-based approval flow before finance can release SPL Token funds from an escrow vault to a contractor.
+Construkt is a Solana-backed escrow and approval engine for construction work-package payments. The on-chain program (Anchor/Rust) enforces the current PM-to-Finance release flow: contractor submits, PM/LowApprover approves, and Finance releases SPL Token funds from an escrow vault to a contractor when the rules are satisfied. `HighApproved` remains available as an optional/custom approval state.
 
 Target networks: **localnet and devnet only**. Do not target mainnet.
 
@@ -45,6 +45,8 @@ npm run lint:fix
 ### On-Chain Program (`programs/construkt/src/lib.rs`)
 
 Single Anchor program at `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`. All business logic lives here — no off-chain backend for V0.
+
+The program is deployed once. Projects, work packages, payment requests, role assignments, approval records, and vaults are PDA/accounts under that program; the backend does not deploy a new smart contract per project or work package.
 
 **Account hierarchy:**
 
@@ -114,6 +116,7 @@ The older duplicate HTML sources were removed during the front/back merge cleanu
 
 - Finance = `ProjectAccount.authority` for all privileged actions
 - Standard SPL Token only (not Token-2022)
+- Current release path is `Submitted -> LowApproved -> Released`; `HighApproved` is optional/custom, not mandatory
 - V0 releases are full-amount only (`released_amount` is either 0 or equal to `amount`)
 - All string fields store hashes/references only — no PII or documents on-chain
 - Audit trail is built from account state + approval records + emitted Anchor events; full historical indexing is out of scope

@@ -1,6 +1,6 @@
 # scripts — Localnet Setup and Seed Utilities
 
-Helper scripts for starting a local Solana validator with the Construkt program pre-loaded and seeding it with demo data.
+Helper scripts for starting a local Solana validator with the Construkt program pre-loaded and seeding it with deterministic demo data for the React app's Anchor mode.
 
 ## Prerequisites
 
@@ -15,7 +15,7 @@ Run these in order from WSL:
 # 1. Start solana-test-validator with the Construkt program pre-loaded
 bash scripts/setup-localnet.sh
 
-# 2. (optional) Seed with demo wallets, mint, project, and work packages
+# 2. Seed with demo wallets, mint, project, work packages, requests, approvals, holds, and release states
 npm run seed:localnet
 ```
 
@@ -48,3 +48,5 @@ npm run anchor:test:wsl
 | `wsl-anchor-test.ps1`   | Windows PowerShell wrapper that locates the repo in WSL and calls `wsl-anchor-test.sh`          |
 
 Seed keypairs use deterministic fill-byte seeds so the same demo wallets are reproducible across resets.
+
+The seed creates one demo project with six package states: released after PM plus optional high approval, high-approved waiting for Finance, low-approved ready for Finance, submitted on hold, funded with no request, and rejected/unblocked.
