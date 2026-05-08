@@ -60,9 +60,11 @@ Role bytes: `Contractor=1`, `LowApprover=2`, `HighApprover=3`
 ## Payment request lifecycle
 
 ```
-Submitted → LowApproved → HighApproved → Released
+Submitted → LowApproved → Released
                                         (or Rejected at any stage)
 ```
+
+`HighApproved` is retained as an optional/custom approval state. It is not required before release in the current PM-to-finance demo flow.
 
 Holds block approval, rejection, document updates, and release at any stage.
 

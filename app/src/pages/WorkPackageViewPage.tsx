@@ -711,7 +711,7 @@ const ApprovalTrackerPanel = ({
         </li>
         <li className="work-package-view__tracker-step">
           <span className="work-package-view__tracker-role">
-            Director approval
+            Optional high approval
           </span>
           <StatusPill tone={APPROVAL_TONES[row.approvals.highApprover.state]}>
             {APPROVAL_LABELS[row.approvals.highApprover.state]}

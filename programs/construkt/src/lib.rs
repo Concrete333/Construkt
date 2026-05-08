@@ -593,7 +593,8 @@ pub mod construkt {
         );
         // Keep re-release failures distinct from other invalid status failures.
         require!(
-            ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
+            ctx.accounts.payment_request.status == PaymentRequestStatus::LowApproved
+                || ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
             ConstruktError::InvalidStatus
         );
         require!(

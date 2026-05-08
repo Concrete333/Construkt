@@ -523,7 +523,8 @@ const roleMatchesActiveRequest = (
       // Finance acts on requests ready for release, requests on hold, and
       // requests stuck in any pre-release state (so they can place / remove
       // a hold or escalate).
-      if (status === "highApproved") return { action: "Release" };
+      if (status === "lowApproved" || status === "highApproved")
+        return { action: "Release" };
       if (
         status === "submittedOnHold" ||
         status === "lowApprovedOnHold" ||
@@ -544,7 +545,7 @@ const roleMatchesActiveRequest = (
       // The contractor's own submitted invoices stay in the list as a
       // status reminder until released.
       if (status === "submitted") return { action: "Awaiting PM" };
-      if (status === "lowApproved") return { action: "Awaiting Director" };
+      if (status === "lowApproved") return { action: "Awaiting Finance" };
       if (status === "highApproved") return { action: "Awaiting Finance" };
       return null;
   }

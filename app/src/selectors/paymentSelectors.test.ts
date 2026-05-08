@@ -145,16 +145,17 @@ describe("selectReleaseReadiness", () => {
     });
   });
 
-  it("blocks on NotHighApproved for the lowApproved package", async () => {
+  it("returns ready=true for the lowApproved package", async () => {
     const { client, world } = await seed();
     const { wp, pr } = await fetchTriple(
       client,
       world.packages.mepFirstFix.address,
       world.packages.mepFirstFix.request!,
     );
-    const r = selectReleaseReadiness(pr, wp);
-    expect(r.ready).toBe(false);
-    expect(r.reasons).toContain("NotHighApproved");
+    expect(selectReleaseReadiness(pr, wp)).toEqual({
+      ready: true,
+      reasons: [],
+    });
   });
 
   it("blocks on OnHold for the held facade request", async () => {
@@ -230,7 +231,7 @@ describe("selectPaymentRequestSummary", () => {
     );
     const summary = selectPaymentRequestSummary(pr, wp, approvals);
     expect(summary.displayStatus).toBe("highApproved");
-    expect(summary.statusLabel).toMatch(/Director approved/);
+    expect(summary.statusLabel).toMatch(/High approver cleared/);
     expect(summary.chipTone).toBe("info");
     expect(summary.approvals.lowApprover.state).toBe("approved");
     expect(summary.approvals.highApprover.state).toBe("approved");

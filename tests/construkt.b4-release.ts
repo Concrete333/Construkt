@@ -304,7 +304,7 @@ describe("construkt b4 holds and release", () => {
     await expectError(placeHold(prepared), "InvalidStatus");
   });
 
-  it("release before high approval fails", async () => {
+  it("release before PM approval fails", async () => {
     const prepared = await prepareRequest(
       new anchor.BN(100_000),
       new anchor.BN(500_000),
@@ -312,6 +312,30 @@ describe("construkt b4 holds and release", () => {
     );
 
     await expectError(releasePayment(prepared), "InvalidStatus");
+  });
+
+  it("finance can release after PM approval without a high approver", async () => {
+    const prepared = await prepareRequest(
+      new anchor.BN(100_000),
+      new anchor.BN(500_000),
+      false
+    );
+
+    await approveRequest(
+      prepared,
+      { lowApprover: {} },
+      roleSeed.lowApprover,
+      fx.pm,
+      prepared.pmRoleAssignment,
+      "ipfs://pm-release-note"
+    );
+
+    await releasePayment(prepared);
+
+    const requestAccount = await fx.program.account.paymentRequestAccount.fetch(
+      prepared.paymentRequest
+    );
+    assert.deepStrictEqual(requestAccount.status, { released: {} });
   });
 
   it("non-finance cannot release", async () => {

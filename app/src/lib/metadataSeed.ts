@@ -175,7 +175,7 @@ export const seedDemoMetadata = (
   metadata.putNote(
     demoNoteRef(world.packages.steelFrame.name, "director-approve"),
     {
-      text: "Director approval; ready for Finance release.",
+      text: "Optional high approval recorded; ready for Finance release.",
       authorDisplayName: DIRECTOR.displayName,
       authorRole: "director",
       authoredAt: now(),
