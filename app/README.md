@@ -29,11 +29,12 @@ npm run lint:fix     # auto-fix lint and formatting issues
 ```
 app/
 ├── src/
-│   ├── components/     # shared UI components
-│   ├── pages/          # route-level page components
-│   ├── context/        # React context providers
-│   ├── selectors/      # pure state-derivation helpers
-│   ├── idl/            # Anchor IDL (auto-generated)
+│   ├── components/     # shared UI components (AppHeader, RoleSwitcher, WalletDisplay, …)
+│   ├── pages/          # route-level page components (Dashboard2, ProjectList, WorkPackageView, …)
+│   ├── selectors/      # pure state-derivation helpers (payment, project, audit)
+│   ├── lib/            # client interfaces, mock, PDA helpers, format, router, theme
+│   ├── styles/         # design tokens and global CSS
+│   ├── idl/            # Anchor IDL (construkt.json)
 │   └── main.tsx        # app entry point
 ├── public/             # static assets
 ├── vite.config.ts
