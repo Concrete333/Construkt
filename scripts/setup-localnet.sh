@@ -87,3 +87,7 @@ echo "  cd $REPO_ROOT && npm run seed:localnet"
 echo ""
 echo "Then start the frontend in anchor mode:"
 echo "  cd $REPO_ROOT/app && VITE_ANCHOR_RPC=http://localhost:8899 npm run dev"
+echo ""
+echo "Keep this terminal open while localnet is running. Press Ctrl+C to stop it."
+
+wait "$VALIDATOR_PID"

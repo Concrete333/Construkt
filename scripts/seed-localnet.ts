@@ -11,9 +11,13 @@ import {
 } from "@solana/spl-token";
 import fs from "node:fs";
 import path from "node:path";
-import { packageScopeSlug } from "../app/src/lib/slug";
 
 type SeedIdl = Idl & { address: string };
+
+// Keep the seed script self-contained so ts-node does not have to cross
+// into the app package's ESM boundary under app/package.json.
+const packageScopeSlug = (name: string): string =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 const loadIdl = (): SeedIdl => {
   const idlPath = path.resolve(__dirname, "../app/src/idl/construkt.json");
