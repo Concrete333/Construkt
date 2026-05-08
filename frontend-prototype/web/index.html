@@ -588,6 +588,7 @@
           <div class="dashboard2-content">
             <div class="dashboard2-main-section">
               <h1 class="dashboard2-title" id="dashboard2-role-title">Finance Director</h1>
+              <section class="contractor-withdrawal-summary" id="contractor-withdrawal-summary" hidden></section>
               <div class="dashboard2-chart-card" id="dashboard2-chart-card">
                 <div class="dashboard2-chart-header">
                   <h3 class="dashboard2-chart-title">Project Funding Overview</h3>
@@ -1128,6 +1129,7 @@
               </main>
               <aside class="work-package-view-side">
                 <section class="work-package-info-card" id="wp-package-snapshot"></section>
+                <section class="work-package-withdrawal-card" id="wp-withdrawal-card" hidden></section>
                 <section class="work-package-readiness-card" id="wp-payment-readiness"></section>
               </aside>
             </div>
@@ -1139,7 +1141,7 @@
                   <button class="section-tab" type="button" data-wp-tab="documents">Documents</button>
                   <button class="section-tab" type="button" data-wp-tab="payments">Payments</button>
                 </div>
-                <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain -></a>
+                <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state -></a>
               </div>
               <div id="wp-tab-content"></div>
             </div>
@@ -1416,7 +1418,7 @@
                   <button class="section-tab" data-audit-tab="documents" type="button">Documents</button>
                   <button class="section-tab" data-audit-tab="payments" type="button">Payments</button>
                 </div>
-                <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a>
+                <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a>
               </div>
               <div class="audit-panel is-active" data-audit-panel="audit">
                 <div data-audit-trail-wrap>
@@ -1646,13 +1648,13 @@
                               <li class="approval-step done"><strong>Requested</strong><span>Daniel Okafor · 8 Apr 2026, 09:14</span></li>
                               <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 9 Apr 2026, 11:30</span></li>
                               <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 10 Apr 2026, 14:22</span></li>
-                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 10 Apr 2026, 14:25 <a class="doc-chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 10 Apr 2026, 14:25 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></span></li>
                             </ol>
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1679,8 +1681,8 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1707,8 +1709,8 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-photos">Site Inspection Photo Set</a><span>Photo Evidence</span><span>DOC-PHO-031</span><span class="version-badge">V1</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-photos">Site Inspection Photo Set</a><span>Photo Evidence</span><span>DOC-PHO-031</span><span class="version-badge">V1</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1735,7 +1737,7 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1757,12 +1759,12 @@
                               <li class="approval-step done"><strong>Requested</strong><span>Harbour Interiors · 6 Apr 2026, 08:05</span></li>
                               <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 6 Apr 2026, 15:40</span></li>
                               <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 7 Apr 2026, 10:12</span></li>
-                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 7 Apr 2026, 10:16 <a class="doc-chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a></span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 7 Apr 2026, 10:16 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></span></li>
                             </ol>
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-mep">MEP Schematic Rev B</a><span>Drawing</span><span>DOC-MEP-009</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#">View on chain ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-mep">MEP Schematic Rev B</a><span>Drawing</span><span>DOC-MEP-009</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1927,21 +1929,21 @@
                       <td>Milestone Cert</td>
                       <td>DOC-FND-014</td>
                       <td><span class="version-badge">V3</span></td>
-                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
                     </tr>
                     <tr>
                       <td><a class="document-link" href="#">Site Inspection Photo Set</a></td>
                       <td>Photo Evidence</td>
                       <td>DOC-PHO-031</td>
                       <td><span class="version-badge">V1</span></td>
-                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
                     </tr>
                     <tr>
                       <td><a class="document-link" href="#">Concrete Batch Delivery Log</a></td>
                       <td>Delivery Log</td>
                       <td>DOC-BAT-022</td>
                       <td><span class="version-badge">V2</span></td>
-                      <td><a class="doc-chain-link" href="#">View on chain ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1985,7 +1987,7 @@
               <div class="tab-buttons" role="tablist" aria-label="Package audit trail">
                 <button class="section-tab is-active" type="button">Audit Trail</button>
               </div>
-              <a class="chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a>
+              <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a>
             </div>
             <ul class="timeline-list">
               <li class="timeline-item">
@@ -2021,14 +2023,14 @@
         <div class="page-head">
           <div>
             <h1>Settings</h1>
-            <p>Manage your profile, roles, and connected wallet.</p>
+            <p>Manage your profile, roles, and payment account.</p>
           </div>
         </div>
         <div class="settings-layout">
           <nav class="settings-tabs" aria-label="Settings sections">
             <button class="settings-tab is-active" data-settings-tab="profile" type="button">Profile</button>
             <button class="settings-tab" data-settings-tab="roles" type="button">Roles &amp; Access</button>
-            <button class="settings-tab" data-settings-tab="wallet" type="button">Wallet</button>
+            <button class="settings-tab" data-settings-tab="wallet" type="button">Payment Account</button>
             <button class="settings-tab" data-settings-tab="notifications" type="button">Notifications</button>
           </nav>
 
@@ -2104,8 +2106,8 @@
 
             <section class="settings-panel" data-settings-panel="wallet">
               <div class="wallet-readonly-card">
-                <span class="wallet-label">Connected Wallet</span>
-                <strong class="wallet-title">Phantom Wallet</strong>
+                <span class="wallet-label">Connected Payment Account</span>
+                <strong class="wallet-title">Organisation-managed account</strong>
                 <span class="wallet-address">7xK2...m9Qr
                   <svg class="copy-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="9" y="9" width="11" height="11" rx="2"></rect>
@@ -2115,15 +2117,15 @@
                 <span class="status-pill chip-tone-success">Active</span>
               </div>
               <div class="wallet-meta">
-                <a class="text-link" href="#">View wallet on chain ↗</a>
-                <span class="faint">This wallet is managed by your organisation. Contact your Finance Director to make changes.</span>
+                <a class="text-link" href="#dashboard2">View account activity</a>
+                <span class="faint">This account is managed by your organisation. Contact your Finance Director to make changes.</span>
               </div>
             </section>
 
             <section class="card settings-card settings-panel" data-settings-panel="notifications">
               <ul class="notification-list">
                 <li class="notification-row">
-                  <div><strong>Payment released</strong><span>When funds are released to your wallet</span></div>
+                  <div><strong>Payment released</strong><span>When funds are released to your withdrawal balance</span></div>
                   <button class="toggle-switch is-on" type="button" aria-pressed="true"></button>
                 </li>
                 <li class="notification-row">
@@ -2267,6 +2269,35 @@
     </section>
   </div>
 
+  <div class="modal-overlay" data-modal="assign-contractor" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="assign-contractor-title">
+      <div class="modal-header">
+        <h2 id="assign-contractor-title">Assign Contractor</h2>
+        <button class="modal-close" data-modal-close type="button">&times;</button>
+      </div>
+      <div class="modal-summary">
+        <div class="modal-summary-row"><span>Package</span><strong data-assign-package-name>Selected package</strong></div>
+        <div class="modal-summary-row"><span>Estimated cap</span><strong data-assign-package-cap>GBP 0</strong></div>
+        <div class="modal-summary-row"><span>Finance handoff</span><strong data-assign-package-schedule>Sent for escrow approval</strong></div>
+      </div>
+      <form class="modal-form">
+        <div class="form-field">
+          <label>Contractor</label>
+          <select data-assign-contractor-name></select>
+        </div>
+        <div class="form-field">
+          <label>Contract Reference</label>
+          <input type="text" data-assign-contractor-ref placeholder="e.g. CON-2026-014">
+        </div>
+        <p class="faint">Finance approval locks the package cap into escrow. Milestone schedules remain attached so release can happen package-wide or milestone by milestone.</p>
+      </form>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
+        <button class="btn btn-primary" type="button">Send to Finance</button>
+      </div>
+    </section>
+  </div>
+
   <div class="modal-overlay" data-modal="fund-package" hidden>
     <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="fund-package-title">
       <div class="modal-header">
@@ -2320,7 +2351,7 @@
         <div class="modal-summary-row"><span>Amount</span><strong>£92,400</strong></div>
         <div class="modal-summary-row"><span>Escrow Status</span><strong>Funded</strong></div>
       </div>
-      <label class="checkbox-row"><input type="checkbox"> I confirm release of £92,400 from escrow to contractor wallet</label>
+      <label class="checkbox-row"><input type="checkbox"> I confirm release of £92,400 from escrow to the contractor withdrawal balance</label>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
         <button class="btn btn-primary" type="button">Confirm Release</button>
@@ -2338,6 +2369,7 @@
         <p style="font-size:var(--text-xs); color:var(--color-text-faint); margin:0;">Requests unlock funds from the work package escrow according to the agreed package contract terms.</p>
         <div class="form-field"><label>Invoice Reference</label><input data-submit-invoice-ref type="text"></div>
         <div class="form-field"><label>Amount — £</label><input data-submit-invoice-amount type="number"></div>
+        <div class="form-field" data-submit-invoice-milestone-field><label>Milestone / payment section</label><select data-submit-invoice-milestone></select></div>
         <div class="form-field"><label>Release Basis</label><select data-submit-invoice-basis><option>Package-level release</option><option>Milestone / payment schedule release</option><option>Valuation period release</option><option>Bespoke contract trigger</option></select></div>
         <div class="form-field"><label>Description / Scope Note</label><textarea data-submit-invoice-description rows="3"></textarea></div>
         <div class="form-field"><label>Document Reference</label><input data-submit-invoice-document type="text" placeholder="e.g. DOC-FND-014"></div>

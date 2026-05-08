@@ -17,7 +17,7 @@ const store = {
           projectName: 'Demo Hospital Fit-Out',
           packageName: 'Foundation Pour - Bay A',
           packageId: 'wp-001',
-          detail: 'Mock USDC released from package escrow to contractor wallet.',
+          detail: 'Mock USDC released from package escrow to contractor withdrawal balance.',
           accountRef: 'escrow_wp_001',
           tx: 'demoRelease5J7kP9zQ2a',
           date: '2026-04-10T10:45:00',
@@ -69,6 +69,7 @@ const store = {
               cap: 640000,
               funded: 410000,
               released: 128000,
+              lastWithdrawalDate: '2026-03-25',
               status: 'Partially Funded',
               contractor: 'Daniel Okafor',
               requests: [
@@ -76,6 +77,8 @@ const store = {
                   id: 'req-fnd-000',
                   ref: 'INV-FND-000',
                   amount: 128000,
+                  withdrawnAmount: 128000,
+                  withdrawnDate: '2026-03-25',
                   submittedBy: 'Daniel Okafor',
                   date: '2026-03-18',
                   status: 'Released',
@@ -126,6 +129,8 @@ const store = {
               cap: 780000,
               funded: 560000,
               released: 210000,
+              withdrawnLegacyAmount: 210000,
+              lastWithdrawalDate: '2026-04-02',
               status: 'Partially Funded',
               contractor: 'Daniel Okafor',
               requests: [],
@@ -146,6 +151,8 @@ const store = {
               cap: 810000,
               funded: 300000,
               released: 200000,
+              withdrawnLegacyAmount: 200000,
+              lastWithdrawalDate: '2026-04-05',
               status: 'Pending',
               contractor: 'Daniel Okafor',
               requests: [],
@@ -270,6 +277,8 @@ const store = {
               contractor: 'Daniel Okafor',
               contractModel: 'valuation',
               completionDate: '2026-05-20',
+              withdrawnLegacyAmount: 62000,
+              lastWithdrawalDate: '2026-04-18',
               requests: [],
             },
             {
@@ -437,6 +446,8 @@ const store = {
               status: 'Completed',
               contractor: 'Daniel Okafor',
               completionDate: '2026-02-14',
+              withdrawnLegacyAmount: 310000,
+              lastWithdrawalDate: '2026-02-20',
               requests: [],
             },
           ],
@@ -472,6 +483,7 @@ const store = {
               cap: 360000,
               funded: 360000,
               released: 360000,
+              lastWithdrawalDate: '2025-11-24',
               status: 'Completed',
               contractor: 'Daniel Okafor',
               completionDate: '2025-11-21',
@@ -480,6 +492,8 @@ const store = {
                   id: 'req-501',
                   ref: 'INV-CBR-001',
                   amount: 360000,
+                  withdrawnAmount: 360000,
+                  withdrawnDate: '2025-11-24',
                   submittedBy: 'Daniel Okafor',
                   date: '2025-11-14',
                   status: 'Released',
@@ -1101,6 +1115,19 @@ const store = {
       return Boolean(pkg?.contractor && pkg.contractor !== 'Unassigned estimate' && pkg.contractor !== 'Unassigned');
     }
 
+    function availableContractors(project = activeProject()) {
+      const defaults = [
+        { name: 'Daniel Okafor', org: 'Okafor Builders Ltd' },
+        { name: 'Northline Structures', org: 'Northline Structures' },
+      ];
+      const projectContractors = (project?.team || [])
+        .filter((member) => member.role === 'contractor')
+        .map((member) => ({ name: member.name, org: member.org || member.name }));
+      return [...projectContractors, ...defaults].filter((contractor, index, list) =>
+        contractor.name && list.findIndex((item) => item.name === contractor.name) === index
+      );
+    }
+
     function financeApprovalStatus(pkg) {
       if (pkg?.financeApprovalStatus) return pkg.financeApprovalStatus;
       if (pkg?.funded > 0) return 'Escrow Locked';
@@ -1110,6 +1137,9 @@ const store = {
 
     function packageActionCell(project, pkg) {
       const approval = financeApprovalStatus(pkg);
+      if (store.currentRole === 'project_manager' && approval === 'Estimate') {
+        return `<button class="btn btn-primary small" type="button" onclick="openPackageModal('${project.id}', '${pkg.id}', 'assign-contractor'); return false;">Assign contractor</button>`;
+      }
       if (store.currentRole === 'finance_director' && approval === 'Awaiting Finance Approval') {
         return `<button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${project.id}', '${pkg.id}')">Approve escrow</button>`;
       }
@@ -1310,8 +1340,32 @@ const store = {
       return project.team.find((member) => member.name === store.currentUser.name && member.role === store.currentRole)?.role;
     }
 
+    function normalizePartyName(value) {
+      return String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    }
+
+    function contractorIdentitiesForCurrentUser(project) {
+      const identities = new Set([
+        normalizePartyName(store.currentUser.name),
+        normalizePartyName(store.currentUser.org),
+      ].filter(Boolean));
+      (project?.team || [])
+        .filter((member) => member.role === 'contractor')
+        .forEach((member) => {
+          const memberNames = [normalizePartyName(member.name), normalizePartyName(member.org)].filter(Boolean);
+          const isCurrentContractor = memberNames.some((name) => identities.has(name));
+          if (isCurrentContractor) memberNames.forEach((name) => identities.add(name));
+        });
+      return identities;
+    }
+
+    function contractorPackageBelongsToCurrentUser(pkg, project) {
+      if (!hasAssignedContractor(pkg)) return false;
+      return contractorIdentitiesForCurrentUser(project).has(normalizePartyName(pkg.contractor));
+    }
+
     function contractorPackagesForProject(project) {
-      return (project?.packages || []).filter((pkg) => pkg.contractor === store.currentUser.name);
+      return (project?.packages || []).filter((pkg) => contractorPackageBelongsToCurrentUser(pkg, project));
     }
 
     function projectsForCurrentRole() {
@@ -1349,7 +1403,9 @@ const store = {
 
       const projectsWithDueDates = projects.map((project) => {
         const relevantPackages = store.currentRole === 'contractor' ? contractorPackagesForProject(project) : project.packages;
-        const dueDates = relevantPackages
+        const incompletePackages = relevantPackages.filter((pkg) => !isPackageComplete(pkg));
+        const dueDatePackages = incompletePackages.length ? incompletePackages : relevantPackages;
+        const dueDates = dueDatePackages
           .map((pkg) => pkg.completionDate || project.endDate)
           .filter(Boolean)
           .map((date) => new Date(date))
@@ -1391,8 +1447,8 @@ const store = {
 
           return `
             <div class="project-simple-item" onclick="showProjectDetail('${project.id}')">
-              <span class="project-simple-name">${project.name}</span>
-              <span class="project-simple-due ${dueClass}">${dueText}</span>
+              <span class="project-simple-name">${escapeHtml(project.name)}</span>
+              <span class="project-simple-due ${dueClass}">${escapeHtml(dueText)}</span>
             </div>
           `;
         }).join('');
@@ -1445,7 +1501,7 @@ const store = {
       document.getElementById('project-title').textContent = project.name;
       document.querySelector('[data-project-detail-breadcrumb]').textContent = `Projects → ${project.name}`;
       document.getElementById('project-meta').innerHTML = `
-        <span>${project.client}</span>
+        <span>${escapeHtml(project.client)}</span>
         ${statusChip(project.status)}
         <span class="model-badge">Reference: ${modelLabel(project.contractModel)}</span>
         <span>Started ${formatDate(project.startDate)}</span>
@@ -1461,8 +1517,8 @@ const store = {
       const modelHeader = document.querySelector('[data-model-column-label]');
       if (modelHeader) modelHeader.textContent = modelColumn;
       const packageRow = (pkg, index) => `
-        <tr class="clickable-row" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" tabindex="0" role="link" aria-label="Open ${pkg.name} work package">
-          <td><a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">${pkg.name}</a></td>
+        <tr class="clickable-row" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" tabindex="0" role="link" aria-label="Open ${escapeHtml(pkg.name)} work package">
+          <td><a class="text-link" href="#work-package-view" data-open-work-package data-project-id="${project.id}" data-package-id="${pkg.id}" onclick="openWorkPackageView('${project.id}', '${pkg.id}', event); return false;">${escapeHtml(pkg.name)}</a></td>
           <td>${formatGBP(pkg.cap)}</td>
           <td>${modelLabel(pkg.contractModel || project.contractModel || 'milestone')}</td>
           <td data-visible-to="finance_director project_manager">${formatGBP(pkg.funded)}</td>
@@ -1483,7 +1539,7 @@ const store = {
           return `
             <tr>
               <td colspan="9" style="background:var(--color-surface-offset, var(--color-surface)); color:var(--color-text-faint); font-size:var(--text-xs); font-weight:500; text-transform:uppercase; letter-spacing:0.08em;">
-                ${milestone.name} · ${formatDate(milestone.targetDate)} · ${statusChip(milestone.status)}
+                ${escapeHtml(milestone.name)} · ${formatDate(milestone.targetDate)} · ${statusChip(milestone.status)}
               </td>
             </tr>
             ${packages.map((pkg) => packageRow(pkg, project.packages.indexOf(pkg))).join('')}
@@ -1506,7 +1562,7 @@ const store = {
       document.getElementById('team-list').innerHTML = project.team.map((member) => `
         <div class="team-row">
           <span class="approver-avatar">${initials(member.name)}</span>
-          <strong>${member.name}</strong>
+          <strong>${escapeHtml(member.name)}</strong>
           ${statusChip(roleLabel(member.role))}
         </div>
       `).join('');
@@ -1514,7 +1570,7 @@ const store = {
       document.getElementById('audit-list').innerHTML = project.auditLog.map((item) => `
         <li class="timeline-item">
           <span class="timeline-dot ${timelineDot(item.type)}"></span>
-          <div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.actor} · ${formatDateTime(item.date)}</span></div>
+          <div><span class="timeline-title">${escapeHtml(item.event)}</span><span class="timeline-meta">${escapeHtml(item.actor)} · ${formatDateTime(item.date)}</span></div>
         </li>
       `).join('');
 
@@ -1551,18 +1607,23 @@ const store = {
       `;
 
       if (store.currentRole === 'finance_director') {
+        const escrowRows = packages.filter((pkg) => financeApprovalStatus(pkg) === 'Awaiting Finance Approval');
+        if (escrowRows.length) {
+          mainCard.innerHTML = `<section class="assignment-card"><div class="card-head"><h2>Escrow Approvals</h2>${statusChip(`${escrowRows.length} awaiting`)}</div><div class="table-card"><table class="action-table"><thead><tr><th>Package</th><th>Project</th><th>Contractor</th><th>Cap</th><th>Action</th></tr></thead><tbody>${escrowRows.map((pkg) => `<tr><td>${escapeHtml(pkg.name)}</td><td>${escapeHtml(pkg.project.name)}</td><td>${escapeHtml(pkg.contractor)}</td><td>${formatGBP(pkg.cap)}</td><td><button class="btn btn-primary small" type="button" onclick="approveWorkPackage('${pkg.project.id}', '${pkg.id}')">Approve escrow</button></td></tr>`).join('')}</tbody></table></div></section>`;
+        } else {
         const rows = packages.flatMap((pkg) => pkg.requests.filter((request) => request.pmApproved && !request.fdApproved).map((request) => ({ pkg, request })));
-        mainCard.innerHTML = `<section class="assignment-card"><div class="card-head"><h2>Pending Releases</h2>${statusChip(`${rows.length} ready`)}</div><div class="table-card"><table class="action-table"><thead><tr><th>Package</th><th>PM Approved</th><th>Amount</th><th>Escrow Status</th><th>Action</th></tr></thead><tbody>${rows.map(({ pkg, request }) => `<tr><td>${pkg.name}</td><td>${request.pmApprovedBy} · ${formatDate(request.pmApprovedDate)}</td><td>${formatGBP(request.amount)}</td><td>${statusChip(pkg.status)}</td><td><button class="btn btn-primary small" type="button">Release</button></td></tr>`).join('') || `<tr><td colspan="5">No pending releases</td></tr>`}</tbody></table></div></section>`;
+        mainCard.innerHTML = `<section class="assignment-card"><div class="card-head"><h2>Pending Releases</h2>${statusChip(`${rows.length} ready`)}</div><div class="table-card"><table class="action-table"><thead><tr><th>Package</th><th>PM Approved</th><th>Amount</th><th>Escrow Status</th><th>Action</th></tr></thead><tbody>${rows.map(({ pkg, request }) => `<tr><td>${escapeHtml(pkg.name)}</td><td>${escapeHtml(request.pmApprovedBy || 'Project Manager')} · ${formatDate(request.pmApprovedDate)}</td><td>${formatGBP(request.amount)}</td><td>${statusChip(pkg.status)}</td><td><button class="btn btn-primary small" type="button" onclick="openPackageModal('${pkg.project.id}', '${pkg.id}', 'release-funds', '${request.id}')">Release</button></td></tr>`).join('') || `<tr><td colspan="5">No pending releases</td></tr>`}</tbody></table></div></section>`;
+        }
       } else if (store.currentRole === 'project_manager') {
         const rows = packages.flatMap((pkg) => pkg.requests.filter((request) => !request.pmApproved && request.status === 'Submitted').map((request) => ({ pkg, request })));
-        mainCard.innerHTML = `<section class="assignment-card"><div class="card-head"><h2>Requests Awaiting Review</h2>${statusChip(`${rows.length} pending`)}</div><div class="table-card"><table class="action-table"><thead><tr><th>Package</th><th>Contractor</th><th>Amount</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows.map(({ pkg, request }) => `<tr><td>${pkg.name}</td><td>${pkg.contractor}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td><button class="btn btn-primary small" type="button">Review</button></td></tr>`).join('') || `<tr><td colspan="5">No requests awaiting review</td></tr>`}</tbody></table></div></section>`;
+        mainCard.innerHTML = `<section class="assignment-card"><div class="card-head"><h2>Requests Awaiting Review</h2>${statusChip(`${rows.length} pending`)}</div><div class="table-card"><table class="action-table"><thead><tr><th>Package</th><th>Contractor</th><th>Amount</th><th>Submitted</th><th>Action</th></tr></thead><tbody>${rows.map(({ pkg, request }) => `<tr><td>${escapeHtml(pkg.name)}</td><td>${escapeHtml(pkg.contractor)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td><button class="btn btn-primary small" type="button" onclick="openPackageModal('${pkg.project.id}', '${pkg.id}', 'approve-request', '${request.id}')">Review</button></td></tr>`).join('') || `<tr><td colspan="5">No requests awaiting review</td></tr>`}</tbody></table></div></section>`;
       } else {
         const assignment = packages.find((pkg) => pkg.contractor === store.currentUser.name) || packages[0];
-        mainCard.innerHTML = assignment ? `<section class="assignment-card"><div class="assignment-grid"><div><div class="chip-row"><span class="assignment-chip">Current Assignment</span><span class="assignment-chip">${assignment.status}</span><span class="assignment-chip">${assignment.id.toUpperCase()}</span></div><h2 class="assignment-title">${assignment.name}</h2><p class="assignment-description">${assignment.project.name} · ${assignment.contractor}</p><div class="assignment-stats"><div class="assignment-tile"><span class="assignment-meta">Package Cap</span><strong>${formatGBP(assignment.cap)}</strong></div><div class="assignment-tile"><span class="assignment-meta">Released</span><strong>${formatGBP(assignment.released)}</strong></div></div><div class="assignment-actions"><button class="btn btn-primary" data-visible-to="contractor" data-modal-target="submit-invoice" type="button">Submit invoice</button><a class="text-link" href="#work-package-view" onclick="openWorkPackageView('${assignment.project.id}', '${assignment.id}'); return false;">Open package →</a></div></div></div></section>` : `<section class="assignment-card"><p class="assignment-description">No current assignment.</p></section>`;
+        mainCard.innerHTML = assignment ? `<section class="assignment-card"><div class="assignment-grid"><div><div class="chip-row"><span class="assignment-chip">Current Assignment</span><span class="assignment-chip">${escapeHtml(assignment.status)}</span><span class="assignment-chip">${escapeHtml(assignment.id.toUpperCase())}</span></div><h2 class="assignment-title">${escapeHtml(assignment.name)}</h2><p class="assignment-description">${escapeHtml(assignment.project.name)} · ${escapeHtml(assignment.contractor)}</p><div class="assignment-stats"><div class="assignment-tile"><span class="assignment-meta">Package Cap</span><strong>${formatGBP(assignment.cap)}</strong></div><div class="assignment-tile"><span class="assignment-meta">Released</span><strong>${formatGBP(assignment.released)}</strong></div></div><div class="assignment-actions">${packageCanSubmitInvoice(assignment) ? `<button class="btn btn-primary" data-visible-to="contractor" type="button" onclick="openPackageModal('${assignment.project.id}', '${assignment.id}', 'submit-invoice')">Submit invoice</button>` : ''}<a class="text-link" href="#work-package-view" onclick="openWorkPackageView('${assignment.project.id}', '${assignment.id}'); return false;">Open package →</a></div></div></div></section>` : `<section class="assignment-card"><p class="assignment-description">No current assignment.</p></section>`;
       }
 
       const events = store.projects.flatMap((project) => project.auditLog.map((item) => ({ ...item, project: project.name }))).sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.project} · ${formatDateTime(item.date)}</span></div></li>`).join('');
+      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${escapeHtml(item.event)}</span><span class="timeline-meta">${escapeHtml(item.project)} · ${formatDateTime(item.date)}</span></div></li>`).join('');
       maybeAnimateDashboardKpis();
     }
 
@@ -1581,7 +1642,7 @@ const store = {
     }
 
     function normalizeProjectFundingPackages(project) {
-      if (Array.isArray(project.packages) && project.packages.length) {
+      if (Array.isArray(project.packages)) {
         const packages = project.packages.map((pkg, index) => {
           const amount = pkg.cap || Math.max(pkg.funded || 0, pkg.released || 0);
           let status = 'estimated';
@@ -1720,14 +1781,126 @@ const store = {
 
     function assignedContractorPackages() {
       return store.projects.flatMap((project) =>
-        project.packages
-          .filter((pkg) => pkg.contractor === store.currentUser.name)
-          .map((pkg) => ({ ...pkg, project }))
+        contractorPackagesForProject(project).map((pkg) => ({ ...pkg, project }))
       );
+    }
+
+    function releasedPackageRequests(pkg) {
+      return (pkg?.requests || []).filter((request) => request.status === 'Released' || request.fdApproved);
+    }
+
+    function requestWithdrawnAmount(request) {
+      return Math.min(request?.amount || 0, parsePackageAmount(request?.withdrawnAmount || 0));
+    }
+
+    function packageReleasedRequestTotal(pkg) {
+      return releasedPackageRequests(pkg).reduce((sum, request) => sum + (request.amount || 0), 0);
+    }
+
+    function packageLegacyWithdrawableAmount(pkg) {
+      const releasedWithoutRequest = Math.max((pkg?.released || 0) - packageReleasedRequestTotal(pkg), 0);
+      return Math.max(releasedWithoutRequest - parsePackageAmount(pkg?.withdrawnLegacyAmount || 0), 0);
+    }
+
+    function packageWithdrawableAmount(pkg) {
+      const requestAvailable = releasedPackageRequests(pkg).reduce((sum, request) => {
+        return sum + Math.max((request.amount || 0) - requestWithdrawnAmount(request), 0);
+      }, 0);
+      return requestAvailable + packageLegacyWithdrawableAmount(pkg);
+    }
+
+    function packageWithdrawnAmount(pkg) {
+      const requestWithdrawn = releasedPackageRequests(pkg).reduce((sum, request) => sum + requestWithdrawnAmount(request), 0);
+      return requestWithdrawn + parsePackageAmount(pkg?.withdrawnLegacyAmount || 0);
+    }
+
+    function contractorWithdrawalPackages() {
+      return assignedContractorPackages()
+        .map((pkg) => ({
+          ...pkg,
+          withdrawable: packageWithdrawableAmount(pkg),
+          withdrawn: packageWithdrawnAmount(pkg),
+        }))
+        .sort((a, b) => b.withdrawable - a.withdrawable);
+    }
+
+    function withdrawPackageFunds(projectId, packageId) {
+      const project = projectFor(projectId);
+      const pkg = packageFor(project, packageId);
+      if (!project || !pkg) return;
+      const available = packageWithdrawableAmount(pkg);
+      if (available <= 0) return;
+      releasedPackageRequests(pkg).forEach((request) => {
+        request.withdrawnAmount = request.amount || 0;
+        request.withdrawnDate = new Date().toISOString().split('T')[0];
+      });
+      const legacyAvailable = packageLegacyWithdrawableAmount(pkg);
+      if (legacyAvailable > 0) {
+        pkg.withdrawnLegacyAmount = parsePackageAmount(pkg.withdrawnLegacyAmount || 0) + legacyAvailable;
+      }
+      pkg.lastWithdrawalDate = new Date().toISOString().split('T')[0];
+      logAudit(project, 'Contractor withdrawal recorded: ' + formatGBP(available) + ' from ' + pkg.name, 'released');
+      logChainAction('Contractor withdrawal', project, pkg, `${formatGBP(available)} marked as withdrawn from the contractor withdrawal balance.`, `withdraw_${pkg.id}`);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
+      renderDashboard();
+      renderDashboard2();
+    }
+
+    function renderContractorWithdrawalSummary() {
+      const card = document.getElementById('contractor-withdrawal-summary');
+      if (!card) return;
+      if (store.currentRole !== 'contractor') {
+        card.hidden = true;
+        card.innerHTML = '';
+        return;
+      }
+      const packages = contractorWithdrawalPackages();
+      const total = packages.reduce((sum, pkg) => sum + pkg.withdrawable, 0);
+      const readyPackages = packages.filter((pkg) => pkg.withdrawable > 0);
+      card.hidden = false;
+      card.innerHTML = `
+        <div>
+          <span class="contractor-withdrawal-label">Available for withdrawal</span>
+          <strong class="contractor-withdrawal-total">${formatGBP(total)}</strong>
+          <span class="contractor-withdrawal-note">${readyPackages.length} work package${readyPackages.length === 1 ? '' : 's'} with released funds ready</span>
+        </div>
+        <div class="contractor-withdrawal-list">
+          ${readyPackages.slice(0, 4).map((pkg) => `
+            <button class="contractor-withdrawal-row" type="button" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">
+              <span>${escapeHtml(pkg.project.name)} - ${escapeHtml(pkg.name)}</span>
+              <strong>${formatGBP(pkg.withdrawable)}</strong>
+            </button>
+          `).join('') || '<span class="contractor-withdrawal-empty">Released payments will appear here once Finance releases funds.</span>'}
+        </div>
+      `;
     }
 
     function renderContractorPackageSegments(pkg) {
       const total = pkg.cap || 1;
+      if (Array.isArray(pkg.milestones) && pkg.milestones.length) {
+        const milestoneTotal = pkg.milestones.reduce((sum, milestone) => sum + parsePackageAmount(milestone.amount), 0) || total;
+        return pkg.milestones.map((milestone, index) => {
+          const amount = parsePackageAmount(milestone.amount);
+          const status = String(milestone.status || 'uninvoiced').toLowerCase();
+          const className = status === 'paid'
+            ? 'completed'
+            : status === 'invoiced'
+              ? 'in-progress'
+              : status === 'contested'
+                ? 'contested'
+                : 'estimated';
+          const label = status === 'paid'
+            ? 'Released'
+            : status === 'invoiced'
+              ? 'Invoiced'
+              : status === 'contested'
+                ? 'Contested / held'
+                : 'Not invoiced';
+          const width = Math.max((amount / milestoneTotal) * 100, 6);
+          const tooltip = `${label} - ${milestone.name || `Milestone ${index + 1}`} - ${formatGBP(amount)}`;
+          return `<div class="chart-bar-segment ${className}" style="width: ${width}%" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tooltip)}"></div>`;
+        }).join('');
+      }
       const openRequested = (pkg.requests || [])
         .filter((request) => !['Released', 'Rejected'].includes(request.status))
         .reduce((sum, request) => sum + (request.amount || 0), 0);
@@ -1769,11 +1942,11 @@ const store = {
       chartContent.innerHTML = projects.map((projectName) => {
         const projectPackages = assigned.filter((pkg) => pkg.project.name === projectName);
         return `
-          <div class="contractor-project-heading">${projectName}</div>
+          <div class="contractor-project-heading">${escapeHtml(projectName)}</div>
           ${projectPackages.map((pkg) => {
             return `
               <div class="chart-row">
-                <div class="chart-label chart-label-clickable" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">${pkg.name}</div>
+                <div class="chart-label chart-label-clickable" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">${escapeHtml(pkg.name)}</div>
                 <div class="chart-bar-container" onclick="openWorkPackageView('${pkg.project.id}', '${pkg.id}')">
                   ${renderContractorPackageSegments(pkg)}
                 </div>
@@ -1847,7 +2020,9 @@ const store = {
 
       const roleLabel = roleFullLabel(store.currentRole);
       title.textContent = roleLabel;
+      renderContractorWithdrawalSummary();
       if (chartTitle) chartTitle.textContent = store.currentRole === 'contractor' ? 'Assigned Work Packages' : 'Project Funding Overview';
+      chartContent.classList.toggle('is-contractor-scroll', store.currentRole === 'contractor');
       if (chartLegend) {
         chartLegend.innerHTML = store.currentRole === 'contractor'
           ? `
@@ -1892,153 +2067,6 @@ const store = {
         }).join('') || '<div class="contractor-package-empty">No active projects yet.</div>';
       }
 
-      function renderContractorDial(chartContent) {
-        // Contractor view: circular dial showing project milestones
-        const milestones = [
-          { name: 'Foundation Pour', amount: 120000, received: true, dueDate: '2026-04-15' },
-          { name: 'Steel Frame Section A', amount: 95000, received: true, dueDate: '2026-04-18' },
-          { name: 'Steel Frame Section B', amount: 105000, received: true, dueDate: '2026-04-22' },
-          { name: 'Electrical First Fix', amount: 40000, received: false, dueDate: '2026-04-30' },
-          { name: 'Plumbing Rough-In', amount: 40000, received: false, dueDate: '2026-05-05' },
-          { name: 'Roofing Installation', amount: 85000, received: false, dueDate: '2026-05-12' },
-          { name: 'Window Installation', amount: 65000, received: false, dueDate: '2026-05-18' },
-          { name: 'Drywall and Insulation', amount: 55000, received: false, dueDate: '2026-05-25' },
-          { name: 'HVAC Installation', amount: 75000, received: false, dueDate: '2026-06-01' },
-          { name: 'Interior Finishes', amount: 95000, received: false, dueDate: '2026-06-10' },
-          { name: 'Final Inspection', amount: 45000, received: false, dueDate: '2026-06-15' }
-        ];
-
-        const totalValue = milestones.reduce((sum, m) => sum + m.amount, 0);
-        const receivedValue = milestones.filter(m => m.received).reduce((sum, m) => sum + m.amount, 0);
-
-        // Sort remaining milestones by due date
-        const remainingMilestones = milestones.filter(m => !m.received).sort((a, b) =>
-          new Date(a.dueDate) - new Date(b.dueDate)
-        );
-
-        // Calculate angles for each segment
-        // Start at -90 degrees (top), leave 30 degree gap at top (15 degrees on each side)
-        const gapAngle = 30;
-        const startAngle = -90 + (gapAngle / 2);
-        const totalAngle = 360 - gapAngle;
-
-        // Green section for received funds
-        const receivedAngle = (receivedValue / totalValue) * totalAngle;
-        const receivedEndAngle = startAngle + receivedAngle;
-
-        // Calculate angles for each remaining milestone
-        let currentAngle = receivedEndAngle;
-        const milestoneSegments = remainingMilestones.map((milestone, index) => {
-          const segmentAngle = (milestone.amount / totalValue) * totalAngle;
-          const segmentStartAngle = currentAngle;
-          const segmentEndAngle = currentAngle + segmentAngle;
-          currentAngle = segmentEndAngle;
-
-          // Generate color based on position (gradient from yellow to orange to red)
-          const ratio = index / Math.max(remainingMilestones.length - 1, 1);
-          const hue = 60 - (ratio * 40); // From 60 (yellow) to 20 (orange-red)
-          const color = `hsl(${hue}, 70%, 55%)`;
-
-          return {
-            ...milestone,
-            startAngle: segmentStartAngle,
-            endAngle: segmentEndAngle,
-            color
-          };
-        });
-
-        // Create SVG for circular dial
-        const size = 320;
-        const cx = size / 2;
-        const cy = size / 2;
-        const outerRadius = 145;
-        const innerRadius = 95;
-
-        function polarToCartesian(angle, r) {
-          const rads = (angle * Math.PI) / 180;
-          return {
-            x: cx + r * Math.cos(rads),
-            y: cy + r * Math.sin(rads)
-          };
-        }
-
-        function createPieSlice(startAngle, endAngle, color, className, title) {
-          const outerStart = polarToCartesian(startAngle, outerRadius);
-          const outerEnd = polarToCartesian(endAngle, outerRadius);
-          const innerStart = polarToCartesian(startAngle, innerRadius);
-          const innerEnd = polarToCartesian(endAngle, innerRadius);
-          const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-
-          // Create a filled pie slice shape with straight radial edges
-          const pathData = [
-            `M ${outerStart.x} ${outerStart.y}`, // Move to outer start
-            `A ${outerRadius} ${outerRadius} 0 ${largeArc} 1 ${outerEnd.x} ${outerEnd.y}`, // Outer arc
-            `L ${innerEnd.x} ${innerEnd.y}`, // Straight line to inner end
-            `A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${innerStart.x} ${innerStart.y}`, // Inner arc (reverse)
-            `Z` // Close path
-          ].join(' ');
-
-          return `
-            <path d="${pathData}"
-                  fill="${color}"
-                  class="${className}"
-                  data-title="${title}">
-              <title>${title}</title>
-            </path>
-          `;
-        }
-
-        // Build SVG content
-        let svgPaths = '';
-
-        // Green section for received funds
-        if (receivedValue > 0) {
-          svgPaths += createPieSlice(
-            startAngle,
-            receivedEndAngle,
-            '#48a868',
-            'dial-segment received',
-            `Received: ${formatGBP(receivedValue)}`
-          );
-        }
-
-        // Remaining milestone segments
-        milestoneSegments.forEach((segment, index) => {
-          svgPaths += createPieSlice(
-            segment.startAngle,
-            segment.endAngle,
-            segment.color,
-            'dial-segment pending',
-            `${segment.name}: ${formatGBP(segment.amount)} (Due: ${new Date(segment.dueDate).toLocaleDateString()})`
-          );
-        });
-
-        chartContent.innerHTML = `
-          <div class="contractor-dial-container">
-            <svg class="contractor-dial-svg" viewBox="0 0 ${size} ${size}" width="${size}" height="${size}">
-              ${svgPaths}
-              <text x="${cx}" y="${cy - 20}" text-anchor="middle" class="dial-total-label">Total Project Value</text>
-              <text x="${cx}" y="${cy + 20}" text-anchor="middle" class="dial-total-value">${formatGBP(totalValue)}</text>
-              <text x="${cx}" y="${cy + 50}" text-anchor="middle" class="dial-received-label">Received: ${formatGBP(receivedValue)}</text>
-            </svg>
-            <div class="contractor-dial-legend">
-              <div class="dial-legend-item">
-                <div class="dial-legend-color" style="background: #48a868;"></div>
-                <span>Received (${milestones.filter(m => m.received).length} milestones)</span>
-              </div>
-              <div class="dial-legend-item">
-                <div class="dial-legend-color" style="background: #e5a853;"></div>
-                <span>Soonest milestones</span>
-              </div>
-              <div class="dial-legend-item">
-                <div class="dial-legend-color" style="background: #dc2626;"></div>
-                <span>Furthest milestones</span>
-              </div>
-            </div>
-          </div>
-        `;
-      }
-
       // Get assigned projects
       const assignedProjects = projectsForCurrentRole();
       const packages = assignedProjects.flatMap((project) => project.packages.map((pkg) => ({ ...pkg, project })));
@@ -2046,50 +2074,88 @@ const store = {
       // Get outstanding tasks based on role
       let tasks = [];
       if (store.currentRole === 'finance_director') {
-        tasks = packages.flatMap((pkg) =>
+        const escrowTasks = packages
+          .filter((pkg) => financeApprovalStatus(pkg) === 'Awaiting Finance Approval')
+          .map((pkg) => ({
+            type: 'approve_escrow',
+            title: `Approve escrow: ${pkg.name}`,
+            meta: `${pkg.project.name} - ${pkg.contractor} - ${formatGBP(pkg.cap)}`,
+            deadline: pkg.assignedDate || pkg.completionDate || new Date().toISOString(),
+            action: 'Approve',
+            projectId: pkg.project.id,
+            packageId: pkg.id,
+          }));
+        const releaseTasks = packages.flatMap((pkg) =>
           pkg.requests
             .filter((request) => request.pmApproved && !request.fdApproved)
             .map((request) => ({
+              type: 'release_funds',
               title: `Approve ${pkg.name} payment`,
-              meta: `${pkg.project.name} · ${formatGBP(request.amount)}`,
+              meta: `${pkg.project.name} - ${requestMilestoneLabel(pkg, request)} - ${formatGBP(request.amount)}`,
               deadline: request.pmApprovedDate,
-              action: 'Release'
+              action: 'Release',
+              modal: 'release-funds',
+              projectId: pkg.project.id,
+              packageId: pkg.id,
+              requestId: request.id,
             }))
         );
+        tasks = [...escrowTasks, ...releaseTasks];
       } else if (store.currentRole === 'project_manager') {
-        tasks = packages.flatMap((pkg) =>
+        const assignTasks = packages
+          .filter((pkg) => financeApprovalStatus(pkg) === 'Estimate')
+          .map((pkg) => ({
+            type: 'assign_contractor',
+            title: `Assign contractor: ${pkg.name}`,
+            meta: `${pkg.project.name} - ${formatGBP(pkg.cap)}`,
+            deadline: pkg.startDate || new Date().toISOString(),
+            action: 'Assign',
+            modal: 'assign-contractor',
+            projectId: pkg.project.id,
+            packageId: pkg.id,
+          }));
+        const reviewTasks = packages.flatMap((pkg) =>
           pkg.requests
             .filter((request) => !request.pmApproved && request.status === 'Submitted')
             .map((request) => ({
+              type: 'review',
               title: `Review ${pkg.name} invoice`,
-              meta: `${pkg.contractor} · ${formatGBP(request.amount)}`,
+              meta: `${pkg.contractor} - ${requestMilestoneLabel(pkg, request)} - ${formatGBP(request.amount)}`,
               deadline: request.date,
-              action: 'Review'
+              action: 'Review',
+              modal: 'approve-request',
+              projectId: pkg.project.id,
+              packageId: pkg.id,
+              requestId: request.id,
             }))
         );
+        tasks = [...assignTasks, ...reviewTasks];
       } else {
-        tasks = assignedContractorPackages().flatMap((pkg) => [
-          {
-            type: 'submit_invoice',
-            title: `Submit invoice: ${pkg.name}`,
-            meta: `${pkg.project.name} · ${formatGBP(Math.max(pkg.cap - pkg.released, 0))} remaining`,
-            deadline: pkg.completionDate || pkg.project.endDate || new Date().toISOString(),
-            action: 'Invoice',
-            modal: 'submit-invoice',
-            projectId: pkg.project.id,
-            packageId: pkg.id,
-          },
-          {
+        tasks = assignedContractorPackages().flatMap((pkg) => {
+          const packageTasks = [];
+          if (packageCanSubmitInvoice(pkg)) {
+            packageTasks.push({
+              type: 'submit_invoice',
+              title: `Submit invoice: ${pkg.name}`,
+              meta: `${pkg.project.name} - ${formatGBP(Math.max(pkg.cap - pkg.released, 0))} remaining`,
+              deadline: pkg.completionDate || pkg.project.endDate || new Date().toISOString(),
+              action: 'Invoice',
+              modal: 'submit-invoice',
+              projectId: pkg.project.id,
+              packageId: pkg.id,
+            });
+          }
+          packageTasks.push({
             type: 'variation',
-          title: `Submit variation request: ${pkg.name}`,
+            title: `Submit variation request: ${pkg.name}`,
             meta: 'Separate cost or time claim',
             deadline: pkg.completionDate || pkg.project.endDate || new Date().toISOString(),
             action: 'Vary',
             modal: 'submit-variation',
             projectId: pkg.project.id,
             packageId: pkg.id,
-          },
-          {
+          });
+          packageTasks.push({
             type: 'upload_doc',
             title: `Upload documents: ${pkg.name}`,
             meta: 'Certificates, site photos, progress reports',
@@ -2098,8 +2164,9 @@ const store = {
             modal: 'add-document',
             projectId: pkg.project.id,
             packageId: pkg.id,
-          },
-        ]);
+          });
+          return packageTasks;
+        });
       }
 
       // Sort by deadline (soonest first)
@@ -2193,18 +2260,18 @@ const store = {
         }
 
         return `
-          <li class="outstanding-task-item task-type-${task.type || 'default'}">
+          <li class="outstanding-task-item task-type-${escapeHtml(task.type || 'default')}">
             <div class="outstanding-task-content">
-              <span class="outstanding-task-title">${task.title}</span>
-              <span class="outstanding-task-meta">${metaText}</span>
+              <span class="outstanding-task-title">${escapeHtml(task.title)}</span>
+              <span class="outstanding-task-meta">${escapeHtml(metaText)}</span>
             </div>
-            <button class="${buttonClass}" data-task-type="${task.type || ''}" data-task-title="${task.title}" data-task-modal="${task.modal || ''}" data-task-project="${task.projectId || ''}" data-task-package="${task.packageId || ''}" type="button">${task.action}</button>
+            <button class="${buttonClass}" data-task-type="${escapeHtml(task.type || '')}" data-task-title="${escapeHtml(task.title)}" data-task-modal="${escapeHtml(task.modal || '')}" data-task-project="${escapeHtml(task.projectId || '')}" data-task-package="${escapeHtml(task.packageId || '')}" data-task-request="${escapeHtml(task.requestId || '')}" type="button">${escapeHtml(task.action)}</button>
           </li>
         `;
       }).join('') || '<li class="outstanding-task-item"><div class="outstanding-task-content"><span class="outstanding-task-title">No outstanding tasks</span></div></li>';
 
       const events = store.projects.flatMap((project) => project.auditLog.map((item) => ({ ...item, project: project.name }))).sort((a, b) => new Date(b.date) - new Date(a.date));
-      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${item.event}</span><span class="timeline-meta">${item.project} · ${formatDateTime(item.date)}</span></div></li>`).join('');
+      activity.innerHTML = events.map((item) => `<li class="timeline-item"><span class="timeline-dot ${timelineDot(item.type)}"></span><div><span class="timeline-title">${escapeHtml(item.event)}</span><span class="timeline-meta">${escapeHtml(item.project)} · ${formatDateTime(item.date)}</span></div></li>`).join('');
 
       // Setup task button click handlers
       tasksList.querySelectorAll('button[data-task-type]').forEach(btn => {
@@ -2214,6 +2281,7 @@ const store = {
           const taskModal = btn.dataset.taskModal;
           const taskProject = btn.dataset.taskProject;
           const taskPackage = btn.dataset.taskPackage;
+          const taskRequest = btn.dataset.taskRequest;
 
           // Store task info in sessionStorage
           sessionStorage.setItem('currentTask', JSON.stringify({
@@ -2221,6 +2289,7 @@ const store = {
             title: taskTitle,
             projectId: taskProject,
             packageId: taskPackage,
+            requestId: taskRequest,
           }));
 
           if (taskProject && taskPackage) {
@@ -2228,12 +2297,19 @@ const store = {
             store.currentProjectId = taskProject;
             store.activePackageId = taskPackage;
             store.currentPackageId = taskPackage;
+            store.activeRequestId = taskRequest || null;
+          }
+
+          if (taskType === 'approve_escrow' && taskProject && taskPackage) {
+            approveWorkPackage(taskProject, taskPackage);
+            return;
           }
 
           if (taskModal) {
             if (taskModal === 'add-document') {
               prepareAddDocumentModal({ dataset: { modalTarget: 'add-document', documentScope: 'package' } });
             }
+            if (taskRequest) store.activeRequestId = taskRequest;
             openModal(taskModal);
             return;
           }
@@ -2428,14 +2504,6 @@ const store = {
         if (submitBtn) {
           submitBtn.disabled = uploadedFiles.length === 0;
         }
-      }
-
-      function formatFileSize(bytes) {
-        if (bytes === 0) return '0 Bytes';
-        const k = 1024;
-        const sizes = ['Bytes', 'KB', 'MB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
       }
 
       // Submit button
@@ -2673,6 +2741,49 @@ const store = {
       ];
     }
 
+    function requestMilestoneInfo(pkg, request) {
+      if (!pkg || !request || !Array.isArray(pkg.milestones) || !pkg.milestones.length) return null;
+      const hasIndex = request.milestoneIndex !== undefined && request.milestoneIndex !== null && request.milestoneIndex !== '';
+      const index = Number.isInteger(request.milestoneIndex)
+        ? request.milestoneIndex
+        : hasIndex && Number.isInteger(Number(request.milestoneIndex))
+          ? Number(request.milestoneIndex)
+          : -1;
+      if (index >= 0 && pkg.milestones[index]) {
+        return { milestone: pkg.milestones[index], index };
+      }
+      if (request.milestoneRef) {
+        const namedIndex = pkg.milestones.findIndex((milestone) => milestone.name === request.milestoneRef);
+        if (namedIndex >= 0) return { milestone: pkg.milestones[namedIndex], index: namedIndex };
+      }
+      return null;
+    }
+
+    function requestMilestoneLabel(pkg, request) {
+      const info = requestMilestoneInfo(pkg, request);
+      return info?.milestone?.name || request?.milestoneRef || 'Package level';
+    }
+
+    function setRequestMilestoneStatus(pkg, request, status) {
+      const info = requestMilestoneInfo(pkg, request);
+      if (info?.milestone) info.milestone.status = status;
+    }
+
+    function nextInvoiceMilestoneIndex(pkg) {
+      if (!Array.isArray(pkg?.milestones) || !pkg.milestones.length) return -1;
+      return pkg.milestones.findIndex((milestone) => !['paid', 'invoiced'].includes(String(milestone.status || '').toLowerCase()));
+    }
+
+    function hasOpenPaymentRequest(pkg) {
+      return (pkg?.requests || []).some((request) => !['Released', 'Rejected'].includes(request.status));
+    }
+
+    function packageCanSubmitInvoice(pkg) {
+      if (!pkg || hasOpenPaymentRequest(pkg) || isPackageComplete(pkg)) return false;
+      if (Array.isArray(pkg.milestones) && pkg.milestones.length) return nextInvoiceMilestoneIndex(pkg) >= 0;
+      return Math.max((pkg.cap || 0) - (pkg.released || 0), 0) > 0;
+    }
+
     function renderMilestonePaymentSchedule(pkg) {
       const bar = document.getElementById('wp-milestone-bar');
       const details = document.getElementById('wp-milestone-details');
@@ -2733,13 +2844,22 @@ const store = {
 
       const actionButtons = [];
       if (store.currentRole === 'contractor') {
-        actionButtons.push(`<button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'submit-invoice')" type="button">Submit Invoice</button>`);
+        if (packageCanSubmitInvoice(pkg)) {
+          actionButtons.push(`<button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'submit-invoice')" type="button">Submit Invoice</button>`);
+        }
         actionButtons.push(`<button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'submit-variation')" type="button">Submit Variation</button>`);
         actionButtons.push(`<button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'add-document')" type="button">Upload Documents</button>`);
       }
       if (store.currentRole === 'project_manager') {
+        if (financeApprovalStatus(pkg) === 'Estimate') {
+          actionButtons.push(`<button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'assign-contractor')" type="button">Assign Contractor</button>`);
+        }
         actionButtons.push(`<button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'request-documents')" type="button">Request Documents</button>`);
         actionButtons.push(`<button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'submit-variation')" type="button">Submit Variation</button>`);
+      }
+      if (store.currentRole === 'finance_director' && financeApprovalStatus(pkg) === 'Awaiting Finance Approval') {
+        actionButtons.push(`<button class="btn btn-primary small" onclick="approveWorkPackage('${project.id}', '${pkg.id}')" type="button">Approve Escrow</button>`);
+        actionButtons.push(`<button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'place-hold')" type="button">Place Hold</button>`);
       }
       buttons.innerHTML = actionButtons.join('') || '<span class="assignment-description">No direct actions available for this role.</span>';
 
@@ -2748,7 +2868,7 @@ const store = {
         (pkg.requests || []).filter((request) => request.status === 'Submitted').forEach((request) => {
           reviewRows.push(`
             <div class="work-package-review-item">
-              <div><span class="work-package-review-title">Invoice ${request.ref}</span><span class="work-package-review-meta">${formatGBP(request.amount)} submitted by ${request.submittedBy}</span></div>
+              <div><span class="work-package-review-title">Invoice ${escapeHtml(request.ref)}</span><span class="work-package-review-meta">${formatGBP(request.amount)} submitted by ${escapeHtml(request.submittedBy)}</span></div>
               <div class="work-package-review-actions">
                 <button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-request', '${request.id}')" type="button">Approve</button>
                 <button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'reject-request', '${request.id}')" type="button">Reject</button>
@@ -2759,7 +2879,7 @@ const store = {
         (pkg.variationRequests || []).filter((variation) => variation.status === 'Submitted').forEach((variation) => {
           reviewRows.push(`
             <div class="work-package-review-item">
-              <div><span class="work-package-review-title">Variation ${variation.ref}</span><span class="work-package-review-meta">${variation.type} · ${formatGBP(variation.amountChange)} · ${variation.timeChange || 0} days</span></div>
+              <div><span class="work-package-review-title">Variation ${escapeHtml(variation.ref)}</span><span class="work-package-review-meta">${escapeHtml(variation.type)} · ${formatGBP(variation.amountChange)} · ${variation.timeChange || 0} days</span></div>
               <div class="work-package-review-actions">
                 <button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-variation', '', '${variation.id}')" type="button">Approve</button>
                 <button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'reject-variation', '', '${variation.id}')" type="button">Reject</button>
@@ -2772,7 +2892,7 @@ const store = {
         (pkg.variationRequests || []).filter((variation) => variation.status === 'Pending Finance Approval').forEach((variation) => {
           reviewRows.push(`
             <div class="work-package-review-item">
-              <div><span class="work-package-review-title">Finance approval: ${variation.ref}</span><span class="work-package-review-meta">${variation.type} · PM approved · contractor agreement follows</span></div>
+              <div><span class="work-package-review-title">Finance approval: ${escapeHtml(variation.ref)}</span><span class="work-package-review-meta">${escapeHtml(variation.type)} · PM approved · contractor agreement follows</span></div>
               <div class="work-package-review-actions">
                 <button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-variation', '', '${variation.id}')" type="button">Approve</button>
                 <button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'reject-variation', '', '${variation.id}')" type="button">Reject</button>
@@ -2785,7 +2905,7 @@ const store = {
         (pkg.variationRequests || []).filter((variation) => variation.status === 'Pending Contractor Agreement').forEach((variation) => {
           reviewRows.push(`
             <div class="work-package-review-item">
-              <div><span class="work-package-review-title">Agree variation ${variation.ref}</span><span class="work-package-review-meta">${variation.type} · Finance approved</span></div>
+              <div><span class="work-package-review-title">Agree variation ${escapeHtml(variation.ref)}</span><span class="work-package-review-meta">${escapeHtml(variation.type)} · Finance approved</span></div>
               <div class="work-package-review-actions">
                 <button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-variation', '', '${variation.id}')" type="button">Agree</button>
                 <button class="btn btn-ghost small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'reject-variation', '', '${variation.id}')" type="button">Reject</button>
@@ -2796,7 +2916,7 @@ const store = {
         (pkg.documentRequests || []).filter((request) => request.status === 'Requested').forEach((request) => {
           reviewRows.push(`
             <div class="work-package-review-item">
-              <div><span class="work-package-review-title">Document requested: ${request.type}</span><span class="work-package-review-meta">${request.note || 'No note'}${request.dueDate ? ` · due ${formatDate(request.dueDate)}` : ''}</span></div>
+              <div><span class="work-package-review-title">Document requested: ${escapeHtml(request.type)}</span><span class="work-package-review-meta">${escapeHtml(request.note || 'No note')}${request.dueDate ? ` · due ${formatDate(request.dueDate)}` : ''}</span></div>
               <div class="work-package-review-actions">
                 <button class="btn btn-primary small" onclick="openPackageModal('${project.id}', '${pkg.id}', 'add-document')" type="button">Upload</button>
               </div>
@@ -2850,6 +2970,17 @@ const store = {
       return pkg?.requests?.[pkg.requests.length - 1] || null;
     }
 
+    function activePaymentRequestForRole(pkg) {
+      const requests = [...(pkg?.requests || [])].reverse();
+      if (store.currentRole === 'project_manager') {
+        return requests.find((request) => !request.pmApproved && request.status === 'Submitted') || null;
+      }
+      if (store.currentRole === 'finance_director') {
+        return requests.find((request) => request.pmApproved && !request.fdApproved && request.status !== 'Rejected') || null;
+      }
+      return requests.find((request) => !['Released', 'Rejected'].includes(request.status)) || latestPackageRequest(pkg);
+    }
+
     function packageDocs(project, pkg) {
       if (!project || !pkg) return [];
       return store.documents.filter((doc) => doc.projectId === project.id && doc.packageId === pkg.id);
@@ -2878,8 +3009,9 @@ const store = {
     }
 
     function workPackageCurrentAction(project, pkg) {
-      const request = latestPackageRequest(pkg);
+      const request = activePaymentRequestForRole(pkg);
       const docRequest = (pkg.documentRequests || []).find((item) => item.status === 'Requested');
+      const packageApproval = financeApprovalStatus(pkg);
       const variation = (pkg.variationRequests || []).find((item) =>
         store.currentRole === 'project_manager'
           ? item.status === 'Submitted'
@@ -2898,6 +3030,16 @@ const store = {
           link: 'Open evidence pack ->',
         };
       }
+      if (store.currentRole === 'project_manager' && packageApproval === 'Estimate') {
+        return {
+          eyebrow: 'Project Manager',
+          title: 'Assign contractor',
+          body: 'This estimated package needs a contractor before Finance can approve and lock escrow.',
+          primary: { label: 'Assign contractor', modal: 'assign-contractor' },
+          secondary: null,
+          link: 'Send package to finance ->',
+        };
+      }
       if (store.currentRole === 'finance_director' && request && request.pmApproved && !request.fdApproved && request.status !== 'Rejected') {
         return {
           eyebrow: 'Finance Director',
@@ -2908,7 +3050,20 @@ const store = {
           link: 'Review chain state ->',
         };
       }
-      if (store.currentRole === 'finance_director' && (pkg.funded || 0) < (pkg.cap || 0)) {
+      if (store.currentRole === 'finance_director' && packageApproval === 'Awaiting Finance Approval') {
+        const milestoneCount = pkg.milestones?.length || 0;
+        return {
+          eyebrow: 'Finance Director',
+          title: 'Approve escrow',
+          body: milestoneCount
+            ? `${formatGBP(pkg.cap || 0)} will be locked with ${milestoneCount} milestone release rule${milestoneCount !== 1 ? 's' : ''}.`
+            : `${formatGBP(pkg.cap || 0)} will be locked for this contractor package.`,
+          primary: { label: 'Approve escrow', approveEscrow: true },
+          secondary: { label: 'Place hold', modal: 'place-hold' },
+          link: 'Review package approval ->',
+        };
+      }
+      if (store.currentRole === 'finance_director' && packageApproval !== 'Estimate' && (pkg.funded || 0) < (pkg.cap || 0)) {
         return {
           eyebrow: 'Finance Director',
           title: 'Fund remaining escrow',
@@ -2929,11 +3084,12 @@ const store = {
         };
       }
       if (store.currentRole === 'contractor') {
+        const hasOpenRequest = request && !['Released', 'Rejected'].includes(request.status);
         return {
           eyebrow: 'Contractor',
-          title: request ? 'Track payment request' : 'Prepare payment request',
-          body: request ? `${request.ref} is currently ${request.status.toLowerCase()}.` : 'Add evidence and submit an invoice when the package stage is ready.',
-          primary: { label: request ? 'Add document' : 'Submit invoice', modal: request ? 'add-document' : 'submit-invoice' },
+          title: hasOpenRequest ? 'Track payment request' : 'Prepare payment request',
+          body: hasOpenRequest ? `${request.ref} is currently ${request.status.toLowerCase()}.` : 'Add evidence and submit an invoice when the package stage is ready.',
+          primary: { label: hasOpenRequest ? 'Add document' : 'Submit invoice', modal: hasOpenRequest ? 'add-document' : 'submit-invoice' },
           secondary: { label: 'Submit variation', modal: 'submit-variation' },
           link: 'Open evidence pack ->',
         };
@@ -2962,9 +3118,47 @@ const store = {
 
     function actionButtonHtml(project, pkg, action, tone = 'primary') {
       if (!action) return '';
+      if (action.approveEscrow) {
+        return `<button class="btn btn-${tone} small" onclick="approveWorkPackage('${project.id}', '${pkg.id}')" type="button">${escapeHtml(action.label)}</button>`;
+      }
       const variationArg = action.variationId ? `, '', '${action.variationId}'` : '';
       const requestArg = action.requestId ? `, '${action.requestId}'` : '';
       return `<button class="btn btn-${tone} small" onclick="openPackageModal('${project.id}', '${pkg.id}', '${action.modal}'${requestArg}${variationArg})" type="button">${escapeHtml(action.label)}</button>`;
+    }
+
+    function focusWorkPackageApprovalSection() {
+      store.activeWorkPackageTab = 'audit';
+      const project = activeProject();
+      const pkg = activePackage(project);
+      if (project && pkg) renderWorkPackageRecords(project, pkg);
+      document.getElementById('wp-payment-readiness')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function focusWorkPackageChainState(projectId, packageId) {
+      const nextProjectId = projectId || store.activeProjectId || store.currentProjectId;
+      const nextPackageId = typeof packageId === 'string' ? packageId : (store.activePackageId || store.currentPackageId);
+      if (!nextProjectId || !nextPackageId) return;
+      if (nextProjectId) store.currentProjectId = nextProjectId;
+      if (nextPackageId) store.currentPackageId = nextPackageId;
+      if (currentRoute() !== 'work-package-view') {
+        window.location.hash = 'work-package-view';
+        window.setTimeout(() => focusWorkPackageChainState(nextProjectId, nextPackageId), 0);
+        return;
+      }
+      renderChainFeedback();
+      document.querySelector('.work-package-chain-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function openWorkPackageDocumentsTab() {
+      store.activeWorkPackageTab = 'documents';
+      const project = activeProject();
+      const pkg = activePackage(project);
+      if (project && pkg) requestAnimationFrame(() => renderWorkPackageRecords(project, pkg));
+      requestAnimationFrame(() => document.querySelector('.work-package-tabs-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    }
+
+    function openEvidencePack(projectId, packageId, requestId) {
+      openPackageModal(projectId, packageId, 'approve-request', requestId || '');
     }
 
     function renderWorkPackageCurrentAction(project, pkg) {
@@ -2972,7 +3166,11 @@ const store = {
       if (!card || !project || !pkg) return;
       const action = workPackageCurrentAction(project, pkg);
       const actionLink = action.primary?.modal === 'approve-request'
-        ? `<button class="text-link evidence-action-link" onclick="openPackageModal('${project.id}', '${pkg.id}', 'approve-request', '${action.primary.requestId || ''}')" type="button">${escapeHtml(action.link)}</button>`
+        ? `<button class="text-link evidence-action-link" onclick="openEvidencePack('${project.id}', '${pkg.id}', '${action.primary.requestId || ''}')" type="button">${escapeHtml(action.link)}</button>`
+        : action.primary?.modal === 'release-funds'
+          ? `<button class="text-link evidence-action-link" onclick="focusWorkPackageChainState('${project.id}', '${pkg.id}')" type="button">${escapeHtml(action.link)}</button>`
+        : action.primary?.approveEscrow
+          ? `<button class="text-link evidence-action-link" onclick="focusWorkPackageApprovalSection()" type="button">${escapeHtml(action.link)}</button>`
         : `<a class="text-link" href="#work-package-view">${escapeHtml(action.link)}</a>`;
       card.innerHTML = `
         <span class="work-package-action-eyebrow">${escapeHtml(action.eyebrow)}</span>
@@ -3129,6 +3327,51 @@ const store = {
       `;
     }
 
+    function renderWorkPackageWithdrawal(project, pkg) {
+      const card = document.getElementById('wp-withdrawal-card');
+      if (!card) return;
+      if (store.currentRole !== 'contractor' || !project || !pkg) {
+        card.hidden = true;
+        card.innerHTML = '';
+        return;
+      }
+      const available = packageWithdrawableAmount(pkg);
+      const withdrawn = packageWithdrawnAmount(pkg);
+      const releasedRows = releasedPackageRequests(pkg)
+        .map((request) => ({
+          label: requestMilestoneLabel(pkg, request),
+          ref: request.ref,
+          available: Math.max((request.amount || 0) - requestWithdrawnAmount(request), 0),
+        }))
+        .filter((row) => row.available > 0);
+      const legacyAvailable = packageLegacyWithdrawableAmount(pkg);
+      if (legacyAvailable > 0) {
+        releasedRows.push({ label: 'Package-level release', ref: 'Legacy release', available: legacyAvailable });
+      }
+      card.hidden = false;
+      card.innerHTML = `
+        <div class="work-package-card-head">
+          <h2 class="work-package-info-heading">Funds Available for Withdrawal</h2>
+          ${statusChip(available > 0 ? 'Ready' : 'None Ready')}
+        </div>
+        <div class="withdrawal-package-total">${formatGBP(available)}</div>
+        <div class="work-package-readiness-list">
+          <div><span>Released balance</span><strong>${formatGBP(pkg.released || 0)}</strong></div>
+          <div><span>Already withdrawn</span><strong>${formatGBP(withdrawn)}</strong></div>
+          <div><span>Last withdrawal</span><strong>${pkg.lastWithdrawalDate ? formatDate(pkg.lastWithdrawalDate) : 'Not withdrawn yet'}</strong></div>
+        </div>
+        <div class="withdrawal-release-list">
+          ${releasedRows.map((row) => `
+            <div class="withdrawal-release-row">
+              <span>${escapeHtml(row.label)}<small>${escapeHtml(row.ref)}</small></span>
+              <strong>${formatGBP(row.available)}</strong>
+            </div>
+          `).join('') || '<p class="assignment-description">No released milestone payments are awaiting withdrawal for this package.</p>'}
+        </div>
+        <button class="btn btn-primary small" type="button" ${available <= 0 ? 'disabled' : ''} onclick="withdrawPackageFunds('${project.id}', '${pkg.id}')">Withdraw funds</button>
+      `;
+    }
+
     function renderPaymentReadiness(project, pkg) {
       const card = document.getElementById('wp-payment-readiness');
       if (!card || !project || !pkg) return;
@@ -3180,7 +3423,7 @@ const store = {
         const payments = pkg.requests || [];
         content.innerHTML = payments.length ? `
           <div class="table-card"><table class="action-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Submitted</th><th>Status</th><th>Chain</th></tr></thead><tbody>
-            ${payments.map((request) => `<tr><td>${escapeHtml(request.ref)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td>${statusChip(request.status)}</td><td><a class="text-link" href="#">View on chain -></a></td></tr>`).join('')}
+            ${payments.map((request) => `<tr><td>${escapeHtml(request.ref)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td>${statusChip(request.status)}</td><td><a class="text-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg.id}">View chain state -></a></td></tr>`).join('')}
           </tbody></table></div>
         ` : '<div class="records-empty is-visible"><h3 class="records-empty__title">No payments recorded</h3><p class="records-empty__body">Payment history will appear as invoices are approved.</p></div>';
         return;
@@ -3208,6 +3451,24 @@ const store = {
       return { project, pkg, request };
     }
 
+    function resolveChainStateContext(trigger = null) {
+      let projectId = trigger?.dataset?.chainProject || store.activeProjectId || store.currentProjectId || '';
+      let packageId = trigger?.dataset?.chainPackage || '';
+      const project = projectId ? projectFor(projectId) : activeProject();
+
+      if (!packageId) {
+        const targetPackage = currentRoute() === 'project-detail'
+          ? projectQuickActionTarget(project)
+          : activePackage(project) || projectQuickActionTarget(project) || project?.packages?.[0] || null;
+        if (targetPackage) {
+          projectId = project?.id || projectId;
+          packageId = targetPackage.id;
+        }
+      }
+
+      return { projectId, packageId };
+    }
+
     function evidenceDocStatus(doc) {
       if (/cube|test|inspection/i.test(`${doc?.name || ''} ${doc?.type || ''}`)) return 'Needs check';
       return 'Ready';
@@ -3223,6 +3484,17 @@ const store = {
       }
       const linkedDocs = requestDocs(project, request);
       const docs = linkedDocs.length ? linkedDocs : packageDocs(project, pkg);
+      const summary = container.closest('[data-modal]')?.querySelector('.modal-summary');
+      if (summary) {
+        const docRefs = docs.length ? docs.map((doc) => doc.ref).join(', ') : 'No linked documents';
+        summary.innerHTML = `
+          <div class="modal-summary-row"><span>Invoice ref</span><strong>${escapeHtml(request.ref)}</strong></div>
+          <div class="modal-summary-row"><span>Milestone</span><strong>${escapeHtml(requestMilestoneLabel(pkg, request))}</strong></div>
+          <div class="modal-summary-row"><span>Contractor</span><strong>${escapeHtml(pkg.contractor || request.submittedBy)}</strong></div>
+          <div class="modal-summary-row"><span>Amount</span><strong>${formatGBP(request.amount)}</strong></div>
+          <div class="modal-summary-row"><span>Document refs</span><strong>${escapeHtml(docRefs)}</strong></div>
+        `;
+      }
       const activeDoc = docs.find((doc) => doc.id === store.activeEvidenceDocId) || docs[1] || docs[0] || null;
       store.activeEvidenceDocId = activeDoc?.id || null;
       container.innerHTML = `
@@ -3260,7 +3532,7 @@ const store = {
                           <span class="wp-doc-icon">${escapeHtml((doc.type || 'Doc').slice(0, 3).toUpperCase())}</span>
                           <strong>Preview unavailable in MVP</strong>
                           <p>Use the stored reference while backend file preview is connected.</p>
-                          <a class="btn btn-ghost small" href="#" target="_blank" rel="noreferrer">Open reference</a>
+                          <button class="btn btn-ghost small" data-open-wp-documents data-modal-close type="button">Open documents tab</button>
                         </div>
                         <div class="evidence-meta-card">
                           <div class="info-row"><span>Reference</span><strong>${escapeHtml(doc.ref)}</strong></div>
@@ -3324,7 +3596,7 @@ const store = {
         const type = document.getElementById('wp-type');
 
         if (projectName) projectName.textContent = project?.name || pkg.project || 'Civic Library Retrofit';
-        if (amount) amount.textContent = pkg.amount || '£120,000';
+        if (amount) amount.textContent = pkg.amount || formatGBP(120000);
         if (status) status.textContent = storePackage?.status || pkg.status || 'Completed';
         if (paymentDate) paymentDate.textContent = pkg.paymentDate || 'Mar 15, 2026';
         if (contractor) contractor.textContent = storePackage?.contractor || pkg.contractor || 'BuildTech Solutions Ltd';
@@ -3333,7 +3605,7 @@ const store = {
 
       renderMilestonePaymentSchedule(pkg || {
         name: 'Work Package',
-        amount: 'Â£120,000',
+        amount: formatGBP(120000),
         type: 'Pending',
         paymentDate: 'Apr 20, 2026',
       });
@@ -3351,9 +3623,10 @@ const store = {
         renderWorkPackageHeader(project, storePackage);
         renderWorkPackageCurrentAction(project, storePackage);
         renderWorkPackageTasks(project, storePackage);
-        renderWorkPackageRequest(project, storePackage);
-        renderPackageSnapshot(project, storePackage);
-        renderPaymentReadiness(project, storePackage);
+      renderWorkPackageRequest(project, storePackage);
+      renderPackageSnapshot(project, storePackage);
+      renderWorkPackageWithdrawal(project, storePackage);
+      renderPaymentReadiness(project, storePackage);
         renderWorkPackageRecords(project, storePackage);
         document.querySelectorAll('[data-wp-tab]').forEach((tab) => {
           tab.onclick = () => {
@@ -3387,17 +3660,17 @@ const store = {
         const request = requests.find((item) => item.id === doc.linkedPayment);
         const pkg = doc.packageId ? packageFor(project, doc.packageId) : null;
         return `
-          <tr data-document-row="${doc.id}" data-doc-type="${doc.type}" data-doc-uploader="${doc.uploadedBy}" data-doc-date="${doc.date}">
-            <td><a class="document-link" href="#" data-document-expand="${doc.id}">${doc.name}</a>${doc.fileName ? ` <span title="${doc.fileName}">📎</span>` : ''}</td>
-            <td>${doc.type}</td>
-            <td>${doc.ref}</td>
-            <td>${doc.uploadedBy}</td>
+          <tr data-document-row="${doc.id}" data-doc-type="${escapeHtml(doc.type)}" data-doc-uploader="${escapeHtml(doc.uploadedBy)}" data-doc-date="${doc.date}">
+            <td><a class="document-link" href="#" data-document-expand="${doc.id}">${escapeHtml(doc.name)}</a>${doc.fileName ? ` <span title="${escapeHtml(doc.fileName)}">📎</span>` : ''}</td>
+            <td>${escapeHtml(doc.type)}</td>
+            <td>${escapeHtml(doc.ref)}</td>
+            <td>${escapeHtml(doc.uploadedBy)}</td>
             <td>${formatDate(doc.date)}</td>
             <td><span class="version-badge">V${doc.version}</span></td>
-            <td>${pkg ? pkg.name : 'Project'}</td>
-            <td>${request ? `<a class="linked-to-link" href="#" onclick="showAuditPanel('payments'); openPayment('${request.id}', true); return false;">${request.ref}</a>` : '—'}</td>
+            <td>${pkg ? escapeHtml(pkg.name) : 'Project'}</td>
+            <td>${request ? `<a class="linked-to-link" href="#" onclick="showAuditPanel('payments'); openPayment('${request.id}', true); return false;">${escapeHtml(request.ref)}</a>` : '—'}</td>
             <td>${request ? statusChip(request.status) : ''}</td>
-            <td><button class="doc-chain-link" data-document-edit="${doc.id}" type="button">Edit</button> · <button class="doc-chain-link" data-document-update="${doc.id}" type="button">Update ↑</button> · <a class="doc-chain-link" href="#">View on chain ↗</a></td>
+            <td><button class="doc-chain-link" data-document-edit="${doc.id}" type="button">Edit</button> · <button class="doc-chain-link" data-document-update="${doc.id}" type="button">Update ↑</button> · <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg?.id || ''}">View chain state ↗</a></td>
           </tr>
           ${store.activeDocumentExpandId === doc.id ? renderDocumentInfoPanel(doc, project, request, pkg) : ''}
           ${store.activeDocumentUpdateId === doc.id ? `
@@ -3408,7 +3681,7 @@ const store = {
                     <h2>Upload New Version</h2>
                     <span class="version-badge">V${doc.version}</span>
                   </div>
-                  <p class="assignment-description">${doc.name}</p>
+                  <p class="assignment-description">${escapeHtml(doc.name)}</p>
                   <div class="modal-form">
                     <div class="form-field"><label>What has changed in this version?</label><input data-document-new-ref="${doc.id}" type="text" placeholder="Describe the update e.g. revised quantities"></div>
                     <div class="form-field"><label>Updated Document Reference (optional)</label><input data-document-version-note="${doc.id}" type="text" placeholder="New file ref or URL if changed"></div>
@@ -3435,15 +3708,15 @@ const store = {
           <td class="payment-detail-cell" colspan="10">
             <div class="payment-inner-panel is-active" style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-6);">
               <div>
-                <h3 style="font-size:var(--text-sm); font-weight:500;">${doc.name}</h3>
+                <h3 style="font-size:var(--text-sm); font-weight:500;">${escapeHtml(doc.name)}</h3>
                 <div class="info-list">
-                  <div class="info-row"><span>Type</span><span>${doc.type}</span></div>
-                  <div class="info-row"><span>Ref</span><span>${doc.ref}</span></div>
-                  <div class="info-row"><span>Uploaded by</span><span>${doc.uploadedBy}</span></div>
+                  <div class="info-row"><span>Type</span><span>${escapeHtml(doc.type)}</span></div>
+                  <div class="info-row"><span>Ref</span><span>${escapeHtml(doc.ref)}</span></div>
+                  <div class="info-row"><span>Uploaded by</span><span>${escapeHtml(doc.uploadedBy)}</span></div>
                   <div class="info-row"><span>Date</span><span>${formatDate(doc.date)}</span></div>
-                  <div class="info-row"><span>Linked payment</span><span>${request ? `<a class="linked-to-link" href="#" onclick="showAuditPanel('payments'); openPayment('${request.id}', true); return false;">${request.ref}</a>` : '—'}</span></div>
-                  <div class="info-row"><span>Linked package</span><span>${pkg ? pkg.name : 'Project'}</span></div>
-                  <div class="info-row"><span>Milestone reference</span><span>${doc.milestoneRef || 'Package level / none'}</span></div>
+                  <div class="info-row"><span>Linked payment</span><span>${request ? `<a class="linked-to-link" href="#" onclick="showAuditPanel('payments'); openPayment('${request.id}', true); return false;">${escapeHtml(request.ref)}</a>` : '—'}</span></div>
+                  <div class="info-row"><span>Linked package</span><span>${pkg ? escapeHtml(pkg.name) : 'Project'}</span></div>
+                  <div class="info-row"><span>Milestone reference</span><span>${escapeHtml(doc.milestoneRef || 'Package level / none')}</span></div>
                 </div>
               </div>
               <div>
@@ -3453,8 +3726,8 @@ const store = {
                     <div class="linked-document-row" style="border-bottom:1px solid var(--color-divider); padding-bottom:var(--space-2);">
                       <span class="version-badge">V${entry.version}</span>
                       <span>${formatDate(entry.date)}</span>
-                      <span>${entry.updatedBy}</span>
-                      <span>${entry.note || 'Version update'}</span>
+                      <span>${escapeHtml(entry.updatedBy)}</span>
+                      <span>${escapeHtml(entry.note || 'Version update')}</span>
                     </div>
                   `).join('')}
                 </div>
@@ -3472,17 +3745,20 @@ const store = {
       return '';
     }
 
-    function paymentStep(label, state, actor, date, note = '') {
+    function paymentStep(label, state, actor, date, options = {}) {
+      const noteText = options.noteText ? escapeHtml(options.noteText) : '';
+      const noteHtml = options.noteHtml || '';
+      const noteContent = noteHtml || noteText;
       return `
         <li class="approval-step ${paymentStepClass(state)}">
           <strong>${label}</strong>
-          <span>${actor}${date ? ` · ${formatDate(date)}` : ''}</span>
-          ${note ? `<span class="${state === 'blocked' ? 'state-note-error' : 'state-note-warning'}">${note}</span>` : ''}
+          <span>${escapeHtml(actor)}${date ? ` · ${formatDate(date)}` : ''}</span>
+          ${noteContent ? `<span class="${state === 'blocked' ? 'state-note-error' : 'state-note-warning'}">${noteContent}</span>` : ''}
         </li>
       `;
     }
 
-    function renderPaymentTimeline(request) {
+    function renderPaymentTimeline(request, pkg = null, projectId = '') {
       const pmState = request.pmApproved ? 'complete' : request.status === 'Rejected' ? 'blocked' : request.status === 'Submitted' ? 'in-progress' : 'upcoming';
       const pmActor = request.pmApproved ? request.pmApprovedBy : request.status === 'Rejected' ? (request.rejectedBy || 'Rejected') : request.status === 'Submitted' ? 'Awaiting PM review' : 'PM review pending';
       const financeState = request.fdApproved ? 'complete' : request.pmApproved ? 'in-progress' : 'upcoming';
@@ -3492,9 +3768,13 @@ const store = {
       return `
         <ol class="approval-trail">
           ${paymentStep('Requested', 'complete', request.submittedBy, request.date)}
-          ${paymentStep('PM Review', pmState, pmActor, request.pmApprovedDate, request.status === 'Rejected' ? (request.rejectionReason || 'Request rejected') : '')}
+          ${paymentStep('PM Review', pmState, pmActor, request.pmApprovedDate, { noteText: request.status === 'Rejected' ? (request.rejectionReason || 'Request rejected') : '' })}
           ${paymentStep('Finance Review', financeState, financeActor, request.fdApprovedDate)}
-          ${paymentStep('Released', releasedState, releasedActor, request.fdApprovedDate, request.status === 'Released' ? '<a class="doc-chain-link" href="#" target="_blank" rel="noreferrer">View on chain ↗</a>' : '')}
+          ${paymentStep('Released', releasedState, releasedActor, request.fdApprovedDate, {
+            noteHtml: request.status === 'Released'
+              ? `<a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${projectId || request.projectId || ''}" data-chain-package="${pkg?.id || ''}">View chain state ↗</a>`
+              : '',
+          })}
         </ol>
       `;
     }
@@ -3510,11 +3790,11 @@ const store = {
           <div class="linked-document-list">
             ${docs.map((doc) => `
               <div class="linked-document-row">
-                <a class="document-link" href="#" data-linked-document="${doc.id}">${doc.name}</a>
-                <span>${doc.type}</span>
-                <span>${doc.ref}</span>
+                <a class="document-link" href="#" data-linked-document="${doc.id}">${escapeHtml(doc.name)}</a>
+                <span>${escapeHtml(doc.type)}</span>
+                <span>${escapeHtml(doc.ref)}</span>
                 <span class="version-badge">V${doc.version}</span>
-                <a class="doc-chain-link" href="#">View on chain ↗</a>
+                <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${doc.projectId}" data-chain-package="${doc.packageId || ''}">View chain state ↗</a>
               </div>
             `).join('')}
           </div>
@@ -3530,17 +3810,17 @@ const store = {
       const payments = project.packages.flatMap((pkg) => pkg.requests.map((request) => ({ pkg, request })));
       tbody.innerHTML = payments.map(({ pkg, request }) => `
         <tr class="payment-row" data-payment-toggle="${request.id}">
-          <td>${request.ref}</td>
-          <td>${pkg.name}</td>
+          <td>${escapeHtml(request.ref)}</td>
+          <td>${escapeHtml(pkg.name)}</td>
           <td class="amount-cell">${formatGBP(request.amount)}</td>
-          <td>${request.submittedBy}</td>
+          <td>${escapeHtml(request.submittedBy)}</td>
           <td>${formatDate(request.date)}</td>
           <td>${statusChip(request.status)}</td>
         </tr>
         <tr class="payment-detail-row" data-payment-row="${request.id}">
           <td class="payment-detail-cell" colspan="6">
             <div class="payment-inner-panel is-active" data-payment-inner-panel="${request.id}-timeline">
-              ${renderPaymentTimeline(request)}
+              ${renderPaymentTimeline(request, pkg, project.id)}
               ${renderPaymentDocuments(request)}
             </div>
           </td>
@@ -3798,6 +4078,28 @@ const store = {
       renderDashboard2();
     }
 
+    function assignContractor(projectId, packageId, formData) {
+      const project = projectFor(projectId);
+      const pkg = packageFor(project, packageId);
+      if (!project || !pkg) return;
+      const contractorName = formData.contractor || 'Daniel Okafor';
+      const contractor = availableContractors(project).find((item) => item.name === contractorName) || { name: contractorName, org: contractorName };
+      pkg.contractor = contractor.name;
+      pkg.contractRef = formData.contractRef || pkg.contractRef || '';
+      pkg.financeApprovalStatus = 'Awaiting Finance Approval';
+      pkg.status = 'Pending Finance Approval';
+      pkg.assignedBy = store.currentUser.name;
+      pkg.assignedDate = new Date().toISOString().split('T')[0];
+      if (!project.team.some((member) => member.name === contractor.name && member.role === 'contractor')) {
+        project.team.push({ name: contractor.name, role: 'contractor', org: contractor.org });
+      }
+      logAudit(project, `Contractor assigned to ${pkg.name}: ${contractor.name}. Sent to Finance for escrow approval.`, 'pending');
+      renderProjectDetail(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
+      renderDashboard();
+      renderDashboard2();
+    }
+
     function approveWorkPackage(projectId, packageId) {
       const project = projectFor(projectId);
       const pkg = packageFor(project, packageId);
@@ -3808,10 +4110,15 @@ const store = {
       pkg.approvedBy = store.currentUser.name;
       pkg.approvedDate = new Date().toISOString().split('T')[0];
       syncMilestoneStatuses(project);
+      const milestoneCount = pkg.milestones?.length || 0;
+      const escrowDetail = milestoneCount
+        ? `Package escrow account derived with ${milestoneCount} milestone release rule${milestoneCount !== 1 ? 's' : ''} for the approved contractor and work package.`
+        : 'Package escrow account derived for the approved contractor and work package.';
       logAudit(project, 'Finance approved work package and locked escrow: ' + pkg.name, 'released');
-      logChainAction('Escrow PDA created', project, pkg, 'Package escrow account derived for the approved contractor and work package.', `escrow_${pkg.id}`);
+      logChainAction('Escrow PDA created', project, pkg, escrowDetail, `escrow_${pkg.id}`);
       logChainAction('Mock USDC funded', project, pkg, `${formatGBP(pkg.funded)} mock USDC locked against the approved package cap.`, `vault_${pkg.id}`);
       renderProjectDetail(projectId);
+      if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
       renderDashboard2();
     }
@@ -3848,6 +4155,10 @@ const store = {
       const project = projectFor(projectId);
       const pkg = packageFor(project, packageId);
       if (!project || !pkg) return;
+      if (!packageCanSubmitInvoice(pkg)) return;
+      const hasMilestoneSchedule = Array.isArray(pkg.milestones) && pkg.milestones.length;
+      const selectedMilestone = hasMilestoneSchedule ? requestMilestoneInfo(pkg, formData) : null;
+      if (hasMilestoneSchedule && !selectedMilestone) return;
       const request = {
         id: 'req-' + Date.now(),
         ref: formData.ref,
@@ -3859,14 +4170,18 @@ const store = {
         fdApproved: false,
         documents: [],
         releaseBasis: formData.releaseBasis || 'Package-level release',
+        milestoneIndex: formData.milestoneIndex ?? null,
+        milestoneRef: formData.milestoneRef || null,
         description: formData.description || '',
         documentRef: formData.documentRef || '',
       };
       pkg.requests.push(request);
+      setRequestMilestoneStatus(pkg, request, 'invoiced');
       store.activeRequestId = request.id;
       syncMilestoneStatuses(project);
-      logAudit(project, 'Invoice submitted: ' + request.ref + ' for ' + formatGBP(request.amount), 'pending');
-      logChainAction('Payment request account created', project, pkg, `${request.ref} opened for ${formatGBP(request.amount)} against package escrow.`, `request_${request.id}`);
+      const milestoneLabel = requestMilestoneLabel(pkg, request);
+      logAudit(project, 'Invoice submitted: ' + request.ref + ' for ' + formatGBP(request.amount) + ' against ' + milestoneLabel, 'pending');
+      logChainAction('Payment request account created', project, pkg, `${request.ref} opened for ${formatGBP(request.amount)} against ${milestoneLabel}.`, `request_${request.id}`);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3980,8 +4295,9 @@ const store = {
       req.status = 'Pending Finance Review';
       if (note) req.pmNote = note;
       syncMilestoneStatuses(project);
-      logAudit(project, 'Request approved by PM: ' + req.ref, 'released');
-      logChainAction('Approval recorded', project, pkg, `Project Manager approval recorded for ${req.ref}.`, `approval_${req.id}_pm`);
+      const milestoneLabel = requestMilestoneLabel(pkg, req);
+      logAudit(project, 'Request approved by PM: ' + req.ref + ' for ' + milestoneLabel, 'released');
+      logChainAction('Approval recorded', project, pkg, `Project Manager approval recorded for ${req.ref} against ${milestoneLabel}.`, `approval_${req.id}_pm`);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
@@ -3996,6 +4312,7 @@ const store = {
       req.status = 'Rejected';
       req.rejectedBy = store.currentUser.name;
       req.rejectionReason = reason;
+      setRequestMilestoneStatus(pkg, req, 'contested');
       syncMilestoneStatuses(project);
       logAudit(project, 'Request rejected: ' + req.ref + ' — ' + reason, 'rejected');
       renderPayments(projectId);
@@ -4008,14 +4325,17 @@ const store = {
       const pkg = packageFor(project, packageId);
       const req = pkg?.requests.find((request) => request.id === requestId);
       if (!project || !pkg || !req) return;
+      if (req.status === 'Released') return;
       req.fdApproved = true;
       req.fdApprovedBy = store.currentUser.name;
       req.fdApprovedDate = new Date().toISOString().split('T')[0];
       req.status = 'Released';
       pkg.released += req.amount;
+      setRequestMilestoneStatus(pkg, req, 'paid');
       syncMilestoneStatuses(project);
-      logAudit(project, 'Funds released: ' + formatGBP(req.amount) + ' for ' + pkg.name, 'released');
-      logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow to the contractor wallet.`, `release_${req.id}`);
+      const milestoneLabel = requestMilestoneLabel(pkg, req);
+      logAudit(project, 'Funds released: ' + formatGBP(req.amount) + ' for ' + milestoneLabel, 'released');
+      logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow to the contractor withdrawal balance for ${milestoneLabel}.`, `release_${req.id}`);
       renderProjectDetail(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
@@ -4444,22 +4764,6 @@ const store = {
       }));
     }
 
-    function renderMilestoneBuilderLegacy(rows = [
-      { name: 'Foundation & Groundworks', targetDate: '' },
-      { name: 'Structural Frame', targetDate: '' },
-    ]) {
-      const builder = document.querySelector('[data-milestone-builder]');
-      if (!builder) return;
-      builder.innerHTML = rows.map((row, index) => `
-        <div data-milestone-row style="display:flex; gap:var(--space-3); align-items:center; margin-bottom:var(--space-3);">
-          <input type="text" value="${row.name || ''}" placeholder="Milestone Name" data-milestone-name style="flex:1;">
-          <input type="date" value="${row.targetDate || ''}" data-milestone-date style="width:160px;">
-          <button type="button" data-remove-milestone-row aria-label="Remove milestone" ${rows.length === 1 ? 'disabled' : ''}>×</button>
-        </div>
-      `).join('');
-      validateMilestoneProjectForm();
-    }
-
     function collectMilestones() {
       return getMilestoneRowValues().filter((milestone) => milestone.name || milestone.targetDate || milestone.budget || milestone.releaseTrigger);
     }
@@ -4588,11 +4892,48 @@ const store = {
       };
     }
 
+    function localDateIso(date = new Date()) {
+      const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+      return localDate.toISOString().split('T')[0];
+    }
+
+    function addYearsToIso(dateValue, years) {
+      const base = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
+      if (Number.isNaN(base.getTime())) return '';
+      base.setFullYear(base.getFullYear() + years);
+      return localDateIso(base);
+    }
+
     function addDaysToIso(dateValue, days) {
       const base = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
       if (Number.isNaN(base.getTime())) return '';
       base.setDate(base.getDate() + days);
       return base.toISOString().split('T')[0];
+    }
+
+    function setInputValue(selector, value) {
+      const input = document.querySelector(selector);
+      if (input) input.value = value;
+    }
+
+    function applyNewProjectDemoDefaults() {
+      const today = localDateIso();
+      const endClient = document.querySelector('[data-project-end-client]');
+      if (endClient) endClient.checked = false;
+      setInputValue('[data-new-project-name]', 'Test1');
+      setInputValue('[data-new-project-client]', 'Tester');
+      setInputValue('[data-new-project-ref]', '1');
+      setInputValue('[data-new-project-budget]', '1000000');
+      setInputValue('[data-new-project-start]', today);
+      setInputValue('[data-new-project-end]', addYearsToIso(today, 3));
+      syncProjectClientMode();
+      syncNewProjectBudgetSummary();
+      validateMilestoneProjectForm();
+    }
+
+    function applyPackageDemoDefaults() {
+      setInputValue('[data-add-package-name]', '1');
+      setInputValue('[data-add-package-start]', localDateIso());
     }
 
     function packageScheduleDefaultRows() {
@@ -4606,8 +4947,11 @@ const store = {
         const date = end && index === config.names.length - 1
           ? end
           : addDaysToIso(start, (index + 1) * 14);
+        const milestoneName = selectedPackageContractModel() === 'milestone' && packageName === '1'
+          ? `1.${index + 1}`
+          : `${packageName} ${name}`.trim();
         return {
-          name: `${packageName} ${name}`.trim(),
+          name: milestoneName,
           paymentDate: date,
           amount,
           status: 'uninvoiced',
@@ -4624,36 +4968,89 @@ const store = {
       }));
     }
 
-    function syncPackageScheduleSummary() {
+    function packageScheduleValidation(rows = getPackageMilestoneRowValues()) {
+      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
+      const duplicateDates = dates.filter((date, index) => dates.indexOf(date) !== index);
+      const firstIncompleteIndex = rows.findIndex((row) => !row.name || !row.paymentDate || row.amount <= 0);
+      if (rows.length < 1) {
+        return {
+          valid: false,
+          message: 'Add at least one milestone before creating the package.',
+          focusSelector: '[data-add-package-milestone-row]',
+        };
+      }
+      if (firstIncompleteIndex !== -1) {
+        const row = rows[firstIncompleteIndex];
+        const focusSelector = !row.name
+          ? '[data-package-milestone-name]'
+          : !row.paymentDate
+            ? '[data-package-milestone-date]'
+            : '[data-package-milestone-amount]';
+        return {
+          valid: false,
+          message: `Complete milestone ${firstIncompleteIndex + 1} with a name, payment date, and amount above 0.`,
+          focusRowIndex: firstIncompleteIndex,
+          focusSelector,
+        };
+      }
+      if (duplicateDates.length) {
+        return {
+          valid: false,
+          message: `Milestone dates must be unique. Duplicate date: ${formatDate(duplicateDates[0])}.`,
+          focusSelector: '[data-package-milestone-date]',
+        };
+      }
+      return { valid: true, message: '' };
+    }
+
+    function syncPackageScheduleSummary(validation = packageScheduleValidation()) {
       const summary = document.querySelector('[data-package-schedule-summary]');
       if (!summary) return;
       const budget = packageBudgetValue();
       const rows = getPackageMilestoneRowValues();
       const total = rows.reduce((sum, row) => sum + (row.amount || 0), 0);
       const remaining = budget - total;
-      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
-      const hasDuplicateDates = new Set(dates).size !== dates.length;
-      summary.textContent = hasDuplicateDates
-        ? `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Dates cannot overlap`
-        : `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Remaining: ${formatGBP(remaining)}`;
-      summary.classList.toggle('is-over', budget > 0 && remaining < 0 && !hasDuplicateDates);
-      summary.classList.toggle('is-error', hasDuplicateDates);
+      const baseText = `Package budget: ${formatGBP(budget)} | Milestones: ${formatGBP(total)} | Remaining: ${formatGBP(remaining)}`;
+      summary.textContent = validation.valid ? baseText : `${baseText} | ${validation.message}`;
+      summary.classList.toggle('is-over', budget > 0 && remaining < 0 && validation.valid);
+      summary.classList.toggle('is-error', !validation.valid);
     }
 
-    function validatePackageSchedule() {
-      const createButton = document.querySelector('[data-add-package-create]');
-      if (!createButton) return;
-      if (!packageScheduleRequired()) {
-        createButton.disabled = false;
+    function focusInvalidPackageScheduleField(validation) {
+      if (validation.focusRowIndex !== undefined) {
+        const row = packageScheduleRows()[validation.focusRowIndex];
+        row?.querySelector(validation.focusSelector || '[data-package-milestone-name], [data-package-milestone-date], [data-package-milestone-amount]')?.focus();
         return;
       }
-      const rows = getPackageMilestoneRowValues();
-      const dates = rows.map((row) => row.paymentDate).filter(Boolean);
-      const hasDuplicateDates = new Set(dates).size !== dates.length;
-      createButton.disabled = rows.length < 1
-        || rows.some((row) => !row.name || !row.paymentDate || row.amount <= 0)
-        || hasDuplicateDates;
-      syncPackageScheduleSummary();
+      if (validation.focusSelector) {
+        document.querySelector(validation.focusSelector)?.focus();
+      }
+    }
+
+    function validatePackageSchedule(options = {}) {
+      const createButton = document.querySelector('[data-add-package-create]');
+      if (!createButton) return true;
+      if (!packageScheduleRequired()) {
+        createButton.disabled = false;
+        createButton.removeAttribute('title');
+        return true;
+      }
+      const validation = packageScheduleValidation();
+      createButton.disabled = false;
+      createButton.setAttribute('aria-disabled', String(!validation.valid));
+      if (validation.valid) {
+        createButton.removeAttribute('title');
+      } else {
+        createButton.setAttribute('title', validation.message);
+        syncPackageScheduleSummary(validation);
+        if (options.focusInvalid) {
+          document.querySelector('[data-package-schedule-summary]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          focusInvalidPackageScheduleField(validation);
+        }
+        return false;
+      }
+      syncPackageScheduleSummary(validation);
+      return validation.valid;
     }
 
     function renderPackageMilestoneBuilder(rows = packageScheduleDefaultRows()) {
@@ -4870,6 +5267,7 @@ const store = {
       }
 
       if (modalName === 'add-package') {
+        if (!validatePackageSchedule({ focusInvalid: true })) return;
         addPackage(context.projectId, {
           name: modalScopedValue(modal, '[data-add-package-name]') || 'New Work Package',
           contractModel: selectedPackageContractModel(),
@@ -4881,6 +5279,13 @@ const store = {
         }, collectPackageMilestones());
       }
 
+      if (modalName === 'assign-contractor') {
+        assignContractor(context.projectId, context.packageId, {
+          contractor: modalScopedValue(modal, '[data-assign-contractor-name]') || 'Daniel Okafor',
+          contractRef: modalScopedValue(modal, '[data-assign-contractor-ref]') || '',
+        });
+      }
+
       if (modalName === 'fund-package') {
         fundPackage(context.projectId, context.packageId, modalFieldValue(modal, 0) || '0');
       }
@@ -4890,10 +5295,17 @@ const store = {
       }
 
       if (modalName === 'submit-invoice') {
+        const milestoneValue = modalScopedValue(modal, '[data-submit-invoice-milestone]');
+        const milestoneIndex = milestoneValue === '' ? null : Number(milestoneValue);
+        const project = activeProject();
+        const pkg = activePackage(project);
+        const milestone = Number.isInteger(milestoneIndex) ? pkg?.milestones?.[milestoneIndex] : null;
         submitInvoice(context.projectId, context.packageId, {
           ref: modalScopedValue(modal, '[data-submit-invoice-ref]') || 'INV-' + Date.now(),
           amount: modalScopedValue(modal, '[data-submit-invoice-amount]') || '0',
           releaseBasis: modalScopedValue(modal, '[data-submit-invoice-basis]') || 'Package-level release',
+          milestoneIndex,
+          milestoneRef: milestone?.name || null,
           description: modalScopedValue(modal, '[data-submit-invoice-description]'),
           documentRef: modalScopedValue(modal, '[data-submit-invoice-document]'),
         });
@@ -4993,7 +5405,7 @@ const store = {
       if (paymentSelect) {
         paymentSelect.innerHTML = [
           '<option>Not linked</option>',
-          ...(project ? getAllRequests(project).map((request) => `<option value="${request.ref}">${request.ref}</option>`) : []),
+          ...(project ? getAllRequests(project).map((request) => `<option value="${escapeHtml(request.ref)}">${escapeHtml(request.ref)}</option>`) : []),
         ].join('');
       }
 
@@ -5017,9 +5429,115 @@ const store = {
       if (packageSelect) {
         packageSelect.innerHTML = [
           '<option value="">Project level</option>',
-          ...(project?.packages || []).map((pkg) => `<option value="${pkg.id}">${pkg.name}</option>`),
+          ...(project?.packages || []).map((pkg) => `<option value="${pkg.id}">${escapeHtml(pkg.name)}</option>`),
         ].join('');
       }
+    }
+
+    function prepareAssignContractorModal() {
+      const project = activeProject();
+      const pkg = activePackage(project);
+      const packageName = document.querySelector('[data-assign-package-name]');
+      const packageCap = document.querySelector('[data-assign-package-cap]');
+      const packageSchedule = document.querySelector('[data-assign-package-schedule]');
+      const contractorSelect = document.querySelector('[data-assign-contractor-name]');
+      const contractRef = document.querySelector('[data-assign-contractor-ref]');
+      if (packageName) packageName.textContent = pkg?.name || 'Selected package';
+      if (packageCap) packageCap.textContent = formatGBP(pkg?.cap || 0);
+      if (packageSchedule) {
+        const milestoneCount = pkg?.milestones?.length || 0;
+        packageSchedule.textContent = milestoneCount
+          ? `${milestoneCount} milestone${milestoneCount !== 1 ? 's' : ''} will be sent for finance escrow approval`
+          : 'Whole package will be sent for finance escrow approval';
+      }
+      if (contractorSelect) {
+        contractorSelect.innerHTML = availableContractors(project)
+          .map((contractor) => `<option value="${escapeHtml(contractor.name)}">${escapeHtml(contractor.name)} - ${escapeHtml(contractor.org)}</option>`)
+          .join('');
+        if (hasAssignedContractor(pkg)) contractorSelect.value = pkg.contractor;
+      }
+      if (contractRef) contractRef.value = pkg?.contractRef || '';
+    }
+
+    function prepareSubmitInvoiceModal() {
+      const project = activeProject();
+      const pkg = activePackage(project);
+      const modal = document.querySelector('[data-modal="submit-invoice"]');
+      const milestoneField = modal?.querySelector('[data-submit-invoice-milestone-field]');
+      const milestoneSelect = modal?.querySelector('[data-submit-invoice-milestone]');
+      const refInput = modal?.querySelector('[data-submit-invoice-ref]');
+      const amountInput = modal?.querySelector('[data-submit-invoice-amount]');
+      const basisSelect = modal?.querySelector('[data-submit-invoice-basis]');
+      if (!modal || !milestoneField || !milestoneSelect || !pkg) return;
+      if (refInput) {
+        refInput.value = '';
+        refInput.dataset.autoMilestoneRef = 'true';
+      }
+      if (amountInput) {
+        amountInput.value = '';
+        amountInput.dataset.autoMilestoneAmount = 'true';
+      }
+
+      const milestones = Array.isArray(pkg.milestones) ? pkg.milestones : [];
+      if (!milestones.length) {
+        milestoneSelect.innerHTML = '<option value="">Whole package</option>';
+        milestoneSelect.value = '';
+        milestoneField.hidden = true;
+        if (basisSelect) basisSelect.value = 'Package-level release';
+        return;
+      }
+
+      const defaultIndex = nextInvoiceMilestoneIndex(pkg);
+      milestoneField.hidden = false;
+      if (defaultIndex < 0) {
+        milestoneSelect.innerHTML = '<option value="" selected disabled>No uninvoiced milestones available</option>';
+        if (basisSelect) basisSelect.value = 'Milestone / payment schedule release';
+        return;
+      }
+      milestoneSelect.innerHTML = milestones.map((milestone, index) => {
+        const status = String(milestone.status || 'uninvoiced').toLowerCase();
+        const disabled = ['paid', 'invoiced'].includes(status) ? ' disabled' : '';
+        const selected = index === defaultIndex ? ' selected' : '';
+        const label = `${milestone.name || `Milestone ${index + 1}`} - ${formatGBP(parsePackageAmount(milestone.amount))} - ${milestoneStatusLabel(status)}`;
+        return `<option value="${index}"${selected}${disabled}>${escapeHtml(label)}</option>`;
+      }).join('');
+      if (basisSelect) basisSelect.value = 'Milestone / payment schedule release';
+
+      const applyMilestoneDefaults = () => {
+        const selectedIndex = Number(milestoneSelect.value);
+        const milestone = Number.isInteger(selectedIndex) ? milestones[selectedIndex] : null;
+        if (!milestone) return;
+        if (refInput && (!refInput.value || refInput.dataset.autoMilestoneRef === 'true')) {
+          refInput.value = milestone.name || `Milestone ${selectedIndex + 1}`;
+          refInput.dataset.autoMilestoneRef = 'true';
+        }
+        if (amountInput && (!amountInput.value || amountInput.dataset.autoMilestoneAmount === 'true')) {
+          amountInput.value = String(parsePackageAmount(milestone.amount));
+          amountInput.dataset.autoMilestoneAmount = 'true';
+        }
+      };
+      if (refInput) refInput.oninput = () => { refInput.dataset.autoMilestoneRef = 'false'; };
+      if (amountInput) amountInput.oninput = () => { amountInput.dataset.autoMilestoneAmount = 'false'; };
+      milestoneSelect.onchange = applyMilestoneDefaults;
+      applyMilestoneDefaults();
+    }
+
+    function prepareReleaseFundsModal() {
+      const { project, pkg, request } = activeRequestContext();
+      const modal = document.querySelector('[data-modal="release-funds"]');
+      if (!modal || !project || !pkg || !request) return;
+      const summary = modal.querySelector('.modal-summary');
+      if (summary) {
+        summary.innerHTML = `
+          <div class="modal-summary-row"><span>Invoice</span><strong>${escapeHtml(request.ref)}</strong></div>
+          <div class="modal-summary-row"><span>Milestone</span><strong>${escapeHtml(requestMilestoneLabel(pkg, request))}</strong></div>
+          <div class="modal-summary-row"><span>PM Approved by</span><strong>${escapeHtml(request.pmApprovedBy || 'Project Manager')} - ${formatDate(request.pmApprovedDate || new Date().toISOString())}</strong></div>
+          <div class="modal-summary-row"><span>Amount</span><strong>${formatGBP(request.amount)}</strong></div>
+          <div class="modal-summary-row"><span>Escrow Status</span><strong>${(pkg.funded || 0) >= (pkg.cap || 0) ? 'Funded' : 'Part funded'}</strong></div>
+        `;
+      }
+      const confirm = modal.querySelector('.checkbox-row');
+      if (confirm) confirm.innerHTML = `<input type="checkbox"> I confirm release of ${formatGBP(request.amount)} from escrow to the contractor withdrawal balance`;
     }
 
     function prepareEditDocumentModal(docId) {
@@ -5032,12 +5550,12 @@ const store = {
       document.querySelector('[data-edit-document-ref]').value = doc.ref;
       document.querySelector('[data-edit-document-payment]').innerHTML = [
         '<option>Not linked</option>',
-        ...getAllRequests(project).map((request) => `<option value="${request.ref}">${request.ref}</option>`),
+        ...getAllRequests(project).map((request) => `<option value="${escapeHtml(request.ref)}">${escapeHtml(request.ref)}</option>`),
       ].join('');
       document.querySelector('[data-edit-document-payment]').value = getAllRequests(project).find((request) => request.id === doc.linkedPayment)?.ref || 'Not linked';
       document.querySelector('[data-edit-document-package]').innerHTML = [
         '<option value="">Project level</option>',
-        ...project.packages.map((pkg) => `<option value="${pkg.id}">${pkg.name}</option>`),
+        ...project.packages.map((pkg) => `<option value="${pkg.id}">${escapeHtml(pkg.name)}</option>`),
       ].join('');
       document.querySelector('[data-edit-document-package]').value = doc.packageId || '';
     }
@@ -5055,15 +5573,20 @@ const store = {
       modal.hidden = false;
       modal.classList.add('is-open');
       if (name === 'approve-request') renderEvidenceReviewModal();
+      if (name === 'submit-invoice') prepareSubmitInvoiceModal();
+      if (name === 'release-funds') prepareReleaseFundsModal();
       if (name === 'new-project') {
+        applyNewProjectDemoDefaults();
         renderMilestoneBuilder();
         renderNewProjectStep(1);
       }
       if (name === 'new-project') syncProjectClientMode();
       if (name === 'add-package') {
+        applyPackageDemoDefaults();
         renderPackageMilestoneBuilder(packageScheduleDefaultRows());
         renderAddPackageStep(1);
       }
+      if (name === 'assign-contractor') prepareAssignContractorModal();
     }
 
     function setLandingRole(role) {
@@ -5113,14 +5636,6 @@ const store = {
       reveals.forEach((section) => observer.observe(section));
     }
 
-    document.querySelectorAll('[data-modal-target]').forEach((trigger) => {
-      trigger.addEventListener('click', () => {
-        syncContextFromTrigger(trigger);
-        prepareAddDocumentModal(trigger);
-        openModal(trigger.dataset.modalTarget);
-      });
-    });
-
     document.addEventListener('click', (event) => {
       const trigger = event.target.closest('[data-modal-target]');
       if (!trigger) return;
@@ -5163,10 +5678,16 @@ const store = {
 
     document.addEventListener('click', (event) => {
       if (!event.target.closest('[data-open-wp-documents]')) return;
-      store.activeWorkPackageTab = 'documents';
-      const project = activeProject();
-      const pkg = activePackage(project);
-      if (project && pkg) requestAnimationFrame(() => renderWorkPackageRecords(project, pkg));
+      event.preventDefault();
+      openWorkPackageDocumentsTab();
+    });
+
+    document.addEventListener('click', (event) => {
+      const trigger = event.target.closest('[data-chain-state-link]');
+      if (!trigger) return;
+      event.preventDefault();
+      const context = resolveChainStateContext(trigger);
+      focusWorkPackageChainState(context.projectId, context.packageId);
     });
 
     document.querySelector('[data-add-document-file]')?.addEventListener('change', (event) => {
