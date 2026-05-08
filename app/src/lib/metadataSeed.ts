@@ -1,5 +1,6 @@
 import type { MetadataWriter } from "./metadataClient";
 import type { DemoPackageSummary, DemoWorld } from "./mockSeed";
+import { packageScopeSlug } from "./slug";
 
 /**
  * Maps the on-chain ref strings produced by `seedHospitalFitOut` onto
@@ -15,9 +16,6 @@ import type { DemoPackageSummary, DemoWorld } from "./mockSeed";
  */
 
 const DEMO_BASE = "metadata://demo";
-
-export const packageScopeSlug = (name: string): string =>
-  name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
 export const demoProjectRef = (): string =>
   `${DEMO_BASE}/project/hospital-fit-out`;

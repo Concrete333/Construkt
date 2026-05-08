@@ -11,7 +11,7 @@ import {
 } from "@solana/spl-token";
 import fs from "node:fs";
 import path from "node:path";
-import { packageScopeSlug } from "../app/src/lib/metadataSeed";
+import { packageScopeSlug } from "../app/src/lib/slug";
 
 type SeedIdl = Idl & { address: string };
 
@@ -447,7 +447,7 @@ async function main() {
       .rpc();
   };
 
-  // 1) Foundation: released
+  // 1) Foundation: released after PM plus optional high approval
   const foundation = await setupPackage(1, PACKAGE_NAMES.foundation);
   const foundationRequest = await submitRequest(
     foundation.workPackage,
@@ -477,7 +477,7 @@ async function main() {
     })
     .rpc();
 
-  // 2) Steel: high-approved
+  // 2) Steel: high-approved via optional high step, waiting on finance release
   const steel = await setupPackage(2, PACKAGE_NAMES.steelFrame);
   const steelRequest = await submitRequest(
     steel.workPackage,

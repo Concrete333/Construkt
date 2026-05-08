@@ -3,7 +3,6 @@ import type {
   ApprovalRecord,
   Fetched,
   PaymentRequestAccount,
-  PaymentRequestStatus,
   WorkPackageAccount,
 } from "../lib/program";
 
@@ -127,6 +126,7 @@ export const selectApprovalTracker = (
 export type ReleaseBlockedReason =
   | "AlreadyReleased"
   | "NotApprovedForRelease"
+  | "RequestRejected"
   | "PackageNotActive"
   | "OnHold"
   | "InsufficientRemainingCap"
@@ -145,6 +145,8 @@ export const selectReleaseReadiness = (
 
   if (request.status === "released") {
     reasons.push("AlreadyReleased");
+  } else if (request.status === "rejected") {
+    reasons.push("RequestRejected");
   } else if (
     request.status !== "lowApproved" &&
     request.status !== "highApproved"
@@ -171,6 +173,8 @@ export const releaseBlockedReasonLabel = (
       return "This request has already been released.";
     case "NotApprovedForRelease":
       return "PM approval is required before release.";
+    case "RequestRejected":
+      return "This request was rejected and cannot be released.";
     case "PackageNotActive":
       return "Work package is no longer active.";
     case "OnHold":
@@ -212,10 +216,3 @@ export const selectPaymentRequestSummary = (
     isTerminal: request.status === "released" || request.status === "rejected",
   };
 };
-
-export const PAYMENT_REQUEST_PIPELINE_ORDER: PaymentRequestStatus[] = [
-  "submitted",
-  "lowApproved",
-  "highApproved",
-  "released",
-];

@@ -282,7 +282,10 @@ export const WorkPackageViewPage = ({
       const result = await op();
       setFeedback({
         kind: "success",
-        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+        message: `Submitted · ${shortAddress(result.signature, {
+          head: 6,
+          tail: 6,
+        })}`,
       });
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -1202,7 +1205,7 @@ const ActionPanel = ({
     status === "highApproved";
 
   const canPmApprove = role === "projectManager" && status === "submitted";
-  const canDirectorApprove = role === "director" && status === "lowApproved";
+  const canHighApprove = role === "director" && status === "lowApproved";
   const canRelease =
     isFinance && activeRequest != null && releaseReadiness?.ready === true;
   const canReject =
@@ -1375,7 +1378,9 @@ const ActionPanel = ({
     });
   };
 
-  const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(wallet.toBase58())}`;
+  const eyebrow = `${DEMO_ROLE_LABEL[role]} · acting as ${shortAddress(
+    wallet.toBase58(),
+  )}`;
 
   return (
     <section className="work-package-view__aside-panel work-package-view__action-panel">
@@ -1478,7 +1483,7 @@ const ActionPanel = ({
         </div>
       )}
 
-      {canDirectorApprove && (
+      {canHighApprove && (
         <div className="work-package-view__action-buttons">
           <button
             type="button"
@@ -1620,7 +1625,7 @@ const ActionPanel = ({
       {/* No-op explainers so the panel never feels blank for a role. */}
       {activeRequest &&
         !canPmApprove &&
-        !canDirectorApprove &&
+        !canHighApprove &&
         !canRelease &&
         !canPlaceHold &&
         !canRemoveHold && (

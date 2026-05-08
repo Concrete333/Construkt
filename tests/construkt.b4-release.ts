@@ -87,6 +87,17 @@ describe("construkt b4 holds and release", () => {
       .rpc();
   };
 
+  const approveThroughPm = async (prepared: PreparedRequest) => {
+    await approveRequest(
+      prepared,
+      { lowApprover: {} },
+      roleSeed.lowApprover,
+      fx.pm,
+      prepared.pmRoleAssignment,
+      "ipfs://pm-release-note"
+    );
+  };
+
   const prepareRequest = async (
     amount = new anchor.BN(100_000),
     packageCap = new anchor.BN(200_000),
@@ -113,14 +124,7 @@ describe("construkt b4 holds and release", () => {
     };
 
     if (approveThroughHigh) {
-      await approveRequest(
-        prepared,
-        { lowApprover: {} },
-        roleSeed.lowApprover,
-        fx.pm,
-        roles.pmRoleAssignment,
-        "ipfs://pm-release-note"
-      );
+      await approveThroughPm(prepared);
       await approveRequest(
         prepared,
         { highApprover: {} },
@@ -321,14 +325,7 @@ describe("construkt b4 holds and release", () => {
       false
     );
 
-    await approveRequest(
-      prepared,
-      { lowApprover: {} },
-      roleSeed.lowApprover,
-      fx.pm,
-      prepared.pmRoleAssignment,
-      "ipfs://pm-release-note"
-    );
+    await approveThroughPm(prepared);
 
     await releasePayment(prepared);
 
@@ -396,6 +393,56 @@ describe("construkt b4 holds and release", () => {
     await expectError(releasePayment(prepared), "RequestAlreadyReleased");
   });
 
+  it("low-approved release transfers tokens, clears active request, and completes at cap", async () => {
+    const amount = new anchor.BN(100_000);
+    const prepared = await prepareRequest(amount, amount, false);
+    await approveThroughPm(prepared);
+    const contractorBefore = await getAccount(
+      fx.provider.connection,
+      fx.contractorTokenAccount
+    );
+    const vaultBefore = await getAccount(
+      fx.provider.connection,
+      prepared.packageAddresses.vault
+    );
+
+    await releasePayment(prepared);
+
+    const contractorAfter = await getAccount(
+      fx.provider.connection,
+      fx.contractorTokenAccount
+    );
+    const vaultAfter = await getAccount(
+      fx.provider.connection,
+      prepared.packageAddresses.vault
+    );
+    assert.strictEqual(
+      contractorAfter.amount - contractorBefore.amount,
+      BigInt(amount.toNumber())
+    );
+    assert.strictEqual(
+      vaultBefore.amount - vaultAfter.amount,
+      BigInt(amount.toNumber())
+    );
+
+    const requestAccount = await fx.program.account.paymentRequestAccount.fetch(
+      prepared.paymentRequest
+    );
+    assert.deepStrictEqual(requestAccount.status, { released: {} });
+    assert.strictEqual(requestAccount.releasedAmount.toNumber(), 100_000);
+
+    const workPackageAccount =
+      await fx.program.account.workPackageAccount.fetch(
+        prepared.packageAddresses.workPackage
+      );
+    assert.strictEqual(workPackageAccount.releasedAmount.toNumber(), 100_000);
+    assert.deepStrictEqual(workPackageAccount.status, { completed: {} });
+    assert.isFalse(workPackageAccount.hasActiveRequest);
+    assert.ok(workPackageAccount.activeRequest.equals(defaultPubkey));
+
+    await expectError(releasePayment(prepared), "RequestAlreadyReleased");
+  });
+
   it("release rejects wrong contractor token owner", async () => {
     const prepared = await prepareRequest();
     const unrelatedTokenAccount = await createAssociatedTokenAccount(
@@ -411,8 +458,63 @@ describe("construkt b4 holds and release", () => {
     );
   });
 
+  it("low-approved release rejects wrong contractor token owner", async () => {
+    const prepared = await prepareRequest(
+      new anchor.BN(100_000),
+      new anchor.BN(200_000),
+      false
+    );
+    await approveThroughPm(prepared);
+    const unrelatedTokenAccount = await createAssociatedTokenAccount(
+      fx.provider.connection,
+      fx.finance,
+      fx.mint,
+      fx.unrelatedUser.publicKey
+    );
+
+    await expectError(
+      releasePayment(prepared, unrelatedTokenAccount),
+      "WrongTokenOwner"
+    );
+  });
+
   it("release rejects wrong contractor token mint", async () => {
     const prepared = await prepareRequest();
+    const wrongMint = await createMint(
+      fx.provider.connection,
+      fx.finance,
+      fx.finance.publicKey,
+      null,
+      6
+    );
+    const wrongMintTokenAccount = await createAssociatedTokenAccount(
+      fx.provider.connection,
+      fx.finance,
+      wrongMint,
+      fx.contractor.publicKey
+    );
+    await mintTo(
+      fx.provider.connection,
+      fx.finance,
+      wrongMint,
+      wrongMintTokenAccount,
+      fx.finance,
+      1
+    );
+
+    await expectError(
+      releasePayment(prepared, wrongMintTokenAccount),
+      "WrongMint"
+    );
+  });
+
+  it("low-approved release rejects wrong contractor token mint", async () => {
+    const prepared = await prepareRequest(
+      new anchor.BN(100_000),
+      new anchor.BN(200_000),
+      false
+    );
+    await approveThroughPm(prepared);
     const wrongMint = await createMint(
       fx.provider.connection,
       fx.finance,

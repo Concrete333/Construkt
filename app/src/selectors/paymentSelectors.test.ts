@@ -6,6 +6,7 @@ import {
   paymentRequestDisplayStatus,
   paymentRequestStatusLabel,
   paymentRequestChipTone,
+  releaseBlockedReasonLabel,
   selectApprovalTracker,
   selectPaymentRequestSummary,
   selectReleaseReadiness,
@@ -180,6 +181,19 @@ describe("selectReleaseReadiness", () => {
     const r = selectReleaseReadiness(pr, wp);
     expect(r.ready).toBe(false);
     expect(r.reasons).toContain("AlreadyReleased");
+  });
+
+  it("blocks rejected requests with a specific reason", async () => {
+    const { client, world } = await seed();
+    const { wp, pr } = await fetchTriple(
+      client,
+      world.packages.rejectedDelta.address,
+      world.packages.rejectedDelta.request!,
+    );
+    const r = selectReleaseReadiness(pr, wp);
+    expect(r.ready).toBe(false);
+    expect(r.reasons).toContain("RequestRejected");
+    expect(releaseBlockedReasonLabel("RequestRejected")).toMatch(/rejected/i);
   });
 
   it("flags InsufficientRemainingCap and InsufficientFundedRemaining when amount exceeds budgets", () => {

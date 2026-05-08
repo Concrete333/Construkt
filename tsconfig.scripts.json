@@ -11,5 +11,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["scripts/**/*.ts", "app/src/idl/**/*.json"]
+  "include": ["scripts/**/*.ts"]
 }
