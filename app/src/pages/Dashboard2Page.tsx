@@ -459,7 +459,7 @@ const roleLead = (role: DemoRole): string => {
     case "projectManager":
       return "Packages on your projects waiting for PM approval, plus team and document activity.";
     case "director":
-      return "Payment requests waiting on Director (HighApprover) sign-off.";
+      return "Payment requests waiting on an optional high-approval step.";
     case "contractor":
       return "Your assigned projects and packages, with submission and release status.";
   }
@@ -537,7 +537,7 @@ const roleMatchesActiveRequest = (
       if (status === "submittedOnHold") return { action: "Review (held)" };
       return null;
     case "director":
-      if (status === "lowApproved") return { action: "Approve as Director" };
+      if (status === "lowApproved") return { action: "Approve high step" };
       if (status === "lowApprovedOnHold") return { action: "Review (held)" };
       return null;
     case "contractor":

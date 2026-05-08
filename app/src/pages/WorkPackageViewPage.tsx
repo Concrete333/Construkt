@@ -624,7 +624,7 @@ const RequestCard = ({ row }: { row: RequestRow }) => {
           at={approvals.lowApprover.at}
         />
         <ApprovalSlot
-          label="Director"
+          label="Optional high"
           state={approvals.highApprover.state}
           at={approvals.highApprover.at}
         />
@@ -1486,7 +1486,7 @@ const ActionPanel = ({
             onClick={onApprove}
             disabled={pending}
           >
-            Approve as Director
+            Approve high step
           </button>
         </div>
       )}
@@ -1643,7 +1643,7 @@ const ActionPanel = ({
                   ? status === "submitted"
                     ? "Awaiting PM approval first."
                     : status === "highApproved" || status === "released"
-                      ? "Already Director-approved."
+                      ? "Already high-approved."
                       : status === "rejected"
                         ? "Request was rejected."
                         : "Held — actions blocked."

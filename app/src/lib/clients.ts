@@ -1,6 +1,10 @@
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { CONSTRUKT_PROGRAM_ID } from "./config";
-import type { MetadataClient, MetadataWriter } from "./metadataClient";
+import type {
+  MetadataClient,
+  MetadataSnapshotStore,
+  MetadataWriter,
+} from "./metadataClient";
 import {
   LocalStorageMetadataClient,
   MockMetadataClient,
@@ -142,7 +146,7 @@ const buildDeterministicAnchorSeedWorld = (
 };
 
 const maybeSeedDemoMetadata = async (
-  metadata: MockMetadataClient | LocalStorageMetadataClient,
+  metadata: MetadataClient & MetadataWriter & MetadataSnapshotStore,
   world: DemoWorld,
 ): Promise<void> => {
   if ((await metadata.resolveProject(demoProjectRef())) !== null) return;

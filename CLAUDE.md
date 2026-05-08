@@ -24,6 +24,9 @@ anchor test --provider.cluster localnet
 # From Windows PowerShell, call the WSL test wrapper
 npm run anchor:test:wsl
 
+# From Windows PowerShell, seed localnet through WSL
+npm run seed:localnet:wsl
+
 # Run a single test file (ts-mocha reads tsconfig.json)
 npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
 
@@ -55,6 +58,7 @@ ProjectAccount  (authority = finance wallet)
 ```
 
 **PDA seeds:**
+
 - Project: `["project", authority, project_id_le_bytes]`
 - WorkPackage: `["work_package", project, package_id_le_bytes]`
 - VaultAuthority: `["vault_authority", work_package]`
@@ -65,11 +69,12 @@ ProjectAccount  (authority = finance wallet)
 Role bytes: Contractor=1, LowApprover=2, HighApprover=3
 
 **Payment request lifecycle:**
-`Submitted` → `LowApproved` → `HighApproved` → `Released` (or `Rejected` at any stage)
+`Submitted` -> `LowApproved` -> `Released` (or `Rejected` at any stage). `HighApproved` remains available as an optional/custom approval state.
 
 **Key invariants enforced on-chain:**
+
 - Only one active unreleased request per work package
-- LowApprover must approve before HighApprover
+- If HighApprover is used, LowApprover must approve first
 - Contractor cannot approve their own request
 - Same wallet cannot hold both LowApprover and HighApprover on a package
 - Holds block approval, rejection, document updates, and release

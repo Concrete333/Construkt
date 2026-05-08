@@ -144,6 +144,11 @@ export interface MetadataSnapshot {
   holds: Record<string, HoldMetadata>;
 }
 
+export interface MetadataSnapshotStore {
+  toSnapshot(): MetadataSnapshot;
+  loadSnapshot(snapshot: Partial<MetadataSnapshot>): void;
+}
+
 export interface MetadataStorage {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -191,7 +196,9 @@ const parseSnapshot = (raw: string): MetadataSnapshot =>
  * tests. Returned values are deep-cloned so callers can't mutate the
  * stored payload by accident.
  */
-export class MockMetadataClient implements MetadataClient, MetadataWriter {
+export class MockMetadataClient
+  implements MetadataClient, MetadataWriter, MetadataSnapshotStore
+{
   private readonly projects = new Map<string, ProjectMetadata>();
   private readonly packages = new Map<string, PackageScopeMetadata>();
   private readonly documents = new Map<string, DocumentMetadata>();
@@ -281,7 +288,7 @@ export class MockMetadataClient implements MetadataClient, MetadataWriter {
  * backend so Anchor-mode refs survive page refreshes during local demos.
  */
 export class LocalStorageMetadataClient
-  implements MetadataClient, MetadataWriter
+  implements MetadataClient, MetadataWriter, MetadataSnapshotStore
 {
   private readonly client = new MockMetadataClient();
   private readonly storage: MetadataStorage;

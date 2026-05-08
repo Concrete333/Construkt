@@ -19,5 +19,5 @@ if ($wslPathExitCode -ne 0 -or -not $wslRepoRoot) {
   exit 1
 }
 
-& wsl --exec env "REPO=$wslRepoRoot" sh -lc 'cd "$REPO" && sh scripts/wsl-anchor-test.sh'
+& wsl --exec env "REPO=$wslRepoRoot" sh -lc 'cd "$REPO" && npm run seed:localnet'
 exit $LASTEXITCODE
