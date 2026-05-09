@@ -14,6 +14,7 @@ import { MockConstruktClient } from "./mockClient";
 import type { DemoWorld } from "./mockSeed";
 import { seedHospitalFitOut } from "./mockSeed";
 import {
+  deriveMilestoneAddress,
   derivePaymentRequestAddress,
   deriveProjectAddress,
   deriveWorkPackageAddress,
@@ -95,6 +96,9 @@ const buildDeterministicAnchorSeedWorld = (
     deriveWorkPackageAddress(programId, project, id);
   const reqAddr = (pkg: PublicKey, id: bigint): PublicKey =>
     derivePaymentRequestAddress(programId, pkg, id);
+  const milestoneAddr = (pkg: PublicKey, id: bigint): PublicKey =>
+    deriveMilestoneAddress(programId, pkg, id);
+  const interior = pkgAddr(5n);
 
   return {
     finance,
@@ -130,8 +134,9 @@ const buildDeterministicAnchorSeedWorld = (
       },
       interior: {
         name: "Interior Fit-Out",
-        address: pkgAddr(5n),
+        address: interior,
         request: null,
+        milestones: [1n, 2n, 3n, 4n].map((id) => milestoneAddr(interior, id)),
         finalStatus: "noRequest",
       },
       rejectedDelta: {
@@ -165,8 +170,17 @@ const hasSeededAnchorDemo = async (
       client.fetchWorkPackage(summary.address),
     ),
   ]);
+  const milestoneAccounts = await Promise.all(
+    Object.values(world.packages).flatMap((summary) =>
+      (summary.milestones ?? []).map((address) =>
+        client.fetchMilestone(address),
+      ),
+    ),
+  );
   return (
-    project !== null && packages.every((workPackage) => workPackage !== null)
+    project !== null &&
+    packages.every((workPackage) => workPackage !== null) &&
+    milestoneAccounts.every((milestone) => milestone !== null)
   );
 };
 

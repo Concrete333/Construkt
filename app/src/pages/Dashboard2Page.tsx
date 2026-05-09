@@ -13,6 +13,7 @@ import {
 } from "../selectors/projectSelectors";
 import { selectAuditTimeline } from "../selectors/auditSelectors";
 import {
+  isPaymentRequestActive,
   paymentRequestChipTone,
   paymentRequestDisplayStatus,
   paymentRequestStatusLabel,
@@ -146,11 +147,24 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
             allApprovals.push(...approvals);
           }
 
-          const activeRequest = pkg.account.hasActiveRequest
-            ? await client.fetchPaymentRequest(pkg.account.activeRequest)
-            : null;
-          rollups.push(selectPackageRollup(pkg, activeRequest));
-          if (activeRequest) {
+          const activeFetchedRequest = pkg.account.hasActiveRequest
+            ? (reqs.find((request) =>
+                request.address.equals(pkg.account.activeRequest),
+              ) ?? null)
+            : ([...reqs]
+                .filter((r) => isPaymentRequestActive(r.account))
+                .sort((a, b) =>
+                  a.account.requestId < b.account.requestId ? 1 : -1,
+                )[0] ?? null);
+          const activeRequest = activeFetchedRequest?.account ?? null;
+          rollups.push(
+            selectPackageRollup(
+              pkg,
+              activeRequest,
+              activeFetchedRequest?.address ?? null,
+            ),
+          );
+          if (activeRequest && activeFetchedRequest?.address) {
             const scope = await metadata.resolvePackageScope(
               pkg.account.scopeRef,
             );
@@ -160,7 +174,7 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
                 scope?.description?.split(".")[0] ??
                 `Package #${pkg.account.packageId.toString()}`,
               request: activeRequest,
-              address: pkg.account.activeRequest.toBase58(),
+              address: activeFetchedRequest.address.toBase58(),
             });
           }
         }
@@ -302,7 +316,9 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
                     className="dashboard2__event"
                   >
                     <span
-                      className={`dashboard2__dot dashboard2__dot--${dotTone(event.kind)}`}
+                      className={`dashboard2__dot dashboard2__dot--${dotTone(
+                        event.kind,
+                      )}`}
                       aria-hidden="true"
                     />
                     <div className="dashboard2__event-body">
@@ -502,7 +518,9 @@ const buildOutstandingTasks = (
       tasks.push({
         key: `${entry.address}-${role}`,
         title: `${matches.action}: ${entry.workPackageName}`,
-        meta: `${bundle.rollup.project.name} · ${paymentRequestStatusLabel(status)}`,
+        meta: `${bundle.rollup.project.name} · ${paymentRequestStatusLabel(
+          status,
+        )}`,
         href: buildHash("workPackageView", {
           address: entry.workPackage,
         }),

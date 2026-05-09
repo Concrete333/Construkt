@@ -13,9 +13,7 @@ import {
 } from "./paymentSelectors";
 import type { PaymentRequestAccount, WorkPackageAccount } from "../lib/program";
 
-const PROGRAM_ID = new PublicKey(
-  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 const seed = async () => {
   const client = new MockConstruktClient({

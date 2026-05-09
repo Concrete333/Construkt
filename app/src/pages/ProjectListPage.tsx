@@ -15,6 +15,7 @@ import {
   selectPackageRollup,
   selectProjectRollup,
 } from "../selectors/projectSelectors";
+import { isPaymentRequestActive } from "../selectors/paymentSelectors";
 import type {
   PackageRollup,
   ProjectRollup,
@@ -65,7 +66,10 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
       const result = await op();
       setFeedback({
         kind: "success",
-        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+        message: `Submitted · ${shortAddress(result.signature, {
+          head: 6,
+          tail: 6,
+        })}`,
       });
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -102,10 +106,25 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
         const packages = packageMap.get(project.address.toBase58()) ?? [];
         const rollups: PackageRollup[] = [];
         for (const pkg of packages) {
-          const activeRequest = pkg.account.hasActiveRequest
-            ? await client.fetchPaymentRequest(pkg.account.activeRequest)
-            : null;
-          rollups.push(selectPackageRollup(pkg, activeRequest));
+          const requests = await client.fetchPaymentRequestsForPackage(
+            pkg.address,
+          );
+          const activeFetchedRequest = pkg.account.hasActiveRequest
+            ? (requests.find((request) =>
+                request.address.equals(pkg.account.activeRequest),
+              ) ?? null)
+            : ([...requests]
+                .filter((r) => isPaymentRequestActive(r.account))
+                .sort((a, b) =>
+                  a.account.requestId < b.account.requestId ? 1 : -1,
+                )[0] ?? null);
+          rollups.push(
+            selectPackageRollup(
+              pkg,
+              activeFetchedRequest?.account ?? null,
+              activeFetchedRequest?.address ?? null,
+            ),
+          );
         }
         const projectMetadata = await metadata.resolveProject(
           project.account.metadataRef,

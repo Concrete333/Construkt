@@ -4,9 +4,7 @@ import { MockConstruktClient } from "../lib/mockClient";
 import { seedHospitalFitOut } from "../lib/mockSeed";
 import { selectAuditTimeline } from "./auditSelectors";
 
-const PROGRAM_ID = new PublicKey(
-  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 let clockTick = 1_700_000_000n;
 

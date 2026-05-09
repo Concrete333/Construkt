@@ -11,9 +11,7 @@ import {
 } from "./projectSelectors";
 import type { Fetched, WorkPackageAccount } from "../lib/program";
 
-const PROGRAM_ID = new PublicKey(
-  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 const seedAndFetch = async () => {
   const client = new MockConstruktClient({

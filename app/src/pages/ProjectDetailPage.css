@@ -199,6 +199,25 @@
   font-size: var(--text-sm);
 }
 
+.project-detail__package-milestones,
+.project-detail__package-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed var(--color-divider);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.project-detail__package-note {
+  display: block;
+  margin: 0;
+  padding: 0 var(--space-5) var(--space-4);
+  border-top: 0;
+}
+
 .project-detail__package-fund {
   padding: 0 var(--space-5) var(--space-4);
 }
@@ -370,6 +389,34 @@
 .project-detail__form-error {
   font-size: var(--text-xs);
   color: var(--color-error, #b91c1c);
+}
+
+.project-detail__milestone-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px dashed var(--color-divider);
+  border-radius: var(--radius-md);
+}
+
+.project-detail__milestone-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.project-detail__milestone-row {
+  display: grid;
+  grid-template-columns:
+    minmax(160px, 1.4fr) minmax(100px, 0.8fr) minmax(130px, 1fr)
+    minmax(130px, 1fr) auto;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 .project-detail__create-actions {

@@ -12,9 +12,7 @@ import {
   seedDemoMetadata,
 } from "./metadataSeed";
 
-const PROGRAM_ID = new PublicKey(
-  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 const seedBoth = async () => {
   const onchain = new MockConstruktClient({
@@ -55,6 +53,16 @@ describe("seedDemoMetadata — package scope", () => {
         scope!.contractModel,
       );
     }
+  });
+
+  it("populates the interior package with display milestones", async () => {
+    const { metadata, world } = await seedBoth();
+    const scope = await metadata.resolvePackageScope(
+      demoPackageScopeRef(world.packages.interior.name),
+    );
+    expect(scope?.contractModel).toBe("milestone");
+    expect(scope?.internalMilestones).toHaveLength(4);
+    expect(scope?.internalMilestones?.[0].amount).toBe(50_000_000n);
   });
 });
 

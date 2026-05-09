@@ -37,6 +37,14 @@ export const paymentRequestDisplayStatus = (
   }
 };
 
+export const isPaymentRequestTerminal = (
+  request: Pick<PaymentRequestAccount, "status">,
+): boolean => request.status === "released" || request.status === "rejected";
+
+export const isPaymentRequestActive = (
+  request: Pick<PaymentRequestAccount, "status">,
+): boolean => !isPaymentRequestTerminal(request);
+
 const STATUS_LABELS: Record<PaymentRequestDisplayStatus, string> = {
   submitted: "Submitted — pending PM",
   submittedOnHold: "On hold (submitted)",

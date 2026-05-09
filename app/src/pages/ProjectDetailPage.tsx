@@ -7,6 +7,8 @@ import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
 import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
 import { nextWorkPackageId, packageScopeMetadataRef } from "../lib/ids";
+import { CONSTRUKT_PROGRAM_ID } from "../lib/config";
+import { deriveWorkPackageAddress } from "../lib/pda";
 import { friendlyClientError } from "../lib/program";
 import type { TxResult } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
@@ -21,6 +23,7 @@ import {
   paymentRequestChipTone,
   paymentRequestDisplayStatus,
   paymentRequestStatusLabel,
+  isPaymentRequestActive,
 } from "../selectors/paymentSelectors";
 import type {
   PackageRollup,
@@ -30,6 +33,7 @@ import type { AuditEvent } from "../selectors/auditSelectors";
 import type {
   ApprovalRecord,
   Fetched,
+  MilestoneAccount,
   PaymentRequestAccount,
   ProjectAccount,
   RoleAssignmentAccount,
@@ -50,6 +54,7 @@ interface ActionFeedback {
 interface PackageRow {
   rollup: PackageRollup;
   scope: PackageScopeMetadata | null;
+  milestones: Fetched<MilestoneAccount>[];
   activeRequest: PaymentRequestAccount | null;
 }
 
@@ -83,6 +88,38 @@ interface FundCtx {
   onSubmitFund: (packageAddress: PublicKey, projectAddress: PublicKey) => void;
 }
 
+interface MilestoneFormRow {
+  name: string;
+  amountText: string;
+  startDate: string;
+  endDate: string;
+}
+
+interface ParsedMilestoneFormRow {
+  name: string;
+  amount: bigint;
+  startAt: bigint;
+  endAt: bigint;
+  targetDate: string;
+}
+
+const defaultMilestoneRows = (): MilestoneFormRow[] => [
+  { name: "Milestone 1", amountText: "", startDate: "", endDate: "" },
+  { name: "Milestone 2", amountText: "", startDate: "", endDate: "" },
+];
+
+const nextDefaultMilestoneName = (rows: MilestoneFormRow[]): string => {
+  const used = new Set(
+    rows
+      .map((row) => /^Milestone (\d+)$/.exec(row.name.trim())?.[1])
+      .filter((value): value is string => value !== undefined)
+      .map((value) => Number.parseInt(value, 10)),
+  );
+  let next = 1;
+  while (used.has(next)) next += 1;
+  return `Milestone ${next}`;
+};
+
 const tryDecode = (address?: string): PublicKey | null => {
   if (!address) return null;
   try {
@@ -90,6 +127,70 @@ const tryDecode = (address?: string): PublicKey | null => {
   } catch {
     return null;
   }
+};
+
+const dateToUnixSeconds = (value: string): bigint | null => {
+  const millis = Date.parse(`${value}T00:00:00Z`);
+  if (!Number.isFinite(millis)) return null;
+  return BigInt(Math.floor(millis / 1000));
+};
+
+const parseMilestoneRows = (
+  rows: MilestoneFormRow[],
+  capAmount: bigint,
+): ParsedMilestoneFormRow[] | string => {
+  const filled = rows.filter(
+    (row) =>
+      row.name.trim() ||
+      row.amountText.trim() ||
+      row.startDate.trim() ||
+      row.endDate.trim(),
+  );
+  if (filled.length === 0) return "Add at least one milestone.";
+
+  const parsed: ParsedMilestoneFormRow[] = [];
+  for (const [idx, row] of filled.entries()) {
+    const label = row.name.trim() || `Milestone ${idx + 1}`;
+    if (!row.amountText.trim()) return `${label} needs an amount.`;
+    if (!row.startDate || !row.endDate)
+      return `${label} needs both a start date and an end date.`;
+
+    let amount: bigint;
+    try {
+      amount = parseMockUsdc(row.amountText);
+    } catch (e) {
+      return e instanceof Error ? e.message : `${label} has an invalid amount.`;
+    }
+    if (amount <= 0n) return `${label} amount must be greater than zero.`;
+
+    const startAt = dateToUnixSeconds(row.startDate);
+    const endAt = dateToUnixSeconds(row.endDate);
+    if (startAt === null || endAt === null)
+      return `${label} has invalid dates.`;
+    if (startAt >= endAt) return `${label} end date must be after start date.`;
+
+    parsed.push({
+      name: label,
+      amount,
+      startAt,
+      endAt,
+      targetDate: row.endDate,
+    });
+  }
+
+  const total = parsed.reduce((sum, row) => sum + row.amount, 0n);
+  if (total !== capAmount) {
+    return "Milestone amounts must add up exactly to the package cap.";
+  }
+
+  const byStart = [...parsed].sort((a, b) => (a.startAt < b.startAt ? -1 : 1));
+  for (let i = 1; i < byStart.length; i += 1) {
+    if (byStart[i].startAt < byStart[i - 1].endAt) {
+      return "Milestone date ranges cannot overlap.";
+    }
+  }
+
+  return parsed;
 };
 
 export const ProjectDetailPage = ({
@@ -111,6 +212,13 @@ export const ProjectDetailPage = ({
     world.contractor.publicKey.toBase58(),
   );
   const [contractorError, setContractorError] = useState<string | null>(null);
+  const [packageMode, setPackageMode] = useState<"simple" | "milestone">(
+    "simple",
+  );
+  const [milestoneRows, setMilestoneRows] = useState<MilestoneFormRow[]>(() =>
+    defaultMilestoneRows(),
+  );
+  const [milestoneError, setMilestoneError] = useState<string | null>(null);
 
   const [fundTarget, setFundTarget] = useState<string | null>(null);
   const [fundText, setFundText] = useState("");
@@ -125,7 +233,10 @@ export const ProjectDetailPage = ({
       const result = await op();
       setFeedback({
         kind: "success",
-        message: `Submitted · ${shortAddress(result.signature, { head: 6, tail: 6 })}`,
+        message: `Submitted · ${shortAddress(result.signature, {
+          head: 6,
+          tail: 6,
+        })}`,
       });
       setRefreshKey((k) => k + 1);
     } catch (err) {
@@ -170,13 +281,26 @@ export const ProjectDetailPage = ({
           allApprovals.push(...approvals);
         }
 
-        const activeRequest = pkg.account.hasActiveRequest
-          ? await client.fetchPaymentRequest(pkg.account.activeRequest)
-          : null;
+        const milestones = await client.fetchMilestonesForPackage(pkg.address);
+        const activeFetchedRequest = pkg.account.hasActiveRequest
+          ? (reqs.find((request) =>
+              request.address.equals(pkg.account.activeRequest),
+            ) ?? null)
+          : ([...reqs]
+              .filter((r) => isPaymentRequestActive(r.account))
+              .sort((a, b) =>
+                a.account.requestId < b.account.requestId ? 1 : -1,
+              )[0] ?? null);
+        const activeRequest = activeFetchedRequest?.account ?? null;
         const scope = await metadata.resolvePackageScope(pkg.account.scopeRef);
         packageRows.push({
-          rollup: selectPackageRollup(pkg, activeRequest),
+          rollup: selectPackageRollup(
+            pkg,
+            activeRequest,
+            activeFetchedRequest?.address ?? null,
+          ),
           scope,
+          milestones,
           activeRequest,
         });
       }
@@ -234,7 +358,21 @@ export const ProjectDetailPage = ({
       setCapError(e instanceof Error ? e.message : "Invalid amount");
       return;
     }
+    if (capAmount <= 0n) {
+      setCapError("Cap amount must be greater than zero.");
+      return;
+    }
     setCapError(null);
+
+    const parsedMilestones =
+      packageMode === "milestone"
+        ? parseMilestoneRows(milestoneRows, capAmount)
+        : [];
+    if (packageMode === "milestone" && typeof parsedMilestones === "string") {
+      setMilestoneError(parsedMilestones);
+      return;
+    }
+    setMilestoneError(null);
 
     let contractorKey: PublicKey;
     try {
@@ -257,10 +395,22 @@ export const ProjectDetailPage = ({
     metadataWriter?.putPackageScope(scopeRef, {
       description: scope,
       contractorDisplayName: "Demo Contractor",
-      contractModel: "bespoke",
+      contractModel: packageMode === "milestone" ? "milestone" : "bespoke",
+      internalMilestones:
+        packageMode === "milestone"
+          ? (parsedMilestones as ParsedMilestoneFormRow[]).map(
+              (milestone, idx) => ({
+                id: String(idx + 1),
+                name: milestone.name,
+                targetDate: milestone.targetDate,
+                amount: milestone.amount,
+                status: "uninvoiced" as const,
+              }),
+            )
+          : undefined,
     });
-    void onAct(() =>
-      client.createWorkPackage({
+    void onAct(async () => {
+      const result = await client.createWorkPackage({
         authority: wallet,
         project: projectKey,
         packageId,
@@ -268,12 +418,38 @@ export const ProjectDetailPage = ({
         contractor: contractorKey,
         mint: rollup.project.mint,
         scopeRef,
-      }),
-    ).then(() => {
+      });
+      if (packageMode === "milestone") {
+        const workPackage = deriveWorkPackageAddress(
+          CONSTRUKT_PROGRAM_ID,
+          projectKey,
+          packageId,
+        );
+        for (const [idx, milestone] of (
+          parsedMilestones as ParsedMilestoneFormRow[]
+        ).entries()) {
+          const milestoneId = BigInt(idx + 1);
+          await client.createMilestone({
+            authority: wallet,
+            project: projectKey,
+            workPackage,
+            milestoneId,
+            amount: milestone.amount,
+            startAt: milestone.startAt,
+            endAt: milestone.endAt,
+            metadataRef: `${scopeRef}/milestone/${milestoneId}`,
+          });
+        }
+      }
+      return result;
+    }).then(() => {
       setAddPkgOpen(false);
       setScopeText("");
       setCapText("");
       setContractorText(world.contractor.publicKey.toBase58());
+      setPackageMode("simple");
+      setMilestoneRows(defaultMilestoneRows());
+      setMilestoneError(null);
     });
   };
 
@@ -471,6 +647,139 @@ export const ProjectDetailPage = ({
                   </p>
                 )}
               </div>
+              <div className="project-detail__form-field">
+                <label className="project-detail__form-label">
+                  Payment mode
+                </label>
+                <select
+                  className="project-detail__form-input"
+                  value={packageMode}
+                  onChange={(e) => {
+                    setPackageMode(
+                      e.target.value === "milestone" ? "milestone" : "simple",
+                    );
+                    setMilestoneError(null);
+                  }}
+                  disabled={pending}
+                >
+                  <option value="simple">Package level</option>
+                  <option value="milestone">Milestone schedule</option>
+                </select>
+              </div>
+              {packageMode === "milestone" && (
+                <div className="project-detail__milestone-editor">
+                  <div className="project-detail__milestone-head">
+                    <span>Milestones</span>
+                    <button
+                      type="button"
+                      className="project-detail__btn project-detail__btn--ghost"
+                      onClick={() =>
+                        setMilestoneRows((rows) => [
+                          ...rows,
+                          {
+                            name: nextDefaultMilestoneName(rows),
+                            amountText: "",
+                            startDate: "",
+                            endDate: "",
+                          },
+                        ])
+                      }
+                      disabled={pending}
+                    >
+                      Add row
+                    </button>
+                  </div>
+                  {milestoneRows.map((row, idx) => (
+                    <div
+                      className="project-detail__milestone-row"
+                      key={`milestone-${idx}`}
+                    >
+                      <input
+                        className="project-detail__form-input"
+                        type="text"
+                        value={row.name}
+                        onChange={(e) =>
+                          setMilestoneRows((rows) =>
+                            rows.map((item, i) =>
+                              i === idx
+                                ? { ...item, name: e.target.value }
+                                : item,
+                            ),
+                          )
+                        }
+                        placeholder="Milestone name"
+                        disabled={pending}
+                      />
+                      <input
+                        className="project-detail__form-input"
+                        type="text"
+                        value={row.amountText}
+                        onChange={(e) => {
+                          setMilestoneRows((rows) =>
+                            rows.map((item, i) =>
+                              i === idx
+                                ? { ...item, amountText: e.target.value }
+                                : item,
+                            ),
+                          );
+                          setMilestoneError(null);
+                        }}
+                        placeholder="Amount"
+                        disabled={pending}
+                      />
+                      <input
+                        className="project-detail__form-input"
+                        type="date"
+                        value={row.startDate}
+                        onChange={(e) => {
+                          setMilestoneRows((rows) =>
+                            rows.map((item, i) =>
+                              i === idx
+                                ? { ...item, startDate: e.target.value }
+                                : item,
+                            ),
+                          );
+                          setMilestoneError(null);
+                        }}
+                        disabled={pending}
+                      />
+                      <input
+                        className="project-detail__form-input"
+                        type="date"
+                        value={row.endDate}
+                        onChange={(e) => {
+                          setMilestoneRows((rows) =>
+                            rows.map((item, i) =>
+                              i === idx
+                                ? { ...item, endDate: e.target.value }
+                                : item,
+                            ),
+                          );
+                          setMilestoneError(null);
+                        }}
+                        disabled={pending}
+                      />
+                      <button
+                        type="button"
+                        className="project-detail__btn project-detail__btn--ghost"
+                        onClick={() =>
+                          setMilestoneRows((rows) =>
+                            rows.filter((_item, i) => i !== idx),
+                          )
+                        }
+                        disabled={pending || milestoneRows.length <= 1}
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                  {milestoneError && (
+                    <p className="project-detail__form-error">
+                      {milestoneError}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="project-detail__create-actions">
                 <button
                   type="button"
@@ -482,6 +791,9 @@ export const ProjectDetailPage = ({
                     setCapError(null);
                     setContractorText(world.contractor.publicKey.toBase58());
                     setContractorError(null);
+                    setPackageMode("simple");
+                    setMilestoneRows(defaultMilestoneRows());
+                    setMilestoneError(null);
                   }}
                   disabled={pending}
                 >
@@ -652,10 +964,18 @@ const PackageCard = ({
     : null;
   const packageAddr = row.rollup.address.toBase58();
   const isFundTarget = fundCtx.fundTarget === packageAddr;
+  const isMilestoneMode = row.rollup.package.milestoneCounter > 0n;
+  const milestoneTotal = row.milestones.reduce(
+    (sum, milestone) => sum + milestone.account.amount,
+    0n,
+  );
+  const milestoneScheduleComplete =
+    !isMilestoneMode || milestoneTotal === row.rollup.package.capAmount;
   const canFund =
     fundCtx.isFinance &&
     status === "active" &&
-    row.rollup.package.fundedAmount < row.rollup.package.capAmount;
+    row.rollup.package.fundedAmount < row.rollup.package.capAmount &&
+    milestoneScheduleComplete;
 
   return (
     <li className="project-detail__package">
@@ -688,6 +1008,14 @@ const PackageCard = ({
             <Money amount={row.rollup.package.releasedAmount} withSymbol />
           </Metric>
         </dl>
+        {isMilestoneMode && (
+          <div className="project-detail__package-milestones">
+            <span>{row.milestones.length} milestones</span>
+            <span>
+              <Money amount={milestoneTotal} withSymbol /> scheduled
+            </span>
+          </div>
+        )}
         {requestStatus && (
           <div className="project-detail__package-request">
             <StatusPill tone={paymentRequestChipTone(requestStatus)}>
@@ -699,6 +1027,15 @@ const PackageCard = ({
           </div>
         )}
       </a>
+
+      {fundCtx.isFinance &&
+        status === "active" &&
+        row.rollup.package.fundedAmount < row.rollup.package.capAmount &&
+        !milestoneScheduleComplete && (
+          <p className="project-detail__package-note">
+            Funding opens once milestone amounts equal the package cap.
+          </p>
+        )}
 
       {canFund && (
         <div className="project-detail__package-fund">

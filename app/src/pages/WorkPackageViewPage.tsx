@@ -5,7 +5,12 @@ import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
-import { formatTimestamp, parseMockUsdc, shortAddress } from "../lib/format";
+import {
+  formatMockUsdc,
+  formatTimestamp,
+  parseMockUsdc,
+  shortAddress,
+} from "../lib/format";
 import {
   documentMetadataRef,
   holdMetadataRef,
@@ -19,6 +24,7 @@ import {
   paymentRequestChipTone,
   paymentRequestDisplayStatus,
   paymentRequestStatusLabel,
+  isPaymentRequestActive,
   releaseBlockedReasonLabel,
   selectApprovalTracker,
   selectReleaseReadiness,
@@ -35,6 +41,7 @@ import type { AuditEvent } from "../selectors/auditSelectors";
 import type {
   ApprovalRecord,
   Fetched,
+  MilestoneAccount,
   PaymentRequestAccount,
   ProjectAccount,
   Role,
@@ -61,6 +68,7 @@ interface RequestRow {
   approvals: ApprovalTracker;
   displayStatus: PaymentRequestDisplayStatus;
   documentMetadata: DocumentMetadata | null;
+  milestone: Fetched<MilestoneAccount> | null;
   isActive: boolean;
 }
 
@@ -75,10 +83,8 @@ interface LoadedDetail {
   scope: PackageScopeMetadata | null;
   project: Fetched<ProjectAccount>;
   projectMetadata: ProjectMetadata | null;
+  milestones: Fetched<MilestoneAccount>[];
   requests: RequestRow[];
-  activeRequest: PaymentRequestAccount | null;
-  activeRequestAddress: PublicKey | null;
-  releaseReadiness: ReleaseReadiness | null;
   timeline: EnrichedAuditEvent[];
   teamMembers: TeamMember[];
   contractorDisplayName: string;
@@ -106,6 +112,9 @@ export const WorkPackageViewPage = ({
   const { client, metadata, metadataWriter, world } = useClients();
   const packageKey = useMemo(() => tryDecode(address), [address]);
   const [loaded, setLoaded] = useState<LoadedDetail | null | "missing">(null);
+  const [selectedRequestAddress, setSelectedRequestAddress] = useState<
+    string | null
+  >(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [feedback, setFeedback] = useState<ActionFeedback | null>(null);
   const [pending, setPending] = useState(false);
@@ -134,13 +143,17 @@ export const WorkPackageViewPage = ({
         account: projectFetched,
       };
 
-      const [scope, projectMetadata, roleAssignments, requests] =
+      const [scope, projectMetadata, roleAssignments, requests, milestones] =
         await Promise.all([
           metadata.resolvePackageScope(pkg.scopeRef),
           metadata.resolveProject(projectFetched.metadataRef),
           client.fetchRoleAssignmentsForPackage(packageKey),
           client.fetchPaymentRequestsForPackage(packageKey),
+          client.fetchMilestonesForPackage(packageKey),
         ]);
+      const milestonesByAddress = new Map(
+        milestones.map((m) => [m.address.toBase58(), m]),
+      );
 
       const allApprovals: Fetched<ApprovalRecord>[] = [];
       const requestRows: RequestRow[] = [];
@@ -162,16 +175,18 @@ export const WorkPackageViewPage = ({
           approvals: selectApprovalTracker(approvals),
           displayStatus: paymentRequestDisplayStatus(r.account),
           documentMetadata,
-          isActive: pkg.hasActiveRequest && pkg.activeRequest.equals(r.address),
+          milestone: r.account.hasMilestone
+            ? (milestonesByAddress.get(r.account.milestone.toBase58()) ?? null)
+            : null,
+          isActive:
+            (pkg.hasActiveRequest && pkg.activeRequest.equals(r.address)) ||
+            (r.account.hasMilestone && isPaymentRequestActive(r.account)),
         });
       }
 
       const activeRequestRow = requestRows.find((r) => r.isActive) ?? null;
       const activeRequest = activeRequestRow?.request.account ?? null;
       const activeRequestAddress = activeRequestRow?.request.address ?? null;
-      const releaseReadiness = activeRequest
-        ? selectReleaseReadiness(activeRequest, pkg)
-        : null;
 
       const baseTimeline = selectAuditTimeline({
         project: wrappedProject,
@@ -207,7 +222,11 @@ export const WorkPackageViewPage = ({
         teamByWallet.get(pkg.contractor.toBase58()) ??
         shortAddress(pkg.contractor.toBase58());
 
-      const rollup = selectPackageRollup(wrappedPackage, activeRequest);
+      const rollup = selectPackageRollup(
+        wrappedPackage,
+        activeRequest,
+        activeRequestAddress,
+      );
 
       if (!cancelled) {
         setLoaded({
@@ -216,10 +235,8 @@ export const WorkPackageViewPage = ({
           scope,
           project: wrappedProject,
           projectMetadata,
+          milestones,
           requests: requestRows,
-          activeRequest,
-          activeRequestAddress,
-          releaseReadiness,
           timeline: enriched,
           teamMembers,
           contractorDisplayName,
@@ -259,10 +276,8 @@ export const WorkPackageViewPage = ({
     scope,
     project,
     projectMetadata,
+    milestones,
     requests,
-    activeRequest,
-    activeRequestAddress,
-    releaseReadiness,
     timeline,
     teamMembers,
     contractorDisplayName,
@@ -301,7 +316,20 @@ export const WorkPackageViewPage = ({
   const walletDisplayName =
     teamMembers.find((m) => m.wallet === wallet.toBase58())?.displayName ??
     null;
-  const activeRequestRow = requests.find((row) => row.isActive) ?? null;
+  const activeRequestRows = requests.filter((row) => row.isActive);
+  const activeRequestRow =
+    activeRequestRows.find(
+      (row) => row.request.address.toBase58() === selectedRequestAddress,
+    ) ??
+    activeRequestRows[0] ??
+    null;
+  const resolvedSelectedRequestAddress =
+    activeRequestRow?.request.address.toBase58() ?? null;
+  const activeRequest = activeRequestRow?.request.account ?? null;
+  const activeRequestAddress = activeRequestRow?.request.address ?? null;
+  const releaseReadiness = activeRequest
+    ? selectReleaseReadiness(activeRequest, rollup.package)
+    : null;
 
   return (
     <section className="work-package-view">
@@ -340,6 +368,12 @@ export const WorkPackageViewPage = ({
       <div className="work-package-view__columns">
         <main className="work-package-view__main">
           <BalancePanel rollup={rollup} />
+
+          <MilestoneSchedulePanel
+            milestones={milestones}
+            scope={scope}
+            requests={requests}
+          />
 
           <section className="work-package-view__panel">
             <div className="work-package-view__panel-head">
@@ -437,6 +471,11 @@ export const WorkPackageViewPage = ({
         </main>
 
         <aside className="work-package-view__aside">
+          <ActiveRequestPanel
+            rows={activeRequestRows}
+            selectedAddress={resolvedSelectedRequestAddress}
+            onSelect={setSelectedRequestAddress}
+          />
           <ActionPanel
             role={role}
             wallet={wallet}
@@ -445,6 +484,7 @@ export const WorkPackageViewPage = ({
             workPackage={loaded.packageAddress}
             packageStatus={rollup.package.status}
             contractor={rollup.package.contractor}
+            milestones={milestones}
             activeRequest={activeRequestRow}
             activeRequestAddress={activeRequestAddress}
             releaseReadiness={releaseReadiness}
@@ -580,6 +620,143 @@ const BalancePanel = ({ rollup }: { rollup: PackageRollup }) => {
   );
 };
 
+const MilestoneSchedulePanel = ({
+  milestones,
+  scope,
+  requests,
+}: {
+  milestones: Fetched<MilestoneAccount>[];
+  scope: PackageScopeMetadata | null;
+  requests: RequestRow[];
+}) => {
+  if (milestones.length === 0) return null;
+  const milestoneMeta = new Map(
+    (scope?.internalMilestones ?? []).map((m) => [m.id, m]),
+  );
+  const requestsByMilestone = new Map<string, RequestRow[]>();
+  for (const row of requests) {
+    if (!row.request.account.hasMilestone) continue;
+    const key = row.request.account.milestone.toBase58();
+    requestsByMilestone.set(key, [
+      ...(requestsByMilestone.get(key) ?? []),
+      row,
+    ]);
+  }
+
+  return (
+    <section className="work-package-view__panel">
+      <div className="work-package-view__panel-head">
+        <h2>Milestone schedule</h2>
+        <span className="work-package-view__panel-eyebrow">
+          {milestones.length} release rules
+        </span>
+      </div>
+      <ol className="work-package-view__milestones">
+        {[...milestones]
+          .sort((a, b) =>
+            a.account.milestoneId < b.account.milestoneId ? -1 : 1,
+          )
+          .map((milestone) => {
+            const id = milestone.account.milestoneId.toString();
+            const meta = milestoneMeta.get(id);
+            const linkedRequests =
+              requestsByMilestone.get(milestone.address.toBase58()) ?? [];
+            const hasActive = linkedRequests.some((row) =>
+              isPaymentRequestActive(row.request.account),
+            );
+            return (
+              <li
+                className="work-package-view__milestone"
+                key={milestone.address.toBase58()}
+              >
+                <div>
+                  <p className="work-package-view__milestone-title">
+                    {id}. {meta?.name ?? milestone.account.metadataRef}
+                  </p>
+                  <p className="work-package-view__milestone-dates">
+                    {formatTimestamp(milestone.account.startAt)} -{" "}
+                    {formatTimestamp(milestone.account.endAt)}
+                  </p>
+                  {meta?.targetDate && (
+                    <p className="work-package-view__milestone-target">
+                      Target {meta.targetDate}
+                    </p>
+                  )}
+                </div>
+                <div className="work-package-view__milestone-values">
+                  <Money amount={milestone.account.amount} withSymbol />
+                  <span>
+                    Released{" "}
+                    <Money
+                      amount={milestone.account.releasedAmount}
+                      withSymbol
+                    />
+                  </span>
+                </div>
+                <StatusPill
+                  tone={
+                    milestone.account.status === "completed"
+                      ? "success"
+                      : hasActive
+                        ? "info"
+                        : "neutral"
+                  }
+                >
+                  {milestone.account.status === "completed"
+                    ? "Paid"
+                    : hasActive
+                      ? "Invoiced"
+                      : "Uninvoiced"}
+                </StatusPill>
+              </li>
+            );
+          })}
+      </ol>
+    </section>
+  );
+};
+
+const ActiveRequestPanel = ({
+  rows,
+  selectedAddress,
+  onSelect,
+}: {
+  rows: RequestRow[];
+  selectedAddress: string | null;
+  onSelect: (address: string) => void;
+}) => {
+  if (rows.length <= 1) return null;
+  return (
+    <section className="work-package-view__aside-panel">
+      <h2>Active request</h2>
+      <p className="work-package-view__aside-note">
+        This package has parallel milestone requests in flight. Choose which one
+        the action panels should target.
+      </p>
+      <select
+        className="work-package-view__request-picker"
+        value={selectedAddress ?? rows[0].request.address.toBase58()}
+        onChange={(e) => onSelect(e.target.value)}
+      >
+        {rows.map((row) => {
+          const label = row.milestone
+            ? `Milestone ${row.milestone.account.milestoneId.toString()}`
+            : "Package";
+          return (
+            <option
+              key={row.request.address.toBase58()}
+              value={row.request.address.toBase58()}
+            >
+              Request #{row.request.account.requestId.toString()} - {label} -{" "}
+              {paymentRequestStatusLabel(row.displayStatus)}
+            </option>
+          );
+        })}
+      </select>
+    </section>
+  );
+};
+
 const pctOf = (part: bigint, whole: bigint): number => {
   if (whole <= 0n) return 0;
   const ratio = Number((part * 10000n) / whole) / 100;
@@ -616,6 +793,11 @@ const RequestCard = ({ row }: { row: RequestRow }) => {
         <Metric label="Updated">
           {formatTimestamp(request.account.updatedAt)}
         </Metric>
+        {row.milestone && (
+          <Metric label="Milestone">
+            #{row.milestone.account.milestoneId.toString()}
+          </Metric>
+        )}
         {documentMetadata && (
           <Metric label="Document">{documentMetadata.filename}</Metric>
         )}
@@ -1152,6 +1334,7 @@ interface ActionPanelProps {
   workPackage: PublicKey;
   packageStatus: WorkPackageAccount["status"];
   contractor: PublicKey;
+  milestones: Fetched<MilestoneAccount>[];
   activeRequest: RequestRow | null;
   activeRequestAddress: PublicKey | null;
   releaseReadiness: ReleaseReadiness | null;
@@ -1170,6 +1353,7 @@ const ActionPanel = ({
   workPackage,
   packageStatus,
   contractor,
+  milestones,
   activeRequest,
   activeRequestAddress,
   releaseReadiness,
@@ -1190,6 +1374,7 @@ const ActionPanel = ({
     null,
   );
   const [invoiceDoc, setInvoiceDoc] = useState("");
+  const [invoiceMilestone, setInvoiceMilestone] = useState("");
 
   const status = activeRequest?.displayStatus ?? null;
   const requestAddr = activeRequestAddress;
@@ -1216,6 +1401,15 @@ const ActionPanel = ({
 
   const isContractorAction = role === "contractor";
   const contractorIsSelf = wallet.equals(contractor);
+  const isMilestonePackage = milestones.length > 0;
+  const hasInvoiceableMilestone = milestones.some(
+    (m) => m.account.status === "active" && !m.account.hasActiveRequest,
+  );
+  const canSubmitInvoice =
+    isContractorAction &&
+    contractorIsSelf &&
+    packageStatus === "active" &&
+    (!activeRequest || (isMilestonePackage && hasInvoiceableMilestone));
 
   const composeNoteRef = (
     kind: "approve" | "reject",
@@ -1342,6 +1536,10 @@ const ActionPanel = ({
       setInvoiceAmountError(e instanceof Error ? e.message : "Invalid amount");
       return;
     }
+    if (isMilestonePackage && invoiceMilestone.length === 0) {
+      setInvoiceAmountError("Select a milestone for this invoice.");
+      return;
+    }
     setInvoiceAmountError(null);
     void onAct(async () => {
       const latestWorkPackage = await client.fetchWorkPackage(workPackage);
@@ -1353,12 +1551,19 @@ const ActionPanel = ({
       const requestId = nextPaymentRequestId(latestWorkPackage, latestRequests);
       const uploadedAt = new Date().toISOString();
       const docRef = documentMetadataRef(workPackage, requestId);
+      const milestone = isMilestonePackage
+        ? new PublicKey(invoiceMilestone)
+        : null;
+      const selectedMilestone = milestone
+        ? milestones.find((m) => m.address.equals(milestone))?.account
+        : null;
       const result = await client.submitPaymentRequest({
         contractor: wallet,
         project,
         workPackage,
         requestId,
         amount: parsedAmount,
+        milestone,
         documentRef: docRef,
       });
       metadataWriter?.putDocument(docRef, {
@@ -1369,12 +1574,15 @@ const ActionPanel = ({
         uploaderRole: "contractor",
         uploadedAt,
         documentType: "invoice",
+        linkedPackageMilestoneId:
+          selectedMilestone?.milestoneId.toString() ?? undefined,
       });
       return result;
     }).then(() => {
       setInvoiceOpen(false);
       setInvoiceAmount("");
       setInvoiceDoc("");
+      setInvoiceMilestone("");
     });
   };
 
@@ -1399,7 +1607,7 @@ const ActionPanel = ({
         </p>
       )}
 
-      {isContractorAction && contractorIsSelf && !activeRequest && (
+      {canSubmitInvoice && (
         <div className="work-package-view__reject">
           {!invoiceOpen ? (
             <button
@@ -1412,6 +1620,45 @@ const ActionPanel = ({
             </button>
           ) : (
             <div className="work-package-view__reject-form">
+              {isMilestonePackage && (
+                <>
+                  <label className="work-package-view__reject-label">
+                    Milestone
+                  </label>
+                  <select
+                    className="work-package-view__reject-input"
+                    value={invoiceMilestone}
+                    onChange={(e) => {
+                      setInvoiceMilestone(e.target.value);
+                      setInvoiceAmountError(null);
+                    }}
+                    disabled={pending}
+                  >
+                    <option value="">Select milestone</option>
+                    {[...milestones]
+                      .sort((a, b) =>
+                        a.account.milestoneId < b.account.milestoneId ? -1 : 1,
+                      )
+                      .filter((m) => m.account.status === "active")
+                      .map((m) => (
+                        <option
+                          key={m.address.toBase58()}
+                          value={m.address.toBase58()}
+                          disabled={m.account.hasActiveRequest}
+                        >
+                          {m.account.milestoneId.toString()} -{" "}
+                          {m.account.hasActiveRequest
+                            ? "request active"
+                            : "available"}{" "}
+                          -{" "}
+                          {formatMockUsdc(m.account.amount, {
+                            withSymbol: true,
+                          })}
+                        </option>
+                      ))}
+                  </select>
+                </>
+              )}
               <label className="work-package-view__reject-label">
                 Invoice amount
               </label>
@@ -1451,6 +1698,7 @@ const ActionPanel = ({
                     setInvoiceAmount("");
                     setInvoiceAmountError(null);
                     setInvoiceDoc("");
+                    setInvoiceMilestone("");
                   }}
                   disabled={pending}
                 >
@@ -1460,7 +1708,11 @@ const ActionPanel = ({
                   type="button"
                   className="work-package-view__btn work-package-view__btn--primary"
                   onClick={onSubmitInvoice}
-                  disabled={pending || invoiceAmount.trim().length === 0}
+                  disabled={
+                    pending ||
+                    invoiceAmount.trim().length === 0 ||
+                    (isMilestonePackage && invoiceMilestone.length === 0)
+                  }
                 >
                   Submit invoice
                 </button>
@@ -1628,7 +1880,8 @@ const ActionPanel = ({
         !canHighApprove &&
         !canRelease &&
         !canPlaceHold &&
-        !canRemoveHold && (
+        !canRemoveHold &&
+        !canSubmitInvoice && (
           <p className="work-package-view__empty">
             {role === "financeDirector"
               ? status === "released"

@@ -31,16 +31,19 @@ export interface PackageRollup {
 export const selectPackageRollup = (
   fetched: Fetched<WorkPackageAccount>,
   activeRequest: PaymentRequestAccount | null,
+  activeRequestAddress: PublicKey | null = null,
 ): PackageRollup => {
   const wp = fetched.account;
+  const hasActiveRequest = wp.hasActiveRequest || activeRequest !== null;
   return {
     address: fetched.address,
     package: wp,
     remainingCapacity: wp.capAmount - wp.fundedAmount,
     outstandingFunded: wp.fundedAmount - wp.releasedAmount,
     unreleasedAgainstCap: wp.capAmount - wp.releasedAmount,
-    hasActiveRequest: wp.hasActiveRequest,
-    activeRequest: wp.hasActiveRequest ? wp.activeRequest : null,
+    hasActiveRequest,
+    activeRequest:
+      activeRequestAddress ?? (wp.hasActiveRequest ? wp.activeRequest : null),
     isHeld: activeRequest?.holdActive ?? false,
   };
 };

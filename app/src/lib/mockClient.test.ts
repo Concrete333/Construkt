@@ -175,7 +175,7 @@ describe("MockConstruktClient happy path", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      requestId
+      requestId,
     );
 
     await client.submitPaymentRequest({
@@ -230,7 +230,7 @@ describe("MockConstruktClient happy path", () => {
     const project = deriveProjectAddress(
       PROGRAM_ID,
       Keypair.generate().publicKey,
-      projectId
+      projectId,
     );
     expect(project).toBeInstanceOf(PublicKey);
     for (let i = 2; i <= 4; i++) {
@@ -270,7 +270,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x",
-      })
+      }),
     ).rejects.toMatchObject({ code: "Unauthorized" });
   });
 
@@ -295,7 +295,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x",
-      })
+      }),
     ).rejects.toMatchObject({ code: "WrongMint" });
   });
 
@@ -331,7 +331,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x",
-      })
+      }),
     ).rejects.toMatchObject({ code: "InsufficientRemainingCap" });
   });
 
@@ -348,7 +348,7 @@ describe("MockConstruktClient invariants", () => {
         startAt: 1_700_000_000n,
         endAt: 1_700_086_400n,
         metadataRef: "ipfs://too-late",
-      })
+      }),
     ).rejects.toMatchObject({ code: "InvalidStatus" });
   });
 
@@ -374,7 +374,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: PublicKey.default,
         mint: w.mint,
         scopeRef: "x",
-      })
+      }),
     ).rejects.toMatchObject({ code: "InvalidAccountRelationship" });
 
     await expect(
@@ -386,7 +386,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x".repeat(129),
-      })
+      }),
     ).rejects.toMatchObject({ code: "StringTooLong" });
 
     await expect(
@@ -398,7 +398,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x".repeat(129),
-      })
+      }),
     ).rejects.toMatchObject({ code: "WrongMint" });
 
     // cap=0 + wrongMint: on chain, the mint constraint is at the account
@@ -413,7 +413,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x",
-      })
+      }),
     ).rejects.toMatchObject({ code: "WrongMint" });
   });
 
@@ -435,7 +435,7 @@ describe("MockConstruktClient invariants", () => {
         requestId: 2n,
         amount: 100_000n,
         documentRef: "ipfs://invoice-2",
-      })
+      }),
     ).rejects.toMatchObject({ code: "ActiveRequestExists" });
   });
 
@@ -453,7 +453,7 @@ describe("MockConstruktClient invariants", () => {
         requestId: 1n,
         amount: 50_000n,
         documentRef: "ipfs://package-level-on-milestone-package",
-      })
+      }),
     ).rejects.toMatchObject({ code: "InvalidStatus" });
 
     await client.submitPaymentRequest({
@@ -475,7 +475,7 @@ describe("MockConstruktClient invariants", () => {
         milestone: milestoneOne,
         amount: 10_000n,
         documentRef: "ipfs://duplicate-milestone-request",
-      })
+      }),
     ).rejects.toMatchObject({ code: "ActiveRequestExists" });
 
     await client.submitPaymentRequest({
@@ -509,7 +509,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
 
     await client.submitPaymentRequest({
@@ -627,7 +627,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
     await expect(
       client.approveRequest({
@@ -637,7 +637,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "highApprover",
         noteRef: "",
-      })
+      }),
     ).rejects.toMatchObject({ code: "InvalidApprovalOrder" });
   });
 
@@ -666,7 +666,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
     await expect(
       client.approveRequest({
@@ -676,7 +676,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      })
+      }),
     ).rejects.toMatchObject({ code: "ContractorCannotApprove" });
   });
 
@@ -693,7 +693,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
     await client.placeHold({
       authority: w.finance,
@@ -710,7 +710,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      })
+      }),
     ).rejects.toMatchObject({ code: "RequestOnHold" });
     await client.removeHold({
       authority: w.finance,
@@ -727,7 +727,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      })
+      }),
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -744,7 +744,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
     await client.approveRequest({
       approver: w.pm,
@@ -761,7 +761,7 @@ describe("MockConstruktClient invariants", () => {
         workPackage,
         paymentRequest,
         contractorTokenAccount: Keypair.generate().publicKey,
-      })
+      }),
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -778,7 +778,7 @@ describe("MockConstruktClient invariants", () => {
     const firstRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n
+      1n,
     );
     await client.rejectRequest({
       approver: w.pm,
@@ -800,7 +800,7 @@ describe("MockConstruktClient invariants", () => {
         requestId: 2n,
         amount: 100_000n,
         documentRef: "ipfs://invoice-2",
-      })
+      }),
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -813,7 +813,7 @@ describe("MockConstruktClient invariants", () => {
         workPackage,
         role: "highApprover",
         wallet: w.pm, // already lowApprover
-      })
+      }),
     ).rejects.toMatchObject({ code: "ApproverRoleConflict" });
   });
 });
@@ -881,7 +881,7 @@ describe("MockConstruktClient — pda derivation matches submitPaymentRequest ou
       PROGRAM_ID,
       workPackage,
       ROLE_BYTES.contractor,
-      w.contractor
+      w.contractor,
     );
     const role = await client.fetchRoleAssignment(roleAddress);
     expect(role?.role).toBe("contractor");

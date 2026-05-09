@@ -25,9 +25,7 @@ describe("friendlyClientError", () => {
 
   it("uses budget-safe copy for shared cap errors", () => {
     expect(
-      friendlyClientError(
-        new ConstruktClientError("InsufficientRemainingCap"),
-      ),
+      friendlyClientError(new ConstruktClientError("InsufficientRemainingCap")),
     ).toBe("Amount would exceed the remaining project or package cap.");
   });
 

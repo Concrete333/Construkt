@@ -92,6 +92,13 @@ export const seedDemoMetadata = (
     summary: DemoPackageSummary;
     description: string;
     contractModel: "milestone" | "valuation" | "bespoke";
+    internalMilestones?: Array<{
+      id: string;
+      name: string;
+      targetDate: string;
+      amount: bigint;
+      status: "paid" | "invoiced" | "uninvoiced";
+    }>;
   }> = [
     {
       summary: world.packages.foundation,
@@ -118,7 +125,37 @@ export const seedDemoMetadata = (
       summary: world.packages.interior,
       description:
         "Interior fit-out, finishes, and FF&E install. Funded; no request yet.",
-      contractModel: "bespoke",
+      contractModel: "milestone",
+      internalMilestones: [
+        {
+          id: "1",
+          name: "Partitions and backing walls",
+          targetDate: "2026-05-08",
+          amount: 50_000_000n,
+          status: "uninvoiced",
+        },
+        {
+          id: "2",
+          name: "Flooring and ceilings",
+          targetDate: "2026-06-09",
+          amount: 50_000_000n,
+          status: "uninvoiced",
+        },
+        {
+          id: "3",
+          name: "Joinery and finishes",
+          targetDate: "2026-07-10",
+          amount: 50_000_000n,
+          status: "uninvoiced",
+        },
+        {
+          id: "4",
+          name: "Final clean and handover",
+          targetDate: "2026-08-10",
+          amount: 50_000_000n,
+          status: "uninvoiced",
+        },
+      ],
     },
     {
       summary: world.packages.rejectedDelta,
@@ -134,6 +171,7 @@ export const seedDemoMetadata = (
       contractorDisplayName: CONTRACTOR.displayName,
       contractorOrg: CONTRACTOR.org,
       contractModel: entry.contractModel,
+      internalMilestones: entry.internalMilestones,
     });
   }
 

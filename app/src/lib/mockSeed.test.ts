@@ -3,9 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 import { MockConstruktClient } from "./mockClient";
 import { seedHospitalFitOut } from "./mockSeed";
 
-const PROGRAM_ID = new PublicKey(
-  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 const newClient = (): MockConstruktClient =>
   new MockConstruktClient({
@@ -104,7 +102,14 @@ describe("seedHospitalFitOut — per-package final state", () => {
     const wp = await client.fetchWorkPackage(world.packages.interior.address);
     expect(wp?.status).toBe("active");
     expect(wp?.hasActiveRequest).toBe(false);
+    expect(wp?.milestoneCounter).toBe(4n);
+    expect(wp?.allocatedMilestoneAmount).toBe(wp?.capAmount);
     expect(world.packages.interior.request).toBeNull();
+    expect(world.packages.interior.milestones).toHaveLength(4);
+    const milestones = await client.fetchMilestonesForPackage(
+      world.packages.interior.address,
+    );
+    expect(milestones).toHaveLength(4);
     const requests = await client.fetchPaymentRequestsForPackage(
       world.packages.interior.address,
     );

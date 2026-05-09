@@ -127,6 +127,15 @@ const derivePaymentRequestAddress = (
     PROGRAM_ID
   )[0];
 
+const deriveMilestoneAddress = (
+  workPackage: anchor.web3.PublicKey,
+  milestoneId: number
+): anchor.web3.PublicKey =>
+  anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("milestone"), workPackage.toBuffer(), u64Seed(milestoneId)],
+    PROGRAM_ID
+  )[0];
+
 const deriveApprovalRecordAddress = (
   paymentRequest: anchor.web3.PublicKey,
   roleByte: number
@@ -172,6 +181,8 @@ const docRefFor = (slug: string): string => `metadata://demo/document/${slug}`;
 const scopeRefFor = (slug: string): string => `metadata://demo/package/${slug}`;
 const invoiceRefFor = (name: string, version: number): string =>
   docRefFor(`${packageScopeSlug(name)}-invoice-v${version}`);
+const milestoneRefFor = (name: string, milestoneId: number): string =>
+  `metadata://demo/milestone/${packageScopeSlug(name)}-${milestoneId}`;
 
 const PACKAGE_NAMES = {
   foundation: "Foundation Pour Bay A",
@@ -254,7 +265,12 @@ async function main() {
 
   const setupPackage = async (
     packageId: number,
-    packageName: string
+    packageName: string,
+    milestones: Array<{
+      amount: number;
+      startAt: number;
+      endAt: number;
+    }> = []
   ): Promise<{
     workPackage: anchor.web3.PublicKey;
     paymentRequest: anchor.web3.PublicKey;
@@ -283,6 +299,27 @@ async function main() {
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();
+
+    for (const [idx, milestoneDef] of milestones.entries()) {
+      const milestoneId = idx + 1;
+      const milestone = deriveMilestoneAddress(workPackage, milestoneId);
+      await program.methods
+        .createMilestone(
+          new anchor.BN(milestoneId),
+          new anchor.BN(milestoneDef.amount),
+          new anchor.BN(milestoneDef.startAt),
+          new anchor.BN(milestoneDef.endAt),
+          milestoneRefFor(packageName, milestoneId)
+        )
+        .accountsStrict({
+          authority: finance.publicKey,
+          project,
+          workPackage,
+          milestone,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc();
+    }
 
     await program.methods
       .fundEscrow(new anchor.BN(CAP_AMOUNT))
@@ -522,7 +559,12 @@ async function main() {
     .rpc();
 
   // 5) Interior: funded + no request
-  await setupPackage(5, PACKAGE_NAMES.interior);
+  await setupPackage(5, PACKAGE_NAMES.interior, [
+    { amount: 50_000_000, startAt: 1_775_779_200, endAt: 1_778_284_800 },
+    { amount: 50_000_000, startAt: 1_778_371_200, endAt: 1_780_963_200 },
+    { amount: 50_000_000, startAt: 1_781_049_600, endAt: 1_783_641_600 },
+    { amount: 50_000_000, startAt: 1_783_728_000, endAt: 1_786_320_000 },
+  ]);
 
   // 6) Site logistics: rejected
   const site = await setupPackage(6, PACKAGE_NAMES.siteLogistics);

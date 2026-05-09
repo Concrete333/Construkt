@@ -1,5 +1,6 @@
 import { Keypair, PublicKey } from "@solana/web3.js";
 import {
+  deriveMilestoneAddress,
   derivePaymentRequestAddress,
   deriveProjectAddress,
   deriveWorkPackageAddress,
@@ -52,6 +53,9 @@ const documentRefFor = (packageName: string, version: number): string =>
 const noteRefFor = (packageName: string, kind: string): string =>
   `metadata://demo/note/${packageScopeSlug(packageName)}-${kind}`;
 
+const milestoneRefFor = (packageName: string, milestoneId: bigint): string =>
+  `metadata://demo/milestone/${packageScopeSlug(packageName)}-${milestoneId}`;
+
 export interface DemoPackageSummary {
   name: string;
   /** Address of the WorkPackage PDA. */
@@ -61,6 +65,7 @@ export interface DemoPackageSummary {
    * `null` for packages that have no request yet.
    */
   request: PublicKey | null;
+  milestones?: PublicKey[];
   /** Final on-chain status of the request, if a request was created. */
   finalStatus:
     | "noRequest"
@@ -135,7 +140,16 @@ export const seedHospitalFitOut = async (
   let nextPackageId = 1n;
   const setupPackage = async (
     name: string,
-  ): Promise<{ address: PublicKey; packageId: bigint }> => {
+    milestones: Array<{
+      amount: bigint;
+      startAt: bigint;
+      endAt: bigint;
+    }> = [],
+  ): Promise<{
+    address: PublicKey;
+    packageId: bigint;
+    milestones: PublicKey[];
+  }> => {
     const packageId = nextPackageId++;
     await client.createWorkPackage({
       authority: finance.publicKey,
@@ -151,6 +165,23 @@ export const seedHospitalFitOut = async (
       project,
       packageId,
     );
+    const milestoneAddresses: PublicKey[] = [];
+    for (const [idx, milestone] of milestones.entries()) {
+      const milestoneId = BigInt(idx + 1);
+      await client.createMilestone({
+        authority: finance.publicKey,
+        project,
+        workPackage: address,
+        milestoneId,
+        amount: milestone.amount,
+        startAt: milestone.startAt,
+        endAt: milestone.endAt,
+        metadataRef: milestoneRefFor(name, milestoneId),
+      });
+      milestoneAddresses.push(
+        deriveMilestoneAddress(opts.programId, address, milestoneId),
+      );
+    }
     await client.fundEscrow({
       authority: finance.publicKey,
       project,
@@ -178,7 +209,7 @@ export const seedHospitalFitOut = async (
       role: "highApprover",
       wallet: director.publicKey,
     });
-    return { address, packageId };
+    return { address, packageId, milestones: milestoneAddresses };
   };
 
   const submitRequest = async (
@@ -280,7 +311,12 @@ export const seedHospitalFitOut = async (
   });
 
   // Package 5 — funded only, no request yet
-  const interior = await setupPackage("Interior Fit-Out");
+  const interior = await setupPackage("Interior Fit-Out", [
+    { amount: 50_000_000n, startAt: 1_775_779_200n, endAt: 1_778_284_800n },
+    { amount: 50_000_000n, startAt: 1_778_371_200n, endAt: 1_780_963_200n },
+    { amount: 50_000_000n, startAt: 1_781_049_600n, endAt: 1_783_641_600n },
+    { amount: 50_000_000n, startAt: 1_783_728_000n, endAt: 1_786_320_000n },
+  ]);
 
   // Package 6 — request rejected by PM (work package itself unblocked)
   const rejectedDelta = await setupPackage("Site Logistics Variation");
@@ -333,6 +369,7 @@ export const seedHospitalFitOut = async (
         name: "Interior Fit-Out",
         address: interior.address,
         request: null,
+        milestones: interior.milestones,
         finalStatus: "noRequest",
       },
       rejectedDelta: {

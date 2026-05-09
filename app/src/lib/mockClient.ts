@@ -51,8 +51,8 @@ const opposingApprover = (role: Role): Role | null =>
   role === "lowApprover"
     ? "highApprover"
     : role === "highApprover"
-    ? "lowApprover"
-    : null;
+      ? "lowApprover"
+      : null;
 
 const fail = (code: ConstruktClientError["code"], message?: string): never => {
   throw new ConstruktClientError(code, message);
@@ -111,13 +111,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchWorkPackage(
-    address: PublicKey
+    address: PublicKey,
   ): Promise<WorkPackageAccount | null> {
     return this.workPackages.get(address.toBase58()) ?? null;
   }
 
   async fetchWorkPackagesForProject(
-    project: PublicKey
+    project: PublicKey,
   ): Promise<Fetched<WorkPackageAccount>[]> {
     return [...this.workPackages.entries()]
       .filter(([, account]) => account.project.equals(project))
@@ -129,7 +129,7 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchMilestonesForPackage(
-    workPackage: PublicKey
+    workPackage: PublicKey,
   ): Promise<Fetched<MilestoneAccount>[]> {
     return [...this.milestones.entries()]
       .filter(([, account]) => account.workPackage.equals(workPackage))
@@ -137,13 +137,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchRoleAssignment(
-    address: PublicKey
+    address: PublicKey,
   ): Promise<RoleAssignmentAccount | null> {
     return this.roleAssignments.get(address.toBase58()) ?? null;
   }
 
   async fetchRoleAssignmentsForPackage(
-    workPackage: PublicKey
+    workPackage: PublicKey,
   ): Promise<Fetched<RoleAssignmentAccount>[]> {
     return [...this.roleAssignments.entries()]
       .filter(([, account]) => account.workPackage.equals(workPackage))
@@ -151,13 +151,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchPaymentRequest(
-    address: PublicKey
+    address: PublicKey,
   ): Promise<PaymentRequestAccount | null> {
     return this.paymentRequests.get(address.toBase58()) ?? null;
   }
 
   async fetchPaymentRequestsForPackage(
-    workPackage: PublicKey
+    workPackage: PublicKey,
   ): Promise<Fetched<PaymentRequestAccount>[]> {
     return [...this.paymentRequests.entries()]
       .filter(([, account]) => account.workPackage.equals(workPackage))
@@ -165,13 +165,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchApprovalRecord(
-    address: PublicKey
+    address: PublicKey,
   ): Promise<ApprovalRecord | null> {
     return this.approvalRecords.get(address.toBase58()) ?? null;
   }
 
   async fetchApprovalsForRequest(
-    paymentRequest: PublicKey
+    paymentRequest: PublicKey,
   ): Promise<Fetched<ApprovalRecord>[]> {
     return [...this.approvalRecords.entries()]
       .filter(([, account]) => account.paymentRequest.equals(paymentRequest))
@@ -190,7 +190,7 @@ export class MockConstruktClient implements ConstruktClient {
     const address = deriveProjectAddress(
       this.programId,
       p.authority,
-      p.projectId
+      p.projectId,
     );
     if (this.projects.has(address.toBase58())) fail("InvalidStatus");
 
@@ -228,13 +228,13 @@ export class MockConstruktClient implements ConstruktClient {
     const wpAddress = deriveWorkPackageAddress(
       this.programId,
       p.project,
-      p.packageId
+      p.packageId,
     );
     if (this.workPackages.has(wpAddress.toBase58())) fail("InvalidStatus");
 
     const vaultAuthority = deriveVaultAuthorityAddress(
       this.programId,
-      wpAddress
+      wpAddress,
     );
     // The mock doesn't model SPL ATAs; the vault address is synthetic but stable.
     const vault = vaultAuthority;
@@ -285,7 +285,7 @@ export class MockConstruktClient implements ConstruktClient {
     const address = deriveMilestoneAddress(
       this.programId,
       p.workPackage,
-      p.milestoneId
+      p.milestoneId,
     );
     if (this.milestones.has(address.toBase58())) fail("InvalidStatus");
 
@@ -340,7 +340,7 @@ export class MockConstruktClient implements ConstruktClient {
           this.programId,
           p.workPackage,
           roleByteOf[opposing],
-          p.wallet
+          p.wallet,
         );
         if (this.roleAssignments.has(opposingAddress.toBase58()))
           fail("ApproverRoleConflict");
@@ -351,7 +351,7 @@ export class MockConstruktClient implements ConstruktClient {
       this.programId,
       p.workPackage,
       roleByteOf[p.role],
-      p.wallet
+      p.wallet,
     );
     if (this.roleAssignments.has(address.toBase58())) fail("InvalidStatus");
 
@@ -398,10 +398,10 @@ export class MockConstruktClient implements ConstruktClient {
       this.programId,
       p.workPackage,
       ROLE_BYTES.contractor,
-      p.contractor
+      p.contractor,
     );
     const contractorRole = this.roleAssignments.get(
-      contractorRoleAddress.toBase58()
+      contractorRoleAddress.toBase58(),
     );
     if (!contractorRole) fail("InvalidAccountRelationship");
     if (!contractorRole!.active) fail("InactiveRoleAssignment");
@@ -433,7 +433,7 @@ export class MockConstruktClient implements ConstruktClient {
     const address = derivePaymentRequestAddress(
       this.programId,
       p.workPackage,
-      p.requestId
+      p.requestId,
     );
     const now = this.clock();
     this.paymentRequests.set(address.toBase58(), {
@@ -568,7 +568,7 @@ export class MockConstruktClient implements ConstruktClient {
 
   private async recordDecision(
     p: ApproveRequestParams | RejectRequestParams,
-    decision: "approved" | "rejected"
+    decision: "approved" | "rejected",
   ): Promise<TxResult> {
     if (p.noteRef.length > MAX_NOTE_REF_LEN) fail("StringTooLong");
     if (p.role !== "lowApprover" && p.role !== "highApprover")
@@ -584,10 +584,10 @@ export class MockConstruktClient implements ConstruktClient {
       this.programId,
       p.workPackage,
       roleByteOf[p.role],
-      p.approver
+      p.approver,
     );
     const approverRole = this.roleAssignments.get(
-      approverRoleAddress.toBase58()
+      approverRoleAddress.toBase58(),
     );
     if (!approverRole) fail("InvalidAccountRelationship");
     if (!approverRole!.active) fail("InactiveRoleAssignment");
@@ -602,7 +602,7 @@ export class MockConstruktClient implements ConstruktClient {
     const recordAddress = deriveApprovalRecordAddress(
       this.programId,
       p.paymentRequest,
-      roleByteOf[p.role]
+      roleByteOf[p.role],
     );
     if (this.approvalRecords.has(recordAddress.toBase58()))
       fail("InvalidStatus");
@@ -667,7 +667,7 @@ export class MockConstruktClient implements ConstruktClient {
 
   private releaseReservedRequestAmount(
     wp: WorkPackageAccount,
-    amount: bigint
+    amount: bigint,
   ): void {
     if (amount > wp.reservedRequestAmount) fail("ArithmeticOverflow");
     wp.reservedRequestAmount -= amount;
