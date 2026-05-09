@@ -52,7 +52,8 @@ describe("construkt b1 accounts and roles", () => {
         new anchor.BN(packageId),
         capAmount,
         fx.contractor.publicKey,
-        "ipfs://scope-ref"
+        "ipfs://scope-ref",
+        false
       )
       .accountsStrict({
         authority: fx.finance.publicKey,
@@ -227,7 +228,8 @@ describe("construkt b1 accounts and roles", () => {
           new anchor.BN(2),
           capAmount,
           fx.contractor.publicKey,
-          "ipfs://unauthorized-scope"
+          "ipfs://unauthorized-scope",
+          false
         )
         .accountsStrict({
           authority: fx.unrelatedUser.publicKey,
@@ -319,7 +321,8 @@ describe("construkt b1 accounts and roles", () => {
           new anchor.BN(3),
           new anchor.BN(0),
           fx.contractor.publicKey,
-          "ipfs://scope-ref"
+          "ipfs://scope-ref",
+          false
         )
         .accountsStrict({
           authority: fx.finance.publicKey,
@@ -343,7 +346,8 @@ describe("construkt b1 accounts and roles", () => {
           new anchor.BN(4),
           capAmount,
           defaultPubkey,
-          "ipfs://scope-ref"
+          "ipfs://scope-ref",
+          false
         )
         .accountsStrict({
           authority: fx.finance.publicKey,
@@ -367,7 +371,8 @@ describe("construkt b1 accounts and roles", () => {
           new anchor.BN(5),
           capAmount,
           fx.contractor.publicKey,
-          "x".repeat(129)
+          "x".repeat(129),
+          false
         )
         .accountsStrict({
           authority: fx.finance.publicKey,

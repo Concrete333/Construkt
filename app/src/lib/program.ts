@@ -52,6 +52,7 @@ export interface WorkPackageAccount {
   requestCounter: bigint;
   hasActiveRequest: boolean;
   activeRequest: PublicKey;
+  highApprovalRequired: boolean;
   bump: number;
 }
 
@@ -156,6 +157,7 @@ export interface CreateWorkPackageParams {
   contractor: PublicKey;
   mint: PublicKey;
   scopeRef: string;
+  highApprovalRequired?: boolean;
 }
 
 export interface CreateMilestoneParams {
@@ -189,6 +191,7 @@ export interface CreatePackageDraftParams {
   capAmount: bigint;
   contractor: PublicKey;
   scopeRef: string;
+  highApprovalRequired?: boolean;
 }
 
 export interface CreateDraftMilestoneParams {
@@ -290,6 +293,13 @@ export interface ReleasePaymentParams {
   contractorTokenAccount: PublicKey;
 }
 
+export interface UpdateHighApprovalPolicyParams {
+  authority: PublicKey;
+  project: PublicKey;
+  workPackage: PublicKey;
+  highApprovalRequired: boolean;
+}
+
 /**
  * The single client surface that Phase 2 UI will talk to. The mock and the
  * future Anchor implementation both satisfy this interface so swapping the
@@ -368,6 +378,9 @@ export interface ConstruktClient {
   placeHold(params: PlaceHoldParams): Promise<TxResult>;
   removeHold(params: RemoveHoldParams): Promise<TxResult>;
   releasePayment(params: ReleasePaymentParams): Promise<TxResult>;
+  updateHighApprovalPolicy(
+    params: UpdateHighApprovalPolicyParams,
+  ): Promise<TxResult>;
 }
 
 /**
@@ -400,7 +413,8 @@ export type ConstruktErrorCode =
   | "WrongMint"
   | "WrongTokenOwner"
   | "ArithmeticOverflow"
-  | "InvalidAmount";
+  | "InvalidAmount"
+  | "HighApprovalRequired";
 
 export class ConstruktClientError extends Error {
   readonly code: ConstruktErrorCode;
@@ -443,6 +457,8 @@ const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
   WrongTokenOwner: "Token account is owned by an unexpected wallet.",
   ArithmeticOverflow: "Arithmetic overflow on amount math.",
   InvalidAmount: "Amount is invalid (zero or negative).",
+  HighApprovalRequired:
+    "This package requires high approval before Finance can release.",
 };
 
 /**

@@ -52,6 +52,7 @@ import type {
   ProjectStatus,
   RejectRequestParams,
   ReleasePaymentParams,
+  UpdateHighApprovalPolicyParams,
   RemoveHoldParams,
   Role,
   RoleAssignmentAccount,
@@ -94,6 +95,7 @@ interface RawWorkPackageAccount {
   requestCounter: BN;
   hasActiveRequest: boolean;
   activeRequest: PublicKey;
+  highApprovalRequired: boolean;
   bump: number;
 }
 
@@ -213,6 +215,7 @@ const ERROR_CODE_BY_NUMBER: Record<number, ConstruktErrorCode> = {
   6021: "WrongTokenOwner",
   6022: "ArithmeticOverflow",
   6023: "InvalidAmount",
+  6024: "HighApprovalRequired",
 };
 
 const ERROR_CODE_SET = new Set<ConstruktErrorCode>([
@@ -341,6 +344,7 @@ const fromRawWorkPackage = (
   requestCounter: toBigInt(raw.requestCounter),
   hasActiveRequest: raw.hasActiveRequest,
   activeRequest: raw.activeRequest,
+  highApprovalRequired: raw.highApprovalRequired,
   bump: raw.bump,
 });
 
@@ -711,6 +715,7 @@ class AnchorConstruktClient implements ConstruktClient {
         toBn(params.capAmount),
         params.contractor,
         params.scopeRef,
+        params.highApprovalRequired ?? false,
       )
         .accounts({
           authority: params.authority,
@@ -826,6 +831,7 @@ class AnchorConstruktClient implements ConstruktClient {
         toBn(params.capAmount),
         params.contractor,
         params.scopeRef,
+        params.highApprovalRequired ?? false,
       )
         .accounts({
           drafter: params.drafter,
@@ -1229,6 +1235,27 @@ class AnchorConstruktClient implements ConstruktClient {
           vault,
           contractorTokenAccount,
           tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .signers(this.extraSigners(params.authority))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async updateHighApprovalPolicy(
+    params: UpdateHighApprovalPolicyParams,
+  ): Promise<TxResult> {
+    try {
+      const signature = await this.method(
+        "updateHighApprovalPolicy",
+        params.highApprovalRequired,
+      )
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          workPackage: params.workPackage,
         })
         .signers(this.extraSigners(params.authority))
         .rpc();

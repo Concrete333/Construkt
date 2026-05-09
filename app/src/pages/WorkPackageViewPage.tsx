@@ -389,7 +389,11 @@ export const WorkPackageViewPage = ({
             ) : (
               <ul className="work-package-view__requests">
                 {requests.map((row) => (
-                  <RequestCard key={row.request.address.toBase58()} row={row} />
+                  <RequestCard
+                    key={row.request.address.toBase58()}
+                    row={row}
+                    highApprovalRequired={rollup.package.highApprovalRequired}
+                  />
                 ))}
               </ul>
             )}
@@ -497,10 +501,28 @@ export const WorkPackageViewPage = ({
           <ApprovalTrackerPanel
             row={activeRequestRow}
             teamMembers={teamMembers}
+            highApprovalRequired={rollup.package.highApprovalRequired}
           />
           <ReleaseReadinessPanel
             readiness={releaseReadiness}
             hasActive={Boolean(activeRequest)}
+          />
+          <ApprovalPolicyPanel
+            isFinance={role === "financeDirector"}
+            highApprovalRequired={rollup.package.highApprovalRequired}
+            packageStatus={rollup.package.status}
+            hasActiveRequest={rollup.package.hasActiveRequest}
+            pending={pending}
+            onFlip={(next) =>
+              void onAct(() =>
+                client.updateHighApprovalPolicy({
+                  authority: wallet,
+                  project: loaded.project.address,
+                  workPackage: loaded.packageAddress,
+                  highApprovalRequired: next,
+                }),
+              )
+            }
           />
           <RolesPanel
             assignments={teamMembers}
@@ -766,7 +788,13 @@ const pctOf = (part: bigint, whole: bigint): number => {
   return ratio;
 };
 
-const RequestCard = ({ row }: { row: RequestRow }) => {
+const RequestCard = ({
+  row,
+  highApprovalRequired,
+}: {
+  row: RequestRow;
+  highApprovalRequired: boolean;
+}) => {
   const { request, displayStatus, approvals, documentMetadata, isActive } = row;
   return (
     <li className="work-package-view__request">
@@ -809,7 +837,7 @@ const RequestCard = ({ row }: { row: RequestRow }) => {
           at={approvals.lowApprover.at}
         />
         <ApprovalSlot
-          label="Optional high"
+          label={highApprovalRequired ? "Required high" : "Optional high"}
           state={approvals.highApprover.state}
           at={approvals.highApprover.at}
         />
@@ -858,9 +886,11 @@ const ApprovalSlot = ({
 const ApprovalTrackerPanel = ({
   row,
   teamMembers,
+  highApprovalRequired,
 }: {
   row: RequestRow | null;
   teamMembers: TeamMember[];
+  highApprovalRequired: boolean;
 }) => {
   const teamByWallet = new Map(teamMembers.map((m) => [m.wallet, m]));
   if (!row) {
@@ -896,7 +926,9 @@ const ApprovalTrackerPanel = ({
         </li>
         <li className="work-package-view__tracker-step">
           <span className="work-package-view__tracker-role">
-            Optional high approval
+            {highApprovalRequired
+              ? "Required high approval"
+              : "Optional high approval"}
           </span>
           <StatusPill tone={APPROVAL_TONES[row.approvals.highApprover.state]}>
             {APPROVAL_LABELS[row.approvals.highApprover.state]}
@@ -963,6 +995,65 @@ const ReleaseReadinessPanel = ({
               <li key={reason}>{releaseBlockedReasonLabel(reason)}</li>
             ))}
           </ul>
+        </>
+      )}
+    </section>
+  );
+};
+
+interface ApprovalPolicyPanelProps {
+  isFinance: boolean;
+  highApprovalRequired: boolean;
+  packageStatus: WorkPackageAccount["status"];
+  hasActiveRequest: boolean;
+  pending: boolean;
+  onFlip: (next: boolean) => void;
+}
+
+const ApprovalPolicyPanel = ({
+  isFinance,
+  highApprovalRequired,
+  packageStatus,
+  hasActiveRequest,
+  pending,
+  onFlip,
+}: ApprovalPolicyPanelProps) => {
+  const isUpdatablePackageStatus =
+    packageStatus === "draft" || packageStatus === "active";
+  const blockedReason = !isUpdatablePackageStatus
+    ? "Policy can only change while the package is in Draft or Active."
+    : hasActiveRequest
+      ? "A payment request is in flight. The policy is locked until that request reaches a final state."
+      : null;
+  const canFlip = isFinance && !blockedReason;
+  return (
+    <section className="work-package-view__aside-panel">
+      <h2>Approval policy</h2>
+      <StatusPill tone={highApprovalRequired ? "warning" : "neutral"}>
+        {highApprovalRequired
+          ? "Director approval required"
+          : "Default policy (PM approval)"}
+      </StatusPill>
+      <p className="work-package-view__aside-note">
+        {highApprovalRequired
+          ? "Finance can only release after both PM and Director approve this request."
+          : "PM approval is enough for Finance to release."}
+      </p>
+      {isFinance && (
+        <>
+          {blockedReason && (
+            <p className="work-package-view__aside-note">{blockedReason}</p>
+          )}
+          <button
+            type="button"
+            className="work-package-view__btn work-package-view__btn--ghost"
+            onClick={() => onFlip(!highApprovalRequired)}
+            disabled={pending || !canFlip}
+          >
+            {highApprovalRequired
+              ? "Switch to default (PM only)"
+              : "Require Director approval"}
+          </button>
         </>
       )}
     </section>

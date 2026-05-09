@@ -42,7 +42,7 @@ const PROGRAM_ID = new anchor.web3.PublicKey(IDL.address);
 const RPC_URL = process.env.ANCHOR_RPC_URL ?? "http://localhost:8899";
 
 const PROJECT_ID = 1;
-const PROJECT_BUDGET = 1_200_000_000;
+const PROJECT_BUDGET = 1_400_000_000;
 const CAP_AMOUNT = 200_000_000;
 const MINT_SUPPLY = 2_000_000_000;
 
@@ -200,6 +200,7 @@ const PACKAGE_NAMES = {
   facade: "Facade Remediation",
   interior: "Interior Fit-Out",
   siteLogistics: "Site Logistics Variation",
+  complianceUpgrade: "Fire & Compliance Upgrade",
 } as const;
 
 async function main() {
@@ -289,7 +290,8 @@ async function main() {
       amount: number;
       startAt: number;
       endAt: number;
-    }> = []
+    }> = [],
+    options: { highApprovalRequired?: boolean } = {}
   ): Promise<{
     workPackage: anchor.web3.PublicKey;
     paymentRequest: anchor.web3.PublicKey;
@@ -304,7 +306,8 @@ async function main() {
         new anchor.BN(packageId),
         new anchor.BN(CAP_AMOUNT),
         contractor.publicKey,
-        scopeRefFor(packageScopeSlug(packageName))
+        scopeRefFor(packageScopeSlug(packageName)),
+        Boolean(options.highApprovalRequired)
       )
       .accounts({
         authority: finance.publicKey,
@@ -592,6 +595,19 @@ async function main() {
     PACKAGE_NAMES.siteLogistics
   );
   await rejectByPm(site.workPackage, siteRequest);
+
+  // 7) Compliance upgrade: required-high policy, parked at lowApproved
+  const compliance = await setupPackage(
+    7,
+    PACKAGE_NAMES.complianceUpgrade,
+    [],
+    { highApprovalRequired: true }
+  );
+  const complianceRequest = await submitRequest(
+    compliance.workPackage,
+    PACKAGE_NAMES.complianceUpgrade
+  );
+  await approve(compliance.workPackage, complianceRequest, "lowApprover");
 
   console.log("");
   console.log("Seed complete.");

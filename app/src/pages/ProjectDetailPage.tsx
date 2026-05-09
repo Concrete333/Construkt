@@ -221,6 +221,7 @@ export const ProjectDetailPage = ({
   const [packageMode, setPackageMode] = useState<"simple" | "milestone">(
     "simple",
   );
+  const [highApprovalRequired, setHighApprovalRequired] = useState(false);
   const [milestoneRows, setMilestoneRows] = useState<MilestoneFormRow[]>(() =>
     defaultMilestoneRows(),
   );
@@ -435,6 +436,7 @@ export const ProjectDetailPage = ({
                 contractor: contractorKey,
                 mint: rollup.project.mint,
                 scopeRef,
+                highApprovalRequired,
               })
             : await client.createPackageDraft({
                 drafter: wallet,
@@ -443,6 +445,7 @@ export const ProjectDetailPage = ({
                 capAmount,
                 contractor: contractorKey,
                 scopeRef,
+                highApprovalRequired,
               });
         for (const [idx, milestone] of (
           parsedMilestones as ParsedMilestoneFormRow[]
@@ -483,6 +486,7 @@ export const ProjectDetailPage = ({
           contractor: contractorKey,
           mint: rollup.project.mint,
           scopeRef,
+          highApprovalRequired,
         });
       }
       return client.createPackageDraft({
@@ -492,6 +496,7 @@ export const ProjectDetailPage = ({
         capAmount,
         contractor: contractorKey,
         scopeRef,
+        highApprovalRequired,
       });
     }).then(() => {
       setAddPkgOpen(false);
@@ -501,6 +506,7 @@ export const ProjectDetailPage = ({
       setPackageMode("simple");
       setMilestoneRows(defaultMilestoneRows());
       setMilestoneError(null);
+      setHighApprovalRequired(false);
     });
   };
 
@@ -773,6 +779,23 @@ export const ProjectDetailPage = ({
                   <option value="milestone">Milestone schedule</option>
                 </select>
               </div>
+              <div className="project-detail__form-field project-detail__form-field--checkbox">
+                <label className="project-detail__form-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={highApprovalRequired}
+                    onChange={(e) => setHighApprovalRequired(e.target.checked)}
+                    disabled={pending}
+                  />
+                  <span>
+                    Require Director (high) approval before Finance can release
+                  </span>
+                </label>
+                <p className="project-detail__form-hint">
+                  When on, Finance can only release after both PM and Director
+                  approve. Default packages release after PM approval alone.
+                </p>
+              </div>
               {packageMode === "milestone" && (
                 <div className="project-detail__milestone-editor">
                   <div className="project-detail__milestone-head">
@@ -901,6 +924,7 @@ export const ProjectDetailPage = ({
                     setPackageMode("simple");
                     setMilestoneRows(defaultMilestoneRows());
                     setMilestoneError(null);
+                    setHighApprovalRequired(false);
                   }}
                   disabled={pending}
                 >
@@ -1094,17 +1118,22 @@ const PackageCard = ({
             {row.scope?.description?.split(".")[0] ??
               row.rollup.package.scopeRef}
           </h3>
-          <StatusPill
-            tone={
-              status === "completed"
-                ? "success"
-                : status === "cancelled"
-                  ? "neutral"
-                  : "info"
-            }
-          >
-            {workPackageStatusLabel(status)}
-          </StatusPill>
+          <div className="project-detail__package-pills">
+            <StatusPill
+              tone={
+                status === "completed"
+                  ? "success"
+                  : status === "cancelled"
+                    ? "neutral"
+                    : "info"
+              }
+            >
+              {workPackageStatusLabel(status)}
+            </StatusPill>
+            {row.rollup.package.highApprovalRequired && (
+              <StatusPill tone="warning">High approval required</StatusPill>
+            )}
+          </div>
         </header>
         <dl className="project-detail__package-metrics">
           <Metric label="Cap">
@@ -1139,6 +1168,11 @@ const PackageCard = ({
 
       {fundCtx.isFinance && status === "draft" && milestoneScheduleComplete && (
         <div className="project-detail__package-fund">
+          <p className="project-detail__package-note">
+            {row.rollup.package.highApprovalRequired
+              ? "Releases require both PM and Director approval."
+              : "Releases unlock after PM approval (default policy)."}
+          </p>
           <button
             type="button"
             className="project-detail__btn project-detail__btn--primary"

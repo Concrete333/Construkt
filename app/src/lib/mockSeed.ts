@@ -25,7 +25,7 @@ const SEED_BYTES = {
 } as const;
 
 const PROJECT_ID = 1n;
-const PROJECT_BUDGET = 1_200_000_000n;
+const PROJECT_BUDGET = 1_400_000_000n;
 
 /**
  * Mock USDC has 6 decimals, so 200_000_000 base units = $200.00. Cap and
@@ -90,6 +90,7 @@ export interface DemoWorld {
     facade: DemoPackageSummary;
     interior: DemoPackageSummary;
     rejectedDelta: DemoPackageSummary;
+    complianceUpgrade: DemoPackageSummary;
   };
 }
 
@@ -150,6 +151,7 @@ export const seedHospitalFitOut = async (
       startAt: bigint;
       endAt: bigint;
     }> = [],
+    options: { highApprovalRequired?: boolean } = {},
   ): Promise<{
     address: PublicKey;
     packageId: bigint;
@@ -164,6 +166,7 @@ export const seedHospitalFitOut = async (
       contractor: contractor.publicKey,
       mint,
       scopeRef: scopeRefFor(name),
+      highApprovalRequired: options.highApprovalRequired,
     });
     const address = deriveWorkPackageAddress(
       opts.programId,
@@ -338,6 +341,26 @@ export const seedHospitalFitOut = async (
     noteRef: noteRefFor("Site Logistics Variation", "pm-reject"),
   });
 
+  // Package 7 — required-high policy: PM has approved, Director approval still
+  // pending so release is gated by `high_approval_required`.
+  const complianceUpgrade = await setupPackage(
+    "Fire & Compliance Upgrade",
+    [],
+    { highApprovalRequired: true },
+  );
+  const complianceUpgradeRequest = await submitRequest(
+    complianceUpgrade.address,
+    "Fire & Compliance Upgrade",
+  );
+  await client.approveRequest({
+    approver: pm.publicKey,
+    project,
+    workPackage: complianceUpgrade.address,
+    paymentRequest: complianceUpgradeRequest,
+    role: "lowApprover",
+    noteRef: noteRefFor("Fire & Compliance Upgrade", "pm-approve"),
+  });
+
   return {
     finance,
     pm,
@@ -382,6 +405,12 @@ export const seedHospitalFitOut = async (
         address: rejectedDelta.address,
         request: rejectedDeltaRequest,
         finalStatus: "rejected",
+      },
+      complianceUpgrade: {
+        name: "Fire & Compliance Upgrade",
+        address: complianceUpgrade.address,
+        request: complianceUpgradeRequest,
+        finalStatus: "lowApproved",
       },
     },
   };

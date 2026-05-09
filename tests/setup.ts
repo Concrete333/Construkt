@@ -221,7 +221,8 @@ export const createFixture = () => {
     id: number,
     packageContractor = contractor.publicKey,
     packageCap = capAmount,
-    scopeRef = "ipfs://scope-ref"
+    scopeRef = "ipfs://scope-ref",
+    highApprovalRequired = false
   ) => {
     const addresses = deriveWorkPackageAddresses(id);
 
@@ -230,7 +231,8 @@ export const createFixture = () => {
         new anchor.BN(id),
         packageCap,
         packageContractor,
-        scopeRef
+        scopeRef,
+        highApprovalRequired
       )
       .accountsStrict({
         authority: finance.publicKey,
@@ -284,7 +286,8 @@ export const createFixture = () => {
     projectDrafter = deriveProjectDrafterAddress(project, drafter.publicKey),
     packageContractor = contractor.publicKey,
     packageCap = capAmount,
-    scopeRef = "ipfs://draft-scope-ref"
+    scopeRef = "ipfs://draft-scope-ref",
+    highApprovalRequired = false
   ) => {
     const addresses = deriveWorkPackageAddresses(id);
     await program.methods
@@ -292,7 +295,8 @@ export const createFixture = () => {
         new anchor.BN(id),
         packageCap,
         packageContractor,
-        scopeRef
+        scopeRef,
+        highApprovalRequired
       )
       .accountsStrict({
         drafter: drafter.publicKey,

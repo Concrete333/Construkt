@@ -34,6 +34,7 @@ import type {
   ProjectDrafterAccount,
   RejectRequestParams,
   ReleasePaymentParams,
+  UpdateHighApprovalPolicyParams,
   RemoveHoldParams,
   Role,
   RoleAssignmentAccount,
@@ -279,6 +280,7 @@ export class MockConstruktClient implements ConstruktClient {
       requestCounter: 0n,
       hasActiveRequest: false,
       activeRequest: PublicKey.default,
+      highApprovalRequired: p.highApprovalRequired ?? false,
       bump: 255,
     });
     project.allocatedAmount += p.capAmount;
@@ -412,6 +414,7 @@ export class MockConstruktClient implements ConstruktClient {
       requestCounter: 0n,
       hasActiveRequest: false,
       activeRequest: PublicKey.default,
+      highApprovalRequired: p.highApprovalRequired ?? false,
       bump: 255,
     });
     return this.tx();
@@ -742,6 +745,8 @@ export class MockConstruktClient implements ConstruktClient {
     if (pr.status === "released") fail("RequestAlreadyReleased");
     if (pr.status !== "lowApproved" && pr.status !== "highApproved")
       fail("InvalidStatus");
+    if (wp.highApprovalRequired && pr.status !== "highApproved")
+      fail("HighApprovalRequired");
     if (wp.status !== "active") fail("InvalidStatus");
     if (pr.holdActive) fail("RequestOnHold");
 
@@ -770,6 +775,20 @@ export class MockConstruktClient implements ConstruktClient {
       wp.activeRequest = PublicKey.default;
     }
     if (wp.releasedAmount === wp.capAmount) wp.status = "completed";
+    return this.tx();
+  }
+
+  async updateHighApprovalPolicy(
+    p: UpdateHighApprovalPolicyParams,
+  ): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "draft" && wp.status !== "active") fail("InvalidStatus");
+    if (wp.hasActiveRequest) fail("ActiveRequestExists");
+
+    wp.highApprovalRequired = p.highApprovalRequired;
     return this.tx();
   }
 

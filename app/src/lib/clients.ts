@@ -145,6 +145,12 @@ const buildDeterministicAnchorSeedWorld = (
         request: reqAddr(pkgAddr(6n), 1n),
         finalStatus: "rejected",
       },
+      complianceUpgrade: {
+        name: "Fire & Compliance Upgrade",
+        address: pkgAddr(7n),
+        request: reqAddr(pkgAddr(7n), 1n),
+        finalStatus: "lowApproved",
+      },
     },
   };
 };
