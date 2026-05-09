@@ -13,7 +13,7 @@ import type {
  * subset of the on-chain `#[event]` types — it deliberately excludes
  * events that can't be reconstructed from current account state alone
  * (multi-funding history, document-ref change history, repeat holds).
- * Phase 4 will add event-log capture so those gaps can be filled.
+ * A later event-log/indexing pass will fill those gaps.
  */
 export type AuditEventKind =
   | "projectCreated"
@@ -65,9 +65,8 @@ export interface AuditTimelineSources {
  *     dated by `payment_request.updatedAt`.
  *   - Work packages have no `createdAt`, so package-creation events are
  *     omitted; the `roleAssigned` events anchor each package's start.
- * These gaps are tracked under "Phase 1 Implementation Notes — Step 11"
- * in `FrontBackMergePlan.md` and will be filled when Phase 4 wires real
- * event-log capture.
+ * These gaps are tracked in `FrontendBackendConvergencePlan.md` and will be
+ * filled when the event-log/indexing pass lands.
  */
 export const selectAuditTimeline = (
   sources: AuditTimelineSources,

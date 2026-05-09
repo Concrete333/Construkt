@@ -114,6 +114,256 @@ pub mod construkt {
         Ok(())
     }
 
+    pub fn assign_project_drafter(
+        ctx: Context<AssignProjectDrafter>,
+        wallet: Pubkey,
+    ) -> Result<()> {
+        require!(
+            wallet != Pubkey::default(),
+            ConstruktError::InvalidAccountRelationship
+        );
+
+        let clock = Clock::get()?;
+        let authority_key = ctx.accounts.authority.key();
+        let project_drafter = &mut ctx.accounts.project_drafter;
+        project_drafter.project = ctx.accounts.project.key();
+        project_drafter.wallet = wallet;
+        project_drafter.active = true;
+        project_drafter.assigned_by = authority_key;
+        project_drafter.assigned_at = clock.unix_timestamp;
+        project_drafter.updated_by = authority_key;
+        project_drafter.updated_at = clock.unix_timestamp;
+        project_drafter.bump = ctx.bumps.project_drafter;
+
+        emit!(ProjectDrafterAssigned {
+            project: project_drafter.project,
+            wallet,
+            assigned_by: authority_key,
+            assigned_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_project_drafter_active(
+        ctx: Context<SetProjectDrafterActive>,
+        active: bool,
+    ) -> Result<()> {
+        require!(
+            ctx.accounts.project_drafter.active != active,
+            ConstruktError::RoleAlreadyInRequestedState
+        );
+
+        let clock = Clock::get()?;
+        let authority_key = ctx.accounts.authority.key();
+        let project_drafter = &mut ctx.accounts.project_drafter;
+        project_drafter.active = active;
+        project_drafter.updated_by = authority_key;
+        project_drafter.updated_at = clock.unix_timestamp;
+
+        emit!(ProjectDrafterSetActive {
+            project: project_drafter.project,
+            wallet: project_drafter.wallet,
+            active,
+            authority: authority_key,
+            updated_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
+    pub fn create_package_draft(
+        ctx: Context<CreatePackageDraft>,
+        package_id: u64,
+        cap_amount: u64,
+        contractor: Pubkey,
+        scope_ref: String,
+    ) -> Result<()> {
+        require!(cap_amount > 0, ConstruktError::InvalidAmount);
+        require!(
+            contractor != Pubkey::default(),
+            ConstruktError::InvalidAccountRelationship
+        );
+        require!(
+            scope_ref.len() <= MAX_REF_LEN,
+            ConstruktError::StringTooLong
+        );
+
+        // V0 fixes the proposed contractor at draft creation. To change it,
+        // abandon this draft and create a new package draft before activation.
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.project = ctx.accounts.project.key();
+        work_package.package_id = package_id;
+        work_package.cap_amount = cap_amount;
+        work_package.funded_amount = 0;
+        work_package.released_amount = 0;
+        work_package.reserved_request_amount = 0;
+        work_package.allocated_milestone_amount = 0;
+        work_package.milestone_counter = 0;
+        work_package.contractor = contractor;
+        work_package.mint = ctx.accounts.project.mint;
+        work_package.vault = Pubkey::default();
+        work_package.vault_authority_bump = 0;
+        work_package.status = WorkPackageStatus::Draft;
+        work_package.scope_ref = scope_ref;
+        work_package.request_counter = 0;
+        work_package.has_active_request = false;
+        work_package.active_request = Pubkey::default();
+        work_package.bump = ctx.bumps.work_package;
+
+        emit!(WorkPackageDraftCreated {
+            project: work_package.project,
+            work_package: work_package.key(),
+            package_id,
+            drafter: ctx.accounts.drafter.key(),
+            contractor,
+            mint: work_package.mint,
+            cap_amount,
+        });
+
+        Ok(())
+    }
+
+    pub fn create_draft_milestone(
+        ctx: Context<CreateDraftMilestone>,
+        milestone_id: u64,
+        amount: u64,
+        start_at: i64,
+        end_at: i64,
+        metadata_ref: String,
+    ) -> Result<()> {
+        require!(amount > 0, ConstruktError::InvalidAmount);
+        require!(start_at < end_at, ConstruktError::InvalidStatus);
+        require!(
+            metadata_ref.len() <= MAX_REF_LEN,
+            ConstruktError::StringTooLong
+        );
+
+        let work_package_key = ctx.accounts.work_package.key();
+        let next_milestone_id = {
+            let work_package = &ctx.accounts.work_package;
+            require!(
+                work_package.status == WorkPackageStatus::Draft,
+                ConstruktError::InvalidStatus
+            );
+            require!(
+                work_package.request_counter == 0,
+                ConstruktError::InvalidStatus
+            );
+            require!(
+                work_package.funded_amount == 0,
+                ConstruktError::InvalidStatus
+            );
+            let next_milestone_id = work_package.next_milestone_id()?;
+            require!(
+                milestone_id == next_milestone_id,
+                ConstruktError::InvalidRequestId
+            );
+            next_milestone_id
+        };
+        let next_allocated_amount = ctx.accounts.work_package.allocate_milestone_amount(amount)?;
+
+        let milestone = &mut ctx.accounts.milestone;
+        milestone.work_package = work_package_key;
+        milestone.milestone_id = next_milestone_id;
+        milestone.amount = amount;
+        milestone.released_amount = 0;
+        milestone.start_at = start_at;
+        milestone.end_at = end_at;
+        milestone.status = MilestoneStatus::Active;
+        milestone.metadata_ref = metadata_ref;
+        milestone.has_active_request = false;
+        milestone.active_request = Pubkey::default();
+        milestone.bump = ctx.bumps.milestone;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.allocated_milestone_amount = next_allocated_amount;
+        work_package.milestone_counter = next_milestone_id;
+
+        emit!(MilestoneCreated {
+            work_package: work_package_key,
+            milestone: ctx.accounts.milestone.key(),
+            milestone_id: next_milestone_id,
+            amount,
+            start_at,
+            end_at,
+            allocated_milestone_amount: next_allocated_amount,
+        });
+
+        Ok(())
+    }
+
+    pub fn activate_work_package(ctx: Context<ActivateWorkPackage>) -> Result<()> {
+        require_keys_eq!(
+            ctx.accounts.authority.key(),
+            ctx.accounts.project.authority,
+            ConstruktError::Unauthorized
+        );
+        require!(
+            ctx.accounts.work_package.status == WorkPackageStatus::Draft,
+            ConstruktError::InvalidStatus
+        );
+        require!(
+            ctx.accounts.work_package.contractor != Pubkey::default(),
+            ConstruktError::InvalidAccountRelationship
+        );
+        if ctx.accounts.work_package.is_milestone_mode() {
+            require!(
+                ctx.accounts.work_package.allocated_milestone_amount
+                    == ctx.accounts.work_package.cap_amount,
+                ConstruktError::InvalidStatus
+            );
+        }
+
+        let next_allocated_amount = ctx
+            .accounts
+            .project
+            .allocate_package_cap(ctx.accounts.work_package.cap_amount)?;
+        let clock = Clock::get()?;
+        let authority_key = ctx.accounts.authority.key();
+        let work_package_key = ctx.accounts.work_package.key();
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.vault = ctx.accounts.vault.key();
+        work_package.vault_authority_bump = ctx.bumps.vault_authority;
+        work_package.status = WorkPackageStatus::Active;
+
+        let project = &mut ctx.accounts.project;
+        project.allocated_amount = next_allocated_amount;
+
+        let role_assignment = &mut ctx.accounts.contractor_role_assignment;
+        role_assignment.work_package = work_package_key;
+        role_assignment.wallet = work_package.contractor;
+        role_assignment.role = Role::Contractor;
+        role_assignment.active = true;
+        role_assignment.assigned_by = authority_key;
+        role_assignment.assigned_at = clock.unix_timestamp;
+        role_assignment.updated_by = authority_key;
+        role_assignment.updated_at = clock.unix_timestamp;
+        role_assignment.bump = ctx.bumps.contractor_role_assignment;
+
+        emit!(WorkPackageActivated {
+            project: work_package.project,
+            work_package: work_package_key,
+            authority: authority_key,
+            contractor: work_package.contractor,
+            vault: work_package.vault,
+            cap_amount: work_package.cap_amount,
+            project_budget_amount: project.budget_amount,
+            project_allocated_amount: project.allocated_amount,
+            activated_at: clock.unix_timestamp,
+        });
+        emit!(RoleAssigned {
+            work_package: role_assignment.work_package,
+            wallet: role_assignment.wallet,
+            role: Role::Contractor,
+            assigned_by: authority_key,
+            assigned_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
     pub fn create_milestone(
         ctx: Context<CreateMilestone>,
         milestone_id: u64,
@@ -259,6 +509,10 @@ pub mod construkt {
             ctx.accounts.work_package.project,
             ctx.accounts.project.key(),
             ConstruktError::InvalidAccountRelationship
+        );
+        require!(
+            ctx.accounts.work_package.status == WorkPackageStatus::Active,
+            ConstruktError::InvalidStatus
         );
         require!(
             wallet != Pubkey::default(),
@@ -968,6 +1222,132 @@ pub struct CreateWorkPackage<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(wallet: Pubkey)]
+pub struct AssignProjectDrafter<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        init,
+        payer = authority,
+        space = ProjectDrafterAccount::SPACE,
+        seeds = [b"project_drafter", project.key().as_ref(), wallet.as_ref()],
+        bump
+    )]
+    pub project_drafter: Account<'info, ProjectDrafterAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct SetProjectDrafterActive<'info> {
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        seeds = [b"project_drafter", project.key().as_ref(), project_drafter.wallet.as_ref()],
+        bump = project_drafter.bump,
+        constraint = project_drafter.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub project_drafter: Account<'info, ProjectDrafterAccount>,
+}
+
+#[derive(Accounts)]
+#[instruction(package_id: u64)]
+pub struct CreatePackageDraft<'info> {
+    #[account(mut)]
+    pub drafter: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        seeds = [b"project_drafter", project.key().as_ref(), drafter.key().as_ref()],
+        bump = project_drafter.bump,
+        constraint = project_drafter.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = project_drafter.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub project_drafter: Account<'info, ProjectDrafterAccount>,
+    #[account(
+        init,
+        payer = drafter,
+        space = WorkPackageAccount::SPACE,
+        seeds = [b"work_package", project.key().as_ref(), &package_id.to_le_bytes()],
+        bump
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+#[instruction(milestone_id: u64)]
+pub struct CreateDraftMilestone<'info> {
+    #[account(mut)]
+    pub drafter: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        seeds = [b"project_drafter", project.key().as_ref(), drafter.key().as_ref()],
+        bump = project_drafter.bump,
+        constraint = project_drafter.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = project_drafter.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub project_drafter: Account<'info, ProjectDrafterAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship,
+        constraint = work_package.status == WorkPackageStatus::Draft @ ConstruktError::InvalidStatus
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        init,
+        payer = drafter,
+        space = MilestoneAccount::SPACE,
+        seeds = [b"milestone", work_package.key().as_ref(), &milestone_id.to_le_bytes()],
+        bump
+    )]
+    pub milestone: Account<'info, MilestoneAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ActivateWorkPackage<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(mut, has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship,
+        constraint = work_package.status == WorkPackageStatus::Draft @ ConstruktError::InvalidStatus
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    /// CHECK: PDA authority for the work package vault. The seeds constraint verifies it.
+    #[account(
+        seeds = [b"vault_authority", work_package.key().as_ref()],
+        bump
+    )]
+    pub vault_authority: UncheckedAccount<'info>,
+    #[account(address = project.mint @ ConstruktError::WrongMint)]
+    pub mint: Account<'info, Mint>,
+    #[account(
+        init,
+        payer = authority,
+        associated_token::mint = mint,
+        associated_token::authority = vault_authority
+    )]
+    pub vault: Account<'info, TokenAccount>,
+    #[account(
+        init,
+        payer = authority,
+        space = RoleAssignmentAccount::SPACE,
+        seeds = [b"role", work_package.key().as_ref(), &[Role::Contractor.to_u8()], work_package.contractor.as_ref()],
+        bump
+    )]
+    pub contractor_role_assignment: Account<'info, RoleAssignmentAccount>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct FundEscrow<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -975,7 +1355,8 @@ pub struct FundEscrow<'info> {
     pub project: Account<'info, ProjectAccount>,
     #[account(
         mut,
-        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship,
+        constraint = work_package.status == WorkPackageStatus::Active @ ConstruktError::InvalidStatus
     )]
     pub work_package: Account<'info, WorkPackageAccount>,
     #[account(address = work_package.mint @ ConstruktError::WrongMint)]
@@ -1292,6 +1673,22 @@ impl ProjectAccount {
 }
 
 #[account]
+pub struct ProjectDrafterAccount {
+    pub project: Pubkey,
+    pub wallet: Pubkey,
+    pub active: bool,
+    pub assigned_by: Pubkey,
+    pub assigned_at: i64,
+    pub updated_by: Pubkey,
+    pub updated_at: i64,
+    pub bump: u8,
+}
+
+impl ProjectDrafterAccount {
+    pub const SPACE: usize = 8 + 32 + 32 + 1 + 32 + 8 + 32 + 8 + 1;
+}
+
+#[account]
 pub struct WorkPackageAccount {
     pub project: Pubkey,
     pub package_id: u64,
@@ -1555,6 +1952,8 @@ pub enum WorkPackageStatus {
     Active,
     Completed,
     Cancelled,
+    // Appended after Phase 4 so pre-draft accounts keep their Borsh discriminants.
+    Draft,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
@@ -1628,6 +2027,47 @@ pub struct WorkPackageCreated {
     pub cap_amount: u64,
     pub project_budget_amount: u64,
     pub project_allocated_amount: u64,
+}
+
+#[event]
+pub struct ProjectDrafterAssigned {
+    pub project: Pubkey,
+    pub wallet: Pubkey,
+    pub assigned_by: Pubkey,
+    pub assigned_at: i64,
+}
+
+#[event]
+pub struct ProjectDrafterSetActive {
+    pub project: Pubkey,
+    pub wallet: Pubkey,
+    pub active: bool,
+    pub authority: Pubkey,
+    pub updated_at: i64,
+}
+
+#[event]
+pub struct WorkPackageDraftCreated {
+    pub project: Pubkey,
+    pub work_package: Pubkey,
+    pub package_id: u64,
+    pub drafter: Pubkey,
+    pub contractor: Pubkey,
+    pub mint: Pubkey,
+    pub cap_amount: u64,
+}
+
+#[event]
+pub struct WorkPackageActivated {
+    pub project: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub contractor: Pubkey,
+    pub vault: Pubkey,
+    pub cap_amount: u64,
+    pub project_budget_amount: u64,
+    pub project_allocated_amount: u64,
+    pub activated_at: i64,
 }
 
 #[event]

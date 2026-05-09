@@ -10,10 +10,9 @@ export interface WalletDisplayProps {
 /**
  * Shows the demo wallet that would sign for the current role. This is
  * deliberately separate from the role display per the plan's
- * "Role visibility is not authorization" rule — Phase 4 will replace
- * the seeded keypair with a real connected wallet whose pubkey may
- * not match the visible role. Until then, click to copy the full
- * base58 to make on-chain debugging easy.
+ * "Role visibility is not authorization" rule. The signing pubkey may not
+ * match the visible role. Click to copy the full base58 for on-chain
+ * debugging.
  */
 export const WalletDisplay = ({ wallet }: WalletDisplayProps) => {
   const base58 = wallet.toBase58();

@@ -3,6 +3,7 @@ import {
   deriveApprovalRecordAddress,
   deriveMilestoneAddress,
   derivePaymentRequestAddress,
+  deriveProjectDrafterAddress,
   deriveProjectAddress,
   deriveRoleAssignmentAddress,
   deriveVaultAuthorityAddress,
@@ -13,11 +14,15 @@ import type { RoleByte } from "./pda";
 import { ConstruktClientError } from "./program";
 import type {
   AddDocumentReferenceParams,
+  ActivateWorkPackageParams,
   ApprovalRecord,
   ApproveRequestParams,
+  AssignProjectDrafterParams,
   AssignRoleParams,
   ConstruktClient,
+  CreateDraftMilestoneParams,
   CreateMilestoneParams,
+  CreatePackageDraftParams,
   CreateWorkPackageParams,
   Fetched,
   FundEscrowParams,
@@ -26,11 +31,13 @@ import type {
   PaymentRequestAccount,
   PlaceHoldParams,
   ProjectAccount,
+  ProjectDrafterAccount,
   RejectRequestParams,
   ReleasePaymentParams,
   RemoveHoldParams,
   Role,
   RoleAssignmentAccount,
+  SetProjectDrafterActiveParams,
   SetRoleActiveParams,
   SubmitPaymentRequestParams,
   TxResult,
@@ -68,8 +75,8 @@ export interface MockClientOptions {
  * In-memory `ConstruktClient` for UI demos and selector tests. It enforces
  * the on-chain invariants the UI cares about (status flow, hold blocking,
  * single-active-request, contractor-cannot-approve, finance-only release)
- * so blocked-state branches in the UI light up the same way they will when
- * Phase 4 wires Anchor in.
+ * so blocked-state branches in the UI light up the same way they do in
+ * Anchor mode.
  *
  * Token transfer side effects are tracked numerically — there are no real
  * SPL token accounts, mints, or balances. The mock therefore cannot catch
@@ -81,6 +88,7 @@ export class MockConstruktClient implements ConstruktClient {
   private readonly projects = new Map<string, ProjectAccount>();
   private readonly workPackages = new Map<string, WorkPackageAccount>();
   private readonly milestones = new Map<string, MilestoneAccount>();
+  private readonly projectDrafters = new Map<string, ProjectDrafterAccount>();
   private readonly roleAssignments = new Map<string, RoleAssignmentAccount>();
   private readonly paymentRequests = new Map<string, PaymentRequestAccount>();
   private readonly approvalRecords = new Map<string, ApprovalRecord>();
@@ -140,6 +148,20 @@ export class MockConstruktClient implements ConstruktClient {
     address: PublicKey,
   ): Promise<RoleAssignmentAccount | null> {
     return this.roleAssignments.get(address.toBase58()) ?? null;
+  }
+
+  async fetchProjectDrafter(
+    address: PublicKey,
+  ): Promise<ProjectDrafterAccount | null> {
+    return this.projectDrafters.get(address.toBase58()) ?? null;
+  }
+
+  async fetchProjectDraftersForProject(
+    project: PublicKey,
+  ): Promise<Fetched<ProjectDrafterAccount>[]> {
+    return [...this.projectDrafters.entries()]
+      .filter(([, account]) => account.project.equals(project))
+      .map(([key, account]) => ({ address: new PublicKey(key), account }));
   }
 
   async fetchRoleAssignmentsForPackage(
@@ -307,12 +329,200 @@ export class MockConstruktClient implements ConstruktClient {
     return this.tx();
   }
 
+  async assignProjectDrafter(p: AssignProjectDrafterParams): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    if (p.wallet.equals(PublicKey.default)) fail("InvalidAccountRelationship");
+
+    const address = deriveProjectDrafterAddress(
+      this.programId,
+      p.project,
+      p.wallet,
+    );
+    if (this.projectDrafters.has(address.toBase58())) fail("InvalidStatus");
+    const now = this.clock();
+    this.projectDrafters.set(address.toBase58(), {
+      project: p.project,
+      wallet: p.wallet,
+      active: true,
+      assignedBy: p.authority,
+      assignedAt: now,
+      updatedBy: p.authority,
+      updatedAt: now,
+      bump: 255,
+    });
+    return this.tx();
+  }
+
+  async setProjectDrafterActive(
+    p: SetProjectDrafterActiveParams,
+  ): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    const drafter =
+      this.projectDrafters.get(p.projectDrafter.toBase58()) ??
+      fail("AccountNotInitialized");
+    if (!drafter.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (drafter.active === p.active) fail("RoleAlreadyInRequestedState");
+    drafter.active = p.active;
+    drafter.updatedBy = p.authority;
+    drafter.updatedAt = this.clock();
+    return this.tx();
+  }
+
+  async createPackageDraft(p: CreatePackageDraftParams): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    const drafter =
+      this.projectDrafters.get(
+        deriveProjectDrafterAddress(
+          this.programId,
+          p.project,
+          p.drafter,
+        ).toBase58(),
+      ) ?? fail("AccountNotInitialized");
+    if (!drafter.wallet.equals(p.drafter)) fail("Unauthorized");
+    if (!drafter.active) fail("InactiveRoleAssignment");
+    if (p.capAmount <= 0n) fail("InvalidAmount");
+    if (p.contractor.equals(PublicKey.default))
+      fail("InvalidAccountRelationship");
+    if (p.scopeRef.length > MAX_REF_LEN) fail("StringTooLong");
+
+    const wpAddress = deriveWorkPackageAddress(
+      this.programId,
+      p.project,
+      p.packageId,
+    );
+    if (this.workPackages.has(wpAddress.toBase58())) fail("InvalidStatus");
+
+    this.workPackages.set(wpAddress.toBase58(), {
+      project: p.project,
+      packageId: p.packageId,
+      capAmount: p.capAmount,
+      fundedAmount: 0n,
+      releasedAmount: 0n,
+      reservedRequestAmount: 0n,
+      allocatedMilestoneAmount: 0n,
+      milestoneCounter: 0n,
+      contractor: p.contractor,
+      mint: project.mint,
+      vault: PublicKey.default,
+      vaultAuthorityBump: 0,
+      status: "draft",
+      scopeRef: p.scopeRef,
+      requestCounter: 0n,
+      hasActiveRequest: false,
+      activeRequest: PublicKey.default,
+      bump: 255,
+    });
+    return this.tx();
+  }
+
+  async createDraftMilestone(p: CreateDraftMilestoneParams): Promise<TxResult> {
+    const drafter =
+      this.projectDrafters.get(
+        deriveProjectDrafterAddress(
+          this.programId,
+          p.project,
+          p.drafter,
+        ).toBase58(),
+      ) ?? fail("AccountNotInitialized");
+    if (!drafter.wallet.equals(p.drafter)) fail("Unauthorized");
+    if (!drafter.active) fail("InactiveRoleAssignment");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "draft") fail("InvalidStatus");
+    if (p.amount <= 0n) fail("InvalidAmount");
+    if (p.startAt >= p.endAt) fail("InvalidStatus");
+    if (p.metadataRef.length > MAX_REF_LEN) fail("StringTooLong");
+    if (wp.requestCounter !== 0n) fail("InvalidStatus");
+    if (wp.fundedAmount !== 0n) fail("InvalidStatus");
+
+    const nextMilestoneId = wp.milestoneCounter + 1n;
+    if (p.milestoneId !== nextMilestoneId) fail("InvalidRequestId");
+    const remainingMilestoneAllocation =
+      wp.capAmount - wp.allocatedMilestoneAmount;
+    if (p.amount > remainingMilestoneAllocation)
+      fail("InsufficientRemainingCap");
+
+    const address = deriveMilestoneAddress(
+      this.programId,
+      p.workPackage,
+      p.milestoneId,
+    );
+    if (this.milestones.has(address.toBase58())) fail("InvalidStatus");
+
+    this.milestones.set(address.toBase58(), {
+      workPackage: p.workPackage,
+      milestoneId: p.milestoneId,
+      amount: p.amount,
+      releasedAmount: 0n,
+      startAt: p.startAt,
+      endAt: p.endAt,
+      status: "active",
+      metadataRef: p.metadataRef,
+      hasActiveRequest: false,
+      activeRequest: PublicKey.default,
+      bump: 255,
+    });
+    wp.allocatedMilestoneAmount += p.amount;
+    wp.milestoneCounter = p.milestoneId;
+    return this.tx();
+  }
+
+  async activateWorkPackage(p: ActivateWorkPackageParams): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "draft") fail("InvalidStatus");
+    if (wp.contractor.equals(PublicKey.default))
+      fail("InvalidAccountRelationship");
+    if (
+      wp.milestoneCounter > 0n &&
+      wp.allocatedMilestoneAmount !== wp.capAmount
+    )
+      fail("InvalidStatus");
+    const remainingAllocatable = project.budgetAmount - project.allocatedAmount;
+    if (wp.capAmount > remainingAllocatable) fail("InsufficientRemainingCap");
+
+    const vaultAuthority = deriveVaultAuthorityAddress(
+      this.programId,
+      p.workPackage,
+    );
+    wp.vault = vaultAuthority;
+    wp.vaultAuthorityBump = 255;
+    wp.status = "active";
+    project.allocatedAmount += wp.capAmount;
+
+    const roleAssignment = deriveRoleAssignmentAddress(
+      this.programId,
+      p.workPackage,
+      ROLE_BYTES.contractor,
+      wp.contractor,
+    );
+    const now = this.clock();
+    this.roleAssignments.set(roleAssignment.toBase58(), {
+      workPackage: p.workPackage,
+      wallet: wp.contractor,
+      role: "contractor",
+      active: true,
+      assignedBy: p.authority,
+      assignedAt: now,
+      updatedBy: p.authority,
+      updatedAt: now,
+      bump: 255,
+    });
+    return this.tx();
+  }
+
   async fundEscrow(p: FundEscrowParams): Promise<TxResult> {
     const project = this.requireProject(p.project);
     if (!project.authority.equals(p.authority)) fail("Unauthorized");
     if (p.amount <= 0n) fail("InvalidAmount");
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status === "draft") fail("AccountNotInitialized");
+    if (wp.status !== "active") fail("InvalidStatus");
     if (
       wp.milestoneCounter > 0n &&
       wp.allocatedMilestoneAmount !== wp.capAmount
@@ -329,6 +539,7 @@ export class MockConstruktClient implements ConstruktClient {
     if (!project.authority.equals(p.authority)) fail("Unauthorized");
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "active") fail("InvalidStatus");
     if (p.wallet.equals(PublicKey.default)) fail("InvalidAccountRelationship");
 
     if (p.role === "contractor") {

@@ -17,6 +17,7 @@ import {
   deriveApprovalRecordAddress,
   deriveMilestoneAddress,
   derivePaymentRequestAddress,
+  deriveProjectDrafterAddress,
   deriveProjectAddress,
   deriveRoleAssignmentAddress,
   deriveVaultAuthorityAddress,
@@ -27,11 +28,15 @@ import { ConstruktClientError } from "./program";
 import type {
   AddDocumentReferenceParams,
   ApprovalRecord,
+  ActivateWorkPackageParams,
   ApproveRequestParams,
+  AssignProjectDrafterParams,
   AssignRoleParams,
   ConstruktClient,
   ConstruktErrorCode,
+  CreateDraftMilestoneParams,
   CreateMilestoneParams,
+  CreatePackageDraftParams,
   CreateWorkPackageParams,
   Decision,
   Fetched,
@@ -43,12 +48,14 @@ import type {
   PaymentRequestStatus,
   PlaceHoldParams,
   ProjectAccount,
+  ProjectDrafterAccount,
   ProjectStatus,
   RejectRequestParams,
   ReleasePaymentParams,
   RemoveHoldParams,
   Role,
   RoleAssignmentAccount,
+  SetProjectDrafterActiveParams,
   SetRoleActiveParams,
   SubmitPaymentRequestParams,
   TxResult,
@@ -108,6 +115,17 @@ interface RawRoleAssignmentAccount {
   workPackage: PublicKey;
   wallet: PublicKey;
   role: unknown;
+  active: boolean;
+  assignedBy: PublicKey;
+  assignedAt: BN;
+  updatedBy: PublicKey;
+  updatedAt: BN;
+  bump: number;
+}
+
+interface RawProjectDrafterAccount {
+  project: PublicKey;
+  wallet: PublicKey;
   active: boolean;
   assignedBy: PublicKey;
   assignedAt: BN;
@@ -197,9 +215,10 @@ const ERROR_CODE_BY_NUMBER: Record<number, ConstruktErrorCode> = {
   6023: "InvalidAmount",
 };
 
-const ERROR_CODE_SET = new Set<ConstruktErrorCode>(
-  Object.values(ERROR_CODE_BY_NUMBER),
-);
+const ERROR_CODE_SET = new Set<ConstruktErrorCode>([
+  ...Object.values(ERROR_CODE_BY_NUMBER),
+  "AccountNotInitialized",
+]);
 
 const toBn = (value: bigint): BN => new BN(value.toString());
 
@@ -271,6 +290,7 @@ const fromAnchorProjectStatus = (raw: unknown): ProjectStatus => {
 const fromAnchorWpStatus = (raw: unknown): WorkPackageStatus => {
   if (hasVariant(raw, "completed")) return "completed";
   if (hasVariant(raw, "cancelled")) return "cancelled";
+  if (hasVariant(raw, "draft")) return "draft";
   return "active";
 };
 
@@ -344,6 +364,19 @@ const fromRawRoleAssignment = (
   workPackage: raw.workPackage,
   wallet: raw.wallet,
   role: fromAnchorRole(raw.role),
+  active: raw.active,
+  assignedBy: raw.assignedBy,
+  assignedAt: toBigInt(raw.assignedAt),
+  updatedBy: raw.updatedBy,
+  updatedAt: toBigInt(raw.updatedAt),
+  bump: raw.bump,
+});
+
+const fromRawProjectDrafter = (
+  raw: RawProjectDrafterAccount,
+): ProjectDrafterAccount => ({
+  project: raw.project,
+  wallet: raw.wallet,
   active: raw.active,
   assignedBy: raw.assignedBy,
   assignedAt: toBigInt(raw.assignedAt),
@@ -540,6 +573,31 @@ class AnchorConstruktClient implements ConstruktClient {
     }
   }
 
+  async fetchProjectDrafter(
+    address: PublicKey,
+  ): Promise<ProjectDrafterAccount | null> {
+    try {
+      const raw = await this.accountClient<RawProjectDrafterAccount>(
+        "projectDrafterAccount",
+      ).fetch(address);
+      return fromRawProjectDrafter(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchProjectDraftersForProject(
+    project: PublicKey,
+  ): Promise<Fetched<ProjectDrafterAccount>[]> {
+    const rows = await this.accountClient<RawProjectDrafterAccount>(
+      "projectDrafterAccount",
+    ).all([{ memcmp: { offset: 8, bytes: project.toBase58() } }]);
+    return rows.map(({ publicKey, account }) => ({
+      address: publicKey,
+      account: fromRawProjectDrafter(account),
+    }));
+  }
+
   async fetchRoleAssignmentsForPackage(
     workPackage: PublicKey,
   ): Promise<Fetched<RoleAssignmentAccount>[]> {
@@ -693,6 +751,166 @@ class AnchorConstruktClient implements ConstruktClient {
           project: params.project,
           workPackage: params.workPackage,
           milestone,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.authority))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async assignProjectDrafter(
+    params: AssignProjectDrafterParams,
+  ): Promise<TxResult> {
+    try {
+      const projectDrafter = deriveProjectDrafterAddress(
+        this.programId,
+        params.project,
+        params.wallet,
+      );
+      const signature = await this.method("assignProjectDrafter", params.wallet)
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          projectDrafter,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.authority))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async setProjectDrafterActive(
+    params: SetProjectDrafterActiveParams,
+  ): Promise<TxResult> {
+    try {
+      const signature = await this.method(
+        "setProjectDrafterActive",
+        params.active,
+      )
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          projectDrafter: params.projectDrafter,
+        })
+        .signers(this.extraSigners(params.authority))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async createPackageDraft(
+    params: CreatePackageDraftParams,
+  ): Promise<TxResult> {
+    try {
+      const workPackage = deriveWorkPackageAddress(
+        this.programId,
+        params.project,
+        params.packageId,
+      );
+      const projectDrafter = deriveProjectDrafterAddress(
+        this.programId,
+        params.project,
+        params.drafter,
+      );
+      const signature = await this.method(
+        "createPackageDraft",
+        toBn(params.packageId),
+        toBn(params.capAmount),
+        params.contractor,
+        params.scopeRef,
+      )
+        .accounts({
+          drafter: params.drafter,
+          project: params.project,
+          projectDrafter,
+          workPackage,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.drafter))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async createDraftMilestone(
+    params: CreateDraftMilestoneParams,
+  ): Promise<TxResult> {
+    try {
+      const projectDrafter = deriveProjectDrafterAddress(
+        this.programId,
+        params.project,
+        params.drafter,
+      );
+      const milestone = deriveMilestoneAddress(
+        this.programId,
+        params.workPackage,
+        params.milestoneId,
+      );
+      const signature = await this.method(
+        "createDraftMilestone",
+        toBn(params.milestoneId),
+        toBn(params.amount),
+        toBn(params.startAt),
+        toBn(params.endAt),
+        params.metadataRef,
+      )
+        .accounts({
+          drafter: params.drafter,
+          project: params.project,
+          projectDrafter,
+          workPackage: params.workPackage,
+          milestone,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.drafter))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async activateWorkPackage(
+    params: ActivateWorkPackageParams,
+  ): Promise<TxResult> {
+    try {
+      const wp = await this.requireWorkPackage(params.workPackage);
+      const vaultAuthority = deriveVaultAuthorityAddress(
+        this.programId,
+        params.workPackage,
+      );
+      const vault = getAssociatedTokenAddressSync(
+        wp.mint,
+        vaultAuthority,
+        true,
+      );
+      const contractorRoleAssignment = deriveRoleAssignmentAddress(
+        this.programId,
+        params.workPackage,
+        ROLE_BYTES.contractor,
+        wp.contractor,
+      );
+      const signature = await this.method("activateWorkPackage")
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          workPackage: params.workPackage,
+          vaultAuthority,
+          mint: wp.mint,
+          vault,
+          contractorRoleAssignment,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId,
         })
         .signers(this.extraSigners(params.authority))

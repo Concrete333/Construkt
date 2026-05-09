@@ -49,6 +49,16 @@ export const deriveWorkPackageAddress = (
     programId,
   )[0];
 
+export const deriveProjectDrafterAddress = (
+  programId: PublicKey,
+  project: PublicKey,
+  wallet: PublicKey,
+): PublicKey =>
+  PublicKey.findProgramAddressSync(
+    [stringSeed("project_drafter"), project.toBuffer(), wallet.toBuffer()],
+    programId,
+  )[0];
+
 export const deriveVaultAuthorityAddress = (
   programId: PublicKey,
   workPackage: PublicKey,

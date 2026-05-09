@@ -36,6 +36,7 @@ import type {
   MilestoneAccount,
   PaymentRequestAccount,
   ProjectAccount,
+  ProjectDrafterAccount,
   RoleAssignmentAccount,
   WorkPackageAccount,
 } from "../lib/program";
@@ -67,6 +68,7 @@ interface LoadedDetail {
   rollup: ProjectRollup;
   metadata: ProjectMetadata | null;
   packages: PackageRow[];
+  projectDrafters: Fetched<ProjectDrafterAccount>[];
   timeline: EnrichedAuditEvent[];
 }
 
@@ -82,6 +84,10 @@ interface FundCtx {
   fundText: string;
   fundError: string | null;
   pending: boolean;
+  onActivatePackage: (
+    packageAddress: PublicKey,
+    projectAddress: PublicKey,
+  ) => void;
   onOpenFund: (packageAddress: string) => void;
   onChangeFundText: (v: string) => void;
   onCancelFund: () => void;
@@ -264,6 +270,8 @@ export const ProjectDetailPage = ({
       );
 
       const packages = await client.fetchWorkPackagesForProject(projectKey);
+      const projectDrafters =
+        await client.fetchProjectDraftersForProject(projectKey);
       const allRoleAssignments: Fetched<RoleAssignmentAccount>[] = [];
       const allRequests: Fetched<PaymentRequestAccount>[] = [];
       const allApprovals: Fetched<ApprovalRecord>[] = [];
@@ -337,6 +345,7 @@ export const ProjectDetailPage = ({
           rollup: projectRollup,
           metadata: projectMetadata,
           packages: packageRows,
+          projectDrafters,
           timeline: enriched,
         });
       }
@@ -410,38 +419,80 @@ export const ProjectDetailPage = ({
           : undefined,
     });
     void onAct(async () => {
-      const result = await client.createWorkPackage({
-        authority: wallet,
-        project: projectKey,
-        packageId,
-        capAmount,
-        contractor: contractorKey,
-        mint: rollup.project.mint,
-        scopeRef,
-      });
       if (packageMode === "milestone") {
         const workPackage = deriveWorkPackageAddress(
           CONSTRUKT_PROGRAM_ID,
           projectKey,
           packageId,
         );
+        const result =
+          role === "financeDirector"
+            ? await client.createWorkPackage({
+                authority: wallet,
+                project: projectKey,
+                packageId,
+                capAmount,
+                contractor: contractorKey,
+                mint: rollup.project.mint,
+                scopeRef,
+              })
+            : await client.createPackageDraft({
+                drafter: wallet,
+                project: projectKey,
+                packageId,
+                capAmount,
+                contractor: contractorKey,
+                scopeRef,
+              });
         for (const [idx, milestone] of (
           parsedMilestones as ParsedMilestoneFormRow[]
         ).entries()) {
           const milestoneId = BigInt(idx + 1);
-          await client.createMilestone({
-            authority: wallet,
-            project: projectKey,
-            workPackage,
-            milestoneId,
-            amount: milestone.amount,
-            startAt: milestone.startAt,
-            endAt: milestone.endAt,
-            metadataRef: `${scopeRef}/milestone/${milestoneId}`,
-          });
+          if (role === "financeDirector") {
+            await client.createMilestone({
+              authority: wallet,
+              project: projectKey,
+              workPackage,
+              milestoneId,
+              amount: milestone.amount,
+              startAt: milestone.startAt,
+              endAt: milestone.endAt,
+              metadataRef: `${scopeRef}/milestone/${milestoneId}`,
+            });
+          } else {
+            await client.createDraftMilestone({
+              drafter: wallet,
+              project: projectKey,
+              workPackage,
+              milestoneId,
+              amount: milestone.amount,
+              startAt: milestone.startAt,
+              endAt: milestone.endAt,
+              metadataRef: `${scopeRef}/milestone/${milestoneId}`,
+            });
+          }
         }
+        return result;
       }
-      return result;
+      if (role === "financeDirector") {
+        return client.createWorkPackage({
+          authority: wallet,
+          project: projectKey,
+          packageId,
+          capAmount,
+          contractor: contractorKey,
+          mint: rollup.project.mint,
+          scopeRef,
+        });
+      }
+      return client.createPackageDraft({
+        drafter: wallet,
+        project: projectKey,
+        packageId,
+        capAmount,
+        contractor: contractorKey,
+        scopeRef,
+      });
     }).then(() => {
       setAddPkgOpen(false);
       setScopeText("");
@@ -478,12 +529,46 @@ export const ProjectDetailPage = ({
     });
   };
 
+  const onActivatePackage = (
+    packageAddress: PublicKey,
+    projectAddress: PublicKey,
+  ) => {
+    void onAct(() =>
+      client.activateWorkPackage({
+        authority: wallet,
+        project: projectAddress,
+        workPackage: packageAddress,
+      }),
+    );
+  };
+
+  const onAuthorizePmDrafter = (
+    existing: Fetched<ProjectDrafterAccount> | null,
+  ) => {
+    if (!projectKey) return;
+    void onAct(() =>
+      existing
+        ? client.setProjectDrafterActive({
+            authority: wallet,
+            project: projectKey,
+            projectDrafter: existing.address,
+            active: true,
+          })
+        : client.assignProjectDrafter({
+            authority: wallet,
+            project: projectKey,
+            wallet: world.pm.publicKey,
+          }),
+    );
+  };
+
   const fundCtx: FundCtx = {
     isFinance: role === "financeDirector",
     fundTarget,
     fundText,
     fundError,
     pending,
+    onActivatePackage,
     onOpenFund: (addr) => {
       setFundTarget(addr);
       setFundText("");
@@ -522,8 +607,20 @@ export const ProjectDetailPage = ({
     return <div className="project-detail__loading">Loading project…</div>;
   }
 
-  const { rollup, metadata: meta, packages, timeline } = loaded;
+  const {
+    rollup,
+    metadata: meta,
+    packages,
+    projectDrafters,
+    timeline,
+  } = loaded;
   const canAddPackage = role === "financeDirector" || role === "projectManager";
+  const pmDrafter =
+    projectDrafters.find((row) =>
+      row.account.wallet.equals(world.pm.publicKey),
+    ) ?? null;
+  const canAuthorizePmDrafter =
+    role === "financeDirector" && (!pmDrafter || !pmDrafter.account.active);
 
   return (
     <section className="project-detail">
@@ -576,6 +673,16 @@ export const ProjectDetailPage = ({
           </Metric>
           <Metric label="Holds">{rollup.heldPackageCount}</Metric>
         </dl>
+        {canAuthorizePmDrafter && (
+          <button
+            type="button"
+            className="project-detail__btn project-detail__btn--ghost"
+            onClick={() => onAuthorizePmDrafter(pmDrafter)}
+            disabled={pending}
+          >
+            {pmDrafter ? "Reactivate PM" : "Authorize PM"}
+          </button>
+        )}
       </header>
 
       <div className="project-detail__columns">
@@ -809,7 +916,9 @@ export const ProjectDetailPage = ({
                     capText.trim().length === 0
                   }
                 >
-                  Create package
+                  {role === "financeDirector"
+                    ? "Create package"
+                    : "Submit draft"}
                 </button>
               </div>
             </div>
@@ -1027,6 +1136,30 @@ const PackageCard = ({
           </div>
         )}
       </a>
+
+      {fundCtx.isFinance && status === "draft" && milestoneScheduleComplete && (
+        <div className="project-detail__package-fund">
+          <button
+            type="button"
+            className="project-detail__btn project-detail__btn--primary"
+            onClick={(e) => {
+              e.preventDefault();
+              fundCtx.onActivatePackage(row.rollup.address, projectAddress);
+            }}
+            disabled={fundCtx.pending}
+          >
+            Approve package
+          </button>
+        </div>
+      )}
+
+      {fundCtx.isFinance &&
+        status === "draft" &&
+        !milestoneScheduleComplete && (
+          <p className="project-detail__package-note">
+            Approval opens once milestone amounts equal the package cap.
+          </p>
+        )}
 
       {fundCtx.isFinance &&
         status === "active" &&

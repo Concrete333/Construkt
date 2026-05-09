@@ -129,6 +129,19 @@ export const createFixture = () => {
       program.programId
     )[0];
 
+  const deriveProjectDrafterAddress = (
+    projectAddress: anchor.web3.PublicKey,
+    wallet: anchor.web3.PublicKey
+  ) =>
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("project_drafter"),
+        projectAddress.toBuffer(),
+        wallet.toBuffer(),
+      ],
+      program.programId
+    )[0];
+
   const deriveApprovalRecordAddress = (
     paymentRequest: anchor.web3.PublicKey,
     roleByte: number
@@ -233,6 +246,130 @@ export const createFixture = () => {
       .rpc();
 
     return addresses;
+  };
+
+  const assignProjectDrafterForTest = async (
+    wallet = pm.publicKey
+  ): Promise<anchor.web3.PublicKey> => {
+    const projectDrafter = deriveProjectDrafterAddress(project, wallet);
+    await program.methods
+      .assignProjectDrafter(wallet)
+      .accountsStrict({
+        authority: finance.publicKey,
+        project,
+        projectDrafter,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+    return projectDrafter;
+  };
+
+  const setProjectDrafterActiveForTest = async (
+    projectDrafter: anchor.web3.PublicKey,
+    active: boolean
+  ) => {
+    await program.methods
+      .setProjectDrafterActive(active)
+      .accountsStrict({
+        authority: finance.publicKey,
+        project,
+        projectDrafter,
+      })
+      .rpc();
+  };
+
+  const createPackageDraftForTest = async (
+    id: number,
+    drafter = pm,
+    projectDrafter = deriveProjectDrafterAddress(project, drafter.publicKey),
+    packageContractor = contractor.publicKey,
+    packageCap = capAmount,
+    scopeRef = "ipfs://draft-scope-ref"
+  ) => {
+    const addresses = deriveWorkPackageAddresses(id);
+    await program.methods
+      .createPackageDraft(
+        new anchor.BN(id),
+        packageCap,
+        packageContractor,
+        scopeRef
+      )
+      .accountsStrict({
+        drafter: drafter.publicKey,
+        project,
+        projectDrafter,
+        workPackage: addresses.workPackage,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([drafter])
+      .rpc();
+    return addresses;
+  };
+
+  const createDraftMilestoneForTest = async (
+    packageAddresses: { workPackage: anchor.web3.PublicKey },
+    milestoneId: number,
+    amount: anchor.BN,
+    startAt: anchor.BN,
+    endAt: anchor.BN,
+    drafter = pm,
+    projectDrafter = deriveProjectDrafterAddress(project, drafter.publicKey),
+    metadataRef = "ipfs://draft-milestone-ref"
+  ) => {
+    const milestone = deriveMilestoneAddress(
+      packageAddresses.workPackage,
+      milestoneId
+    );
+    await program.methods
+      .createDraftMilestone(
+        new anchor.BN(milestoneId),
+        amount,
+        startAt,
+        endAt,
+        metadataRef
+      )
+      .accountsStrict({
+        drafter: drafter.publicKey,
+        project,
+        projectDrafter,
+        workPackage: packageAddresses.workPackage,
+        milestone,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([drafter])
+      .rpc();
+    return milestone;
+  };
+
+  const activateWorkPackageForTest = async (packageAddresses: {
+    workPackage: anchor.web3.PublicKey;
+    vaultAuthority: anchor.web3.PublicKey;
+    vault: anchor.web3.PublicKey;
+  }) => {
+    const workPackage = await program.account.workPackageAccount.fetch(
+      packageAddresses.workPackage
+    );
+    const contractorRoleAssignment = roleAssignmentAddressForPackage(
+      packageAddresses.workPackage,
+      roleSeed.contractor,
+      workPackage.contractor
+    );
+    await program.methods
+      .activateWorkPackage()
+      .accountsStrict({
+        authority: finance.publicKey,
+        project,
+        workPackage: packageAddresses.workPackage,
+        vaultAuthority: packageAddresses.vaultAuthority,
+        mint,
+        vault: packageAddresses.vault,
+        contractorRoleAssignment,
+        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+    return { contractorRoleAssignment };
   };
 
   const fundPackage = async (
@@ -376,11 +513,17 @@ export const createFixture = () => {
     initializeProject,
     deriveProjectAddress,
     deriveWorkPackageAddresses,
+    deriveProjectDrafterAddress,
     roleAssignmentAddressForPackage,
     derivePaymentRequestAddress,
     deriveMilestoneAddress,
     deriveApprovalRecordAddress,
     createWorkPackageForTest,
+    assignProjectDrafterForTest,
+    setProjectDrafterActiveForTest,
+    createPackageDraftForTest,
+    createDraftMilestoneForTest,
+    activateWorkPackageForTest,
     createMilestoneForTest,
     fundPackage,
     assignRole,

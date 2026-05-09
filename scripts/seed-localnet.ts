@@ -91,6 +91,15 @@ const deriveWorkPackageAddress = (
     PROGRAM_ID
   )[0];
 
+const deriveProjectDrafterAddress = (
+  project: anchor.web3.PublicKey,
+  wallet: anchor.web3.PublicKey
+): anchor.web3.PublicKey =>
+  anchor.web3.PublicKey.findProgramAddressSync(
+    [Buffer.from("project_drafter"), project.toBuffer(), wallet.toBuffer()],
+    PROGRAM_ID
+  )[0];
+
 const deriveVaultAuthorityAddress = (
   workPackage: anchor.web3.PublicKey
 ): anchor.web3.PublicKey =>
@@ -259,6 +268,16 @@ async function main() {
       authority: finance.publicKey,
       project,
       mint,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    })
+    .rpc();
+
+  await program.methods
+    .assignProjectDrafter(pm.publicKey)
+    .accounts({
+      authority: finance.publicKey,
+      project,
+      projectDrafter: deriveProjectDrafterAddress(project, pm.publicKey),
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .rpc();

@@ -4,6 +4,8 @@ import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
+import { CONSTRUKT_PROGRAM_ID } from "../lib/config";
+import { deriveProjectAddress } from "../lib/pda";
 import { parseMockUsdc } from "../lib/format";
 import { shortAddress } from "../lib/format";
 import { nextProjectId, projectMetadataRef } from "../lib/ids";
@@ -172,16 +174,22 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
       contractModel: "milestone",
       team: [],
     });
-    void onAct(() =>
-      client.initializeProject({
+    void onAct(async () => {
+      const result = await client.initializeProject({
         authority: wallet,
         projectId,
         mint: world.mint,
         budgetAmount,
         name,
         metadataRef,
-      }),
-    ).then(() => {
+      });
+      await client.assignProjectDrafter({
+        authority: wallet,
+        project: deriveProjectAddress(CONSTRUKT_PROGRAM_ID, wallet, projectId),
+        wallet: world.pm.publicKey,
+      });
+      return result;
+    }).then(() => {
       setCreateOpen(false);
       setNameText("");
       setClientText("");

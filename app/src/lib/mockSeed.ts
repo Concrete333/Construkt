@@ -136,6 +136,11 @@ export const seedHospitalFitOut = async (
     finance.publicKey,
     PROJECT_ID,
   );
+  await client.assignProjectDrafter({
+    authority: finance.publicKey,
+    project,
+    wallet: pm.publicKey,
+  });
 
   let nextPackageId = 1n;
   const setupPackage = async (

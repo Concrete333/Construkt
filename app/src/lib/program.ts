@@ -5,7 +5,7 @@ import { PublicKey } from "@solana/web3.js";
  * Kept as string unions so they're cheap to compare and easy to render.
  */
 export type ProjectStatus = "active" | "completed" | "cancelled";
-export type WorkPackageStatus = "active" | "completed" | "cancelled";
+export type WorkPackageStatus = "active" | "completed" | "cancelled" | "draft";
 export type MilestoneStatus = "active" | "completed" | "cancelled";
 export type PaymentRequestStatus =
   | "submitted"
@@ -73,6 +73,17 @@ export interface RoleAssignmentAccount {
   workPackage: PublicKey;
   wallet: PublicKey;
   role: Role;
+  active: boolean;
+  assignedBy: PublicKey;
+  assignedAt: bigint;
+  updatedBy: PublicKey;
+  updatedAt: bigint;
+  bump: number;
+}
+
+export interface ProjectDrafterAccount {
+  project: PublicKey;
+  wallet: PublicKey;
   active: boolean;
   assignedBy: PublicKey;
   assignedAt: bigint;
@@ -156,6 +167,45 @@ export interface CreateMilestoneParams {
   startAt: bigint;
   endAt: bigint;
   metadataRef: string;
+}
+
+export interface AssignProjectDrafterParams {
+  authority: PublicKey;
+  project: PublicKey;
+  wallet: PublicKey;
+}
+
+export interface SetProjectDrafterActiveParams {
+  authority: PublicKey;
+  project: PublicKey;
+  projectDrafter: PublicKey;
+  active: boolean;
+}
+
+export interface CreatePackageDraftParams {
+  drafter: PublicKey;
+  project: PublicKey;
+  packageId: bigint;
+  capAmount: bigint;
+  contractor: PublicKey;
+  scopeRef: string;
+}
+
+export interface CreateDraftMilestoneParams {
+  drafter: PublicKey;
+  project: PublicKey;
+  workPackage: PublicKey;
+  milestoneId: bigint;
+  amount: bigint;
+  startAt: bigint;
+  endAt: bigint;
+  metadataRef: string;
+}
+
+export interface ActivateWorkPackageParams {
+  authority: PublicKey;
+  project: PublicKey;
+  workPackage: PublicKey;
 }
 
 export interface FundEscrowParams {
@@ -270,6 +320,14 @@ export interface ConstruktClient {
     address: PublicKey,
   ): Promise<RoleAssignmentAccount | null>;
 
+  fetchProjectDrafter(
+    address: PublicKey,
+  ): Promise<ProjectDrafterAccount | null>;
+
+  fetchProjectDraftersForProject(
+    project: PublicKey,
+  ): Promise<Fetched<ProjectDrafterAccount>[]>;
+
   fetchRoleAssignmentsForPackage(
     workPackage: PublicKey,
   ): Promise<Fetched<RoleAssignmentAccount>[]>;
@@ -293,6 +351,13 @@ export interface ConstruktClient {
   initializeProject(params: InitializeProjectParams): Promise<TxResult>;
   createWorkPackage(params: CreateWorkPackageParams): Promise<TxResult>;
   createMilestone(params: CreateMilestoneParams): Promise<TxResult>;
+  assignProjectDrafter(params: AssignProjectDrafterParams): Promise<TxResult>;
+  setProjectDrafterActive(
+    params: SetProjectDrafterActiveParams,
+  ): Promise<TxResult>;
+  createPackageDraft(params: CreatePackageDraftParams): Promise<TxResult>;
+  createDraftMilestone(params: CreateDraftMilestoneParams): Promise<TxResult>;
+  activateWorkPackage(params: ActivateWorkPackageParams): Promise<TxResult>;
   fundEscrow(params: FundEscrowParams): Promise<TxResult>;
   assignRole(params: AssignRoleParams): Promise<TxResult>;
   setRoleActive(params: SetRoleActiveParams): Promise<TxResult>;
@@ -311,6 +376,7 @@ export interface ConstruktClient {
  * regex over message strings.
  */
 export type ConstruktErrorCode =
+  | "AccountNotInitialized"
   | "Unauthorized"
   | "InvalidRole"
   | "InactiveRoleAssignment"
@@ -346,6 +412,8 @@ export class ConstruktClientError extends Error {
 }
 
 const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
+  AccountNotInitialized:
+    "Required setup is missing. Finance needs to authorize this role first.",
   Unauthorized: "This wallet is not authorized for that action.",
   InvalidRole: "The specified role is not valid for this account.",
   InactiveRoleAssignment: "Your role assignment on this package is inactive.",

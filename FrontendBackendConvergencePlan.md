@@ -14,13 +14,14 @@ Current repo status:
 - Phase 1 is complete: project mint, budget, and tracked package allocation are enforced on-chain and reflected in app clients/tests.
 - Phase 2 is complete: milestone accounts, milestone-targeted payment requests, reserved request accounting, and milestone-aware release/reject flows are implemented in Anchor and mirrored in the mock client.
 - Phase 3 is complete: `app/` can create milestone-mode packages on the Finance-created active package path, display real milestone account state, target contractor invoices at milestones, and seed one milestone-backed package in mock and localnet demo state.
-- Phase 4 onward remain open. The next meaningful implementation slice is PM/project-drafter package drafts, contractor assignment in the draft lifecycle, and Finance activation/funding.
+- Phase 4 is complete: project drafter authorization, PM-created draft packages, draft milestone schedules, Finance activation, contractor role assignment at activation, and post-activation funding are implemented in Anchor, mirrored in app clients, and wired into the React project-detail flow.
+- Phase 5 onward remain open. The next meaningful implementation slice is the high-approval policy flag.
 
 Important repo notes for the remaining phases:
 
 - The canonical program id is now `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4`. Anchor config, generated IDL, app config, tests, and scripts are already aligned to it.
 - `scripts/wsl-anchor-test.sh` now reuses a running validator and skips deploy when appropriate. If localnet was just refreshed with `npm run reset:localnet`, Anchor tests can run against that validator without fighting the preloaded program state.
-- `scripts/seed-localnet.ts` now seeds the Interior Fit-Out package as a real milestone-backed package before funding escrow. The package-level seed paths remain for comparison and regression coverage.
+- `scripts/seed-localnet.ts` now seeds the Interior Fit-Out package as a real milestone-backed package before funding escrow and assigns the PM as project drafter for the demo project. The package-level seed paths remain for comparison and regression coverage.
 
 ## Agent Handoff Contract
 
@@ -84,6 +85,7 @@ The React app currently supports:
 - repeatable localnet reset and reseed workflow via `npm run reset:localnet`
 - project, package, request, approval, hold, release, role, metadata, and audit views
 - milestone-aware account models and milestone-aware client parity in mock and Anchor modes
+- project drafter authorization, PM-created package drafts, draft milestones, and Finance activation
 - seeded demo data that mirrors several backend states
 
 This is the product runtime to converge toward. New backend-backed UI work belongs here, with the static prototype used as the UX reference.
@@ -94,6 +96,11 @@ The backend currently supports:
 
 - `initialize_project`
 - `create_work_package`
+- `assign_project_drafter`
+- `set_project_drafter_active`
+- `create_package_draft`
+- `create_draft_milestone`
+- `activate_work_package`
 - `create_milestone`
 - `assign_role`
 - `fund_escrow`
@@ -124,7 +131,7 @@ Request target = whole package OR specific milestone
 Backend:
 
 - `programs/construkt/src/lib.rs`: Anchor program; instructions, accounts, events, errors, and account validation live here.
-- `tests/construkt.b1-accounts.ts` through `tests/construkt.b6-milestones.ts`: current Anchor test suites.
+- `tests/construkt.b1-accounts.ts` through `tests/construkt.b8-package-drafts.ts`: current Anchor test suites.
 - `tests/setup.ts`: shared Anchor test fixtures and helpers.
 - `app/src/idl/construkt.json`: generated IDL consumed by the React app; commit this whenever the program interface changes.
 
@@ -194,12 +201,12 @@ For V0:
 | Project-level budget | Supported on-chain and in app clients | Store project budget, project mint, tracked allocated cap, and enforce package/milestone caps against them | WS 1 / Phase 1 complete |
 | Project type selection | Metadata/display only | Store package/payment model metadata off-chain; enforce only payment-control rules on-chain | Off-chain metadata / WS 6 |
 | Work package cap | Supported with project-budget enforcement | Keep; validate against project budget and project mint | WS 1 / Phase 1 complete |
-| Milestone packages | Backend supported; React app supports Finance-created milestone packages, milestone display, and milestone-targeted invoices | Add milestone/tranche accounts under work packages | WS 2 / Phase 3 complete; Phase 4 adds PM draft path |
+| Milestone packages | Backend supported; React app supports Finance-created and PM-drafted milestone packages, milestone display, and milestone-targeted invoices | Add milestone/tranche accounts under work packages | WS 2 / Phase 3 complete; draft path complete in Phase 4 |
 | Milestone names/dates/amounts | Metadata only | Store compact milestone metadata ref, date bounds, amount/cap, released amount, and status | WS 2 / Phases 2-3 |
 | Milestone date overlap | UI/local only | Validate overlap off-chain/UI; on-chain only enforces `start_at < end_at` and money invariants | WS 2 app path / Phase 3 |
-| PM package creation | Not supported; Finance creates packages | Add project-level drafter authorization before PM draft package flow | WS 0 + WS 4 / Phase 4 |
-| Contractor assignment after package setup | Limited | Allow controlled pre-activity contractor assignment/update | WS 3 / Phase 4 |
-| Finance escrow approval after assignment | Partial: Finance can fund/release but no draft approval step | Add draft activation / escrow approval path before funding and requests | WS 4 / Phase 4 |
+| PM package creation | Supported through authorized project drafter package drafts in `app/` and Anchor | Add project-level drafter authorization before PM draft package flow | WS 0 + WS 4 / Phase 4 complete |
+| Contractor assignment after package setup | Contractor is proposed on the draft and formalized as contractor role assignment at Finance activation | Allow controlled pre-activity contractor assignment/update | WS 3 / Phase 4 complete for draft activation; explicit draft edit path remains future polish |
+| Finance escrow approval after assignment | Supported: Finance activates draft package, creates vault/contractor role assignment, then funds escrow | Add draft activation / escrow approval path before funding and requests | WS 4 / Phase 4 complete |
 | Contractor invoice submission | Supported at package level and milestone level in backend and app | Extend to package-level or milestone-level request targets | WS 2 / Phase 3 complete |
 | Evidence pack review | Partial: document reference exists; review UX is prototype-only | Treat evidence/document refs as request-linked workflow inputs; keep raw files off-chain | WS 6 / Phase 6 |
 | Document requests and uploads | Partial: `add_document_reference` only | Add app metadata flow for requested/fulfilled document refs, linked to packages, requests, and milestones | WS 6 / Phase 6 |
@@ -623,7 +630,7 @@ Why second: this is the largest frontend/backend mismatch in package setup.
 
 ### Phase 3: Milestone React Flow
 
-Deliverable: the React app can create real backend packages and milestones using the UX shape from the static prototype. Until Phase 4 lands, this can use the existing Finance-created active package path rather than the final PM draft path.
+Deliverable: the React app can create real backend packages and milestones using the UX shape from the static prototype.
 
 Status: complete in repo.
 
@@ -642,11 +649,16 @@ Deliverable: authorized project drafters can prepare package/milestone structure
 
 Why fourth: this matches the demo's PM workflow while keeping Finance in control of money.
 
+Status: complete in repo.
+
 Implementation notes:
 
 - Keep the existing direct Finance-created active package path in place.
 - Add the drafter/draft path beside it.
 - Do not move milestone backend rules out of the active-package path; draft activation should reuse them.
+- Implemented with `ProjectDrafterAccount`, `WorkPackageStatus::Draft`, `create_package_draft`, `create_draft_milestone`, and `activate_work_package`.
+- Activation is the point where project budget allocation, vault ATA creation, contractor role assignment, and milestone sum-equals-cap checks become binding.
+- `tests/construkt.b8-package-drafts.ts` covers authorized drafter creation, inactive/unassigned drafter rejection, pre-activation funding rejection, simple activation/funding, and milestone schedule completeness.
 
 ### Phase 5: High-Approval Policy Flag
 
@@ -685,15 +697,14 @@ Workstream 7 is continuous rather than a discrete phase: every backend phase end
 
 ## Near-Term First Slice
 
-Phase 0 through Phase 3 are complete. The next useful slice is Phase 4:
+Phase 0 through Phase 4 are complete. The next useful slice is Phase 5:
 
-1. Add project-level drafter authorization for PM-style package preparation.
-2. Add draft package state beside the existing direct Finance-created active package path.
-3. Let drafters prepare milestone schedules and proposed contractors without locking funds.
-4. Add Finance activation that enforces remaining project budget, contractor assignment, and milestone sum-equals-cap before funding.
-5. Keep the Phase 3 active-package milestone path as a regression path until the draft flow fully replaces it in product UX.
+1. Add a `high_approval_required` package-level policy field.
+2. Extend active package creation, draft creation, and draft activation call paths so the policy can be set without breaking existing defaults.
+3. Update release readiness and app copy so low-only and low-plus-high approval packages are visibly different.
+4. Keep the existing Director/high-approver account model as an optional approval step, not a mandatory user-facing role.
 
-This is the smallest useful next slice because Phase 3 made milestones visible and invoiceable in the app; Phase 4 moves package creation toward the intended PM-drafts, Finance-activates product flow.
+This is the smallest useful next slice because Phase 4 now has the intended PM-drafts, Finance-activates flow; Phase 5 makes the approval depth configurable per package.
 
 ## Resolved Decisions
 
@@ -734,7 +745,7 @@ This is the smallest useful next slice because Phase 3 made milestones visible a
 
 ## Test File Convention
 
-Current Anchor tests are split into `b1` through `b6`. New backend workstreams should add focused files rather than keep growing the existing suites indefinitely:
+Current Anchor tests are split into focused `b*` suites through `b8`. New backend workstreams should add focused files rather than keep growing the existing suites indefinitely:
 
 - `tests/construkt.b5-budget.ts`
 - `tests/construkt.b6-milestones.ts`

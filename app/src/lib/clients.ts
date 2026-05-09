@@ -36,8 +36,8 @@ export interface AppClients {
   metadata: MetadataClient;
   /**
    * Off-chain metadata write surface. Present in V0 (the mock client
-   * implements both interfaces); Phase 4 will likely set this to `null`
-   * because real backends own their own mutation paths. The UI must
+   * implements both interfaces). Backend-backed modes may set this to
+   * `null` because real services own their own mutation paths. The UI must
    * handle the `null` case rather than assuming write capability.
    */
   metadataWriter: MetadataWriter | null;
@@ -240,9 +240,9 @@ export const buildAnchorClients = async (
 
 /**
  * Map a demo role to the seeded demo wallet that would sign for it on
- * chain. V0 only â€” Phase 4 must replace this with a real connected
- * wallet (which may not match the visible role; that mismatch is the
- * whole reason "role visibility is not authorization").
+ * chain. This is a demo convenience; production wallet connection may not
+ * match the visible role, which is the whole reason "role visibility is
+ * not authorization."
  */
 export const walletForRole = (
   world: Pick<AppWorld, "finance" | "pm" | "director" | "contractor">,

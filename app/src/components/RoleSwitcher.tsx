@@ -16,10 +16,9 @@ export interface RoleSwitcherProps {
  * arrow keys move highlight, Enter/Space commits, Escape cancels.
  *
  * This swaps the *visible* role across the surface (which projects and
- * tasks render) and is **not** signing authority — that comes from the
- * connected wallet in Phase 4. Per the plan's "Role visibility is not
- * authorization" rule, this control must stay clearly labeled as demo
- * behavior.
+ * tasks render) and is **not** signing authority. Per the plan's "Role
+ * visibility is not authorization" rule, this control must stay clearly
+ * labeled as demo behavior.
  */
 export const RoleSwitcher = ({ role, onChange }: RoleSwitcherProps) => {
   const [open, setOpen] = useState(false);

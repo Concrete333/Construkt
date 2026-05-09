@@ -53,6 +53,7 @@ export interface ProjectRollup {
   project: ProjectAccount;
   packageCount: number;
   activePackageCount: number;
+  draftPackageCount: number;
   completedPackageCount: number;
   cancelledPackageCount: number;
   packagesWithActiveRequest: number;
@@ -87,6 +88,7 @@ export const selectProjectRollup = (
     project: fetched.account,
     packageCount: packages.length,
     activePackageCount: byStatus("active"),
+    draftPackageCount: byStatus("draft"),
     completedPackageCount: byStatus("completed"),
     cancelledPackageCount: byStatus("cancelled"),
     packagesWithActiveRequest: packages.filter((p) => p.hasActiveRequest)
@@ -113,6 +115,7 @@ const PACKAGE_STATUS_LABELS: Record<WorkPackageStatus, string> = {
   active: "Active",
   completed: "Completed",
   cancelled: "Cancelled",
+  draft: "Draft",
 };
 
 export const projectStatusLabel = (status: ProjectStatus): string =>
