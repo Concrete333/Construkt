@@ -163,6 +163,12 @@ export const seedDemoMetadata = (
         "Site logistics variation; PM rejected the first invoice for re-pricing.",
       contractModel: "milestone",
     },
+    {
+      summary: world.packages.complianceUpgrade,
+      description:
+        "Fire & compliance upgrade — required-high policy, awaiting Director approval before Finance can release.",
+      contractModel: "milestone",
+    },
   ];
 
   for (const entry of packageEntries) {
@@ -227,6 +233,15 @@ export const seedDemoMetadata = (
     demoNoteRef(world.packages.rejectedDelta.name, "pm-reject"),
     {
       text: "Re-price the lifting plan against revised crane access window.",
+      authorDisplayName: PM.displayName,
+      authorRole: "projectManager",
+      authoredAt: now(),
+    },
+  );
+  metadata.putNote(
+    demoNoteRef(world.packages.complianceUpgrade.name, "pm-approve"),
+    {
+      text: "PM approval recorded; awaiting Director sign-off per package policy.",
       authorDisplayName: PM.displayName,
       authorRole: "projectManager",
       authoredAt: now(),

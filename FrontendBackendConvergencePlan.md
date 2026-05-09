@@ -15,7 +15,8 @@ Current repo status:
 - Phase 2 is complete: milestone accounts, milestone-targeted payment requests, reserved request accounting, and milestone-aware release/reject flows are implemented in Anchor and mirrored in the mock client.
 - Phase 3 is complete: `app/` can create milestone-mode packages on the Finance-created active package path, display real milestone account state, target contractor invoices at milestones, and seed one milestone-backed package in mock and localnet demo state.
 - Phase 4 is complete: project drafter authorization, PM-created draft packages, draft milestone schedules, Finance activation, contractor role assignment at activation, and post-activation funding are implemented in Anchor, mirrored in app clients, and wired into the React project-detail flow.
-- Phase 5 onward remain open. The next meaningful implementation slice is the high-approval policy flag.
+- Phase 5 is complete: `WorkPackageAccount.high_approval_required` is plumbed through `create_work_package`, `create_package_draft`, and `activate_work_package`; `release_payment` rejects low-only releases on required-high packages with `HighApprovalRequired`; `update_high_approval_policy` lets Finance flip the flag while no request is active; mock and Anchor clients mirror everything; React UI exposes the toggle in the create form, switches Optional/Required labels, and ships a Finance-only `ApprovalPolicyPanel`. Demo seed adds a `complianceUpgrade` package parked at `lowApproved` to demonstrate the gated release.
+- Phase 6 onward remain open.
 
 Important repo notes for the remaining phases:
 
@@ -210,8 +211,8 @@ For V0:
 | Contractor invoice submission | Supported at package level and milestone level in backend and app | Extend to package-level or milestone-level request targets | WS 2 / Phase 3 complete |
 | Evidence pack review | Partial: document reference exists; review UX is prototype-only | Treat evidence/document refs as request-linked workflow inputs; keep raw files off-chain | WS 6 / Phase 6 |
 | Document requests and uploads | Partial: `add_document_reference` only | Add app metadata flow for requested/fulfilled document refs, linked to packages, requests, and milestones | WS 6 / Phase 6 |
-| Approval behavior and role labels | Fixed role enum; optional high approval exists | Add package-level high-approval policy flag first; use metadata for labels; defer dynamic roles | WS 5 / Phase 5 |
-| Finance release | Supported | Keep; release from PM-approved or high-approved states depending on package policy | WS 5 / Phase 5 |
+| Approval behavior and role labels | Package-level `high_approval_required` flag enforced on chain and exposed in app | Use metadata for richer labels; defer dynamic roles | WS 5 / Phase 5 complete |
+| Finance release | Supported with policy gate (low-only on default, high required on flagged packages) | Keep; release from PM-approved or high-approved states depending on package policy | WS 5 / Phase 5 complete |
 | Contractor withdrawal balance | Not first-class; release sends tokens directly | Model withdrawal UX in the app from release state; keep distinct backend claim/withdraw out of scope for V0 | WS 6 / Phase 6 |
 | Lightweight variation requests | Not first-class | Keep variation details off-chain at first; add references/events only when a variation affects cap, milestone amount, contractor assignment, `high_approval_required`, or the wallet authorized to release | Deferred / metadata-first |
 | Holds | Supported at request level | Keep request-level holds in V0; package/milestone holds are out of scope until explicitly requested | Current backend / WS 6 display |
@@ -664,7 +665,18 @@ Implementation notes:
 
 Deliverable: optional vs required high approval is a package field, not just a convention.
 
+Status: complete in repo.
+
 Why fifth: it turns "customizable approval path" from copy into real product behavior without overbuilding full dynamic roles.
+
+Implementation notes:
+
+- `high_approval_required: bool` is set at `create_work_package` and `create_package_draft`; `activate_work_package` carries the draft value through and emits it.
+- `release_payment` rejects low-only releases on required-high packages with the new `HighApprovalRequired` error.
+- `update_high_approval_policy` lets Finance flip the flag while the package is `Draft`/`Active` and no payment request is active. `WorkPackagePolicyUpdated` event records each flip.
+- App selectors include `HighApprovalRequired` as a release-blocked reason; React UI exposes a checkbox in the create form, switches Optional/Required labels, and ships a Finance-only `ApprovalPolicyPanel`.
+- `tests/construkt.b9-approval-policy.ts` covers create-time persistence, the release gate (default, required-high blocked, required-high happy), and `update_high_approval_policy` (flip, non-Finance rejection, blocked while active).
+- Demo seed adds a `complianceUpgrade` package parked at `lowApproved` to walk through the gated-release narrative.
 
 ### Phase 6: Evidence, Withdrawal, Dashboard, And Audit Polish
 
@@ -697,14 +709,14 @@ Workstream 7 is continuous rather than a discrete phase: every backend phase end
 
 ## Near-Term First Slice
 
-Phase 0 through Phase 4 are complete. The next useful slice is Phase 5:
+Phase 0 through Phase 5 are complete. The next useful slice is Phase 6 (Workstream 6 — evidence, withdrawal, dashboard, audit polish):
 
-1. Add a `high_approval_required` package-level policy field.
-2. Extend active package creation, draft creation, and draft activation call paths so the policy can be set without breaking existing defaults.
-3. Update release readiness and app copy so low-only and low-plus-high approval packages are visibly different.
-4. Keep the existing Director/high-approver account model as an optional approval step, not a mandatory user-facing role.
+1. Treat evidence packs and document requests as request-linked metadata with status (`requested`, `fulfilled`, reviewer note).
+2. Derive contractor withdrawal balance in the app from released-but-not-cleared state and add a "mark withdrawn" UX.
+3. Promote dashboard selectors to surface project-level totals (allocated, funded, requested, approved, released, contractor-withdrawal balance, held amount, evidence awaiting review, document requests outstanding).
+4. Strengthen audit-trail event coverage so user-facing state transitions are reconstructable from chain reads plus metadata.
 
-This is the smallest useful next slice because Phase 4 now has the intended PM-drafts, Finance-activates flow; Phase 5 makes the approval depth configurable per package.
+This is the next useful slice because the on-chain payment-control surface is now feature-complete for V0; Phase 6 makes the resulting state understandable and demoable on the React surface.
 
 ## Resolved Decisions
 

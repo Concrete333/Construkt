@@ -83,14 +83,15 @@ describe("selectProjectRollup", () => {
     const rollups = await buildRollupsFor(client, packages);
     const summary = selectProjectRollup(projects[0], rollups);
 
-    expect(summary.packageCount).toBe(6);
-    // foundation released its full cap → completed; the other five stay active.
-    expect(summary.activePackageCount).toBe(5);
+    expect(summary.packageCount).toBe(7);
+    // foundation released its full cap → completed; the other six stay active.
+    expect(summary.activePackageCount).toBe(6);
     expect(summary.completedPackageCount).toBe(1);
     expect(summary.cancelledPackageCount).toBe(0);
     // foundation released; rejectedDelta is unblocked; interior has none —
-    // leaves steelFrame, mepFirstFix, facade with active requests.
-    expect(summary.packagesWithActiveRequest).toBe(3);
+    // leaves steelFrame, mepFirstFix, facade, complianceUpgrade with active
+    // requests.
+    expect(summary.packagesWithActiveRequest).toBe(4);
     expect(summary.heldPackageCount).toBe(1);
 
     const totalCap = rollups.reduce((a, b) => a + b.package.capAmount, 0n);

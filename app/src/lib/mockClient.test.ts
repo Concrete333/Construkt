@@ -28,7 +28,9 @@ const wallets = () => ({
   outsider: Keypair.generate().publicKey,
 });
 
-const seedFundedPackage = async () => {
+const seedFundedPackage = async (
+  options: { highApprovalRequired?: boolean } = {},
+) => {
   const client = newClient();
   const w = wallets();
   const projectId = 1n;
@@ -52,6 +54,7 @@ const seedFundedPackage = async () => {
     contractor: w.contractor,
     mint: w.mint,
     scopeRef: "ipfs://scope",
+    highApprovalRequired: options.highApprovalRequired,
   });
   await client.fundEscrow({
     authority: w.finance,
@@ -886,5 +889,222 @@ describe("MockConstruktClient — pda derivation matches submitPaymentRequest ou
     const role = await client.fetchRoleAssignment(roleAddress);
     expect(role?.role).toBe("contractor");
     expect(role?.active).toBe(true);
+  });
+});
+
+describe("MockConstruktClient — high approval policy parity", () => {
+  const submitAndApprove = async (
+    args: {
+      client: MockConstruktClient;
+      w: ReturnType<typeof wallets>;
+      project: PublicKey;
+      workPackage: PublicKey;
+    },
+    {
+      includeHigh,
+    }: {
+      includeHigh: boolean;
+    },
+  ) => {
+    const { client, w, project, workPackage } = args;
+    const requestId = 1n;
+    const paymentRequest = derivePaymentRequestAddress(
+      PROGRAM_ID,
+      workPackage,
+      requestId,
+    );
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId,
+      amount: 100_000n,
+      documentRef: "ipfs://invoice-policy",
+    });
+    await client.approveRequest({
+      approver: w.pm,
+      project,
+      workPackage,
+      paymentRequest,
+      role: "lowApprover",
+      noteRef: "pm note",
+    });
+    if (includeHigh) {
+      await client.approveRequest({
+        approver: w.director,
+        project,
+        workPackage,
+        paymentRequest,
+        role: "highApprover",
+        noteRef: "director note",
+      });
+    }
+    return paymentRequest;
+  };
+
+  it("persists highApprovalRequired = true on createWorkPackage", async () => {
+    const { client, workPackage } = await seedFundedPackage({
+      highApprovalRequired: true,
+    });
+    const wp = await client.fetchWorkPackage(workPackage);
+    expect(wp?.highApprovalRequired).toBe(true);
+  });
+
+  it("defaults highApprovalRequired to false on createWorkPackage", async () => {
+    const { client, workPackage } = await seedFundedPackage();
+    const wp = await client.fetchWorkPackage(workPackage);
+    expect(wp?.highApprovalRequired).toBe(false);
+  });
+
+  it("createPackageDraft + activateWorkPackage preserves highApprovalRequired", async () => {
+    const client = newClient();
+    const w = wallets();
+    const projectId = 11n;
+    const packageId = 11n;
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, projectId);
+    const workPackage = deriveWorkPackageAddress(
+      PROGRAM_ID,
+      project,
+      packageId,
+    );
+
+    await client.initializeProject({
+      authority: w.finance,
+      projectId,
+      mint: w.mint,
+      budgetAmount: PROJECT_BUDGET,
+      name: "Draft policy project",
+      metadataRef: "ipfs://draft-policy",
+    });
+    await client.assignProjectDrafter({
+      authority: w.finance,
+      project,
+      wallet: w.pm,
+    });
+    await client.createPackageDraft({
+      drafter: w.pm,
+      project,
+      packageId,
+      capAmount: 500_000n,
+      contractor: w.contractor,
+      scopeRef: "ipfs://draft-policy-scope",
+      highApprovalRequired: true,
+    });
+
+    const draft = await client.fetchWorkPackage(workPackage);
+    expect(draft?.status).toBe("draft");
+    expect(draft?.highApprovalRequired).toBe(true);
+
+    await client.activateWorkPackage({
+      authority: w.finance,
+      project,
+      workPackage,
+    });
+    const active = await client.fetchWorkPackage(workPackage);
+    expect(active?.status).toBe("active");
+    expect(active?.highApprovalRequired).toBe(true);
+  });
+
+  it("default policy releases on low-only approval", async () => {
+    const seeded = await seedFundedPackage();
+    const paymentRequest = await submitAndApprove(seeded, {
+      includeHigh: false,
+    });
+    await seeded.client.releasePayment({
+      authority: seeded.w.finance,
+      project: seeded.project,
+      workPackage: seeded.workPackage,
+      paymentRequest,
+      contractorTokenAccount: Keypair.generate().publicKey,
+    });
+    const pr = await seeded.client.fetchPaymentRequest(paymentRequest);
+    expect(pr?.status).toBe("released");
+  });
+
+  it("required-high policy rejects low-only release with HighApprovalRequired", async () => {
+    const seeded = await seedFundedPackage({ highApprovalRequired: true });
+    const paymentRequest = await submitAndApprove(seeded, {
+      includeHigh: false,
+    });
+    await expect(
+      seeded.client.releasePayment({
+        authority: seeded.w.finance,
+        project: seeded.project,
+        workPackage: seeded.workPackage,
+        paymentRequest,
+        contractorTokenAccount: Keypair.generate().publicKey,
+      }),
+    ).rejects.toMatchObject({ code: "HighApprovalRequired" });
+    const pr = await seeded.client.fetchPaymentRequest(paymentRequest);
+    expect(pr?.status).toBe("lowApproved");
+  });
+
+  it("required-high policy releases after low + high approval", async () => {
+    const seeded = await seedFundedPackage({ highApprovalRequired: true });
+    const paymentRequest = await submitAndApprove(seeded, {
+      includeHigh: true,
+    });
+    await seeded.client.releasePayment({
+      authority: seeded.w.finance,
+      project: seeded.project,
+      workPackage: seeded.workPackage,
+      paymentRequest,
+      contractorTokenAccount: Keypair.generate().publicKey,
+    });
+    const pr = await seeded.client.fetchPaymentRequest(paymentRequest);
+    expect(pr?.status).toBe("released");
+  });
+
+  it("Finance can flip highApprovalRequired both directions", async () => {
+    const { client, w, project, workPackage } = await seedFundedPackage();
+
+    await client.updateHighApprovalPolicy({
+      authority: w.finance,
+      project,
+      workPackage,
+      highApprovalRequired: true,
+    });
+    expect(
+      (await client.fetchWorkPackage(workPackage))?.highApprovalRequired,
+    ).toBe(true);
+
+    await client.updateHighApprovalPolicy({
+      authority: w.finance,
+      project,
+      workPackage,
+      highApprovalRequired: false,
+    });
+    expect(
+      (await client.fetchWorkPackage(workPackage))?.highApprovalRequired,
+    ).toBe(false);
+  });
+
+  it("non-Finance cannot updateHighApprovalPolicy", async () => {
+    const { client, w, project, workPackage } = await seedFundedPackage();
+    await expect(
+      client.updateHighApprovalPolicy({
+        authority: w.outsider,
+        project,
+        workPackage,
+        highApprovalRequired: true,
+      }),
+    ).rejects.toMatchObject({ code: "Unauthorized" });
+  });
+
+  it("updateHighApprovalPolicy is blocked while a request is active", async () => {
+    const seeded = await seedFundedPackage();
+    await submitAndApprove(seeded, { includeHigh: false });
+
+    await expect(
+      seeded.client.updateHighApprovalPolicy({
+        authority: seeded.w.finance,
+        project: seeded.project,
+        workPackage: seeded.workPackage,
+        highApprovalRequired: true,
+      }),
+    ).rejects.toMatchObject({ code: "ActiveRequestExists" });
+
+    const wp = await seeded.client.fetchWorkPackage(seeded.workPackage);
+    expect(wp?.highApprovalRequired).toBe(false);
   });
 });

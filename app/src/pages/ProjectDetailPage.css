@@ -180,6 +180,13 @@
   text-wrap: balance;
 }
 
+.project-detail__package-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  align-items: center;
+}
+
 .project-detail__package-metrics {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -356,6 +363,25 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+}
+
+.project-detail__form-field--checkbox {
+  gap: var(--space-1);
+}
+
+.project-detail__form-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.project-detail__form-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin: 0;
 }
 
 .project-detail__form-label {

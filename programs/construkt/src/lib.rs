@@ -58,6 +58,7 @@ pub mod construkt {
         cap_amount: u64,
         contractor: Pubkey,
         scope_ref: String,
+        high_approval_required: bool,
     ) -> Result<()> {
         require_keys_eq!(
             ctx.accounts.authority.key(),
@@ -94,6 +95,7 @@ pub mod construkt {
         work_package.request_counter = 0;
         work_package.has_active_request = false;
         work_package.active_request = Pubkey::default();
+        work_package.high_approval_required = high_approval_required;
         work_package.bump = ctx.bumps.work_package;
 
         let project = &mut ctx.accounts.project;
@@ -107,6 +109,7 @@ pub mod construkt {
             mint: work_package.mint,
             vault: work_package.vault,
             cap_amount,
+            high_approval_required,
             project_budget_amount: project.budget_amount,
             project_allocated_amount: project.allocated_amount,
         });
@@ -178,6 +181,7 @@ pub mod construkt {
         cap_amount: u64,
         contractor: Pubkey,
         scope_ref: String,
+        high_approval_required: bool,
     ) -> Result<()> {
         require!(cap_amount > 0, ConstruktError::InvalidAmount);
         require!(
@@ -209,6 +213,7 @@ pub mod construkt {
         work_package.request_counter = 0;
         work_package.has_active_request = false;
         work_package.active_request = Pubkey::default();
+        work_package.high_approval_required = high_approval_required;
         work_package.bump = ctx.bumps.work_package;
 
         emit!(WorkPackageDraftCreated {
@@ -219,6 +224,7 @@ pub mod construkt {
             contractor,
             mint: work_package.mint,
             cap_amount,
+            high_approval_required,
         });
 
         Ok(())
@@ -349,6 +355,7 @@ pub mod construkt {
             contractor: work_package.contractor,
             vault: work_package.vault,
             cap_amount: work_package.cap_amount,
+            high_approval_required: work_package.high_approval_required,
             project_budget_amount: project.budget_amount,
             project_allocated_amount: project.allocated_amount,
             activated_at: clock.unix_timestamp,
@@ -1002,6 +1009,39 @@ pub mod construkt {
         Ok(())
     }
 
+    pub fn update_high_approval_policy(
+        ctx: Context<UpdateHighApprovalPolicy>,
+        high_approval_required: bool,
+    ) -> Result<()> {
+        require!(
+            ctx.accounts.work_package.status == WorkPackageStatus::Draft
+                || ctx.accounts.work_package.status == WorkPackageStatus::Active,
+            ConstruktError::InvalidStatus
+        );
+        require!(
+            !ctx.accounts.work_package.has_active_request,
+            ConstruktError::ActiveRequestExists
+        );
+
+        let authority_key = ctx.accounts.authority.key();
+        let work_package_key = ctx.accounts.work_package.key();
+        let project_key = ctx.accounts.project.key();
+        let clock = Clock::get()?;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.high_approval_required = high_approval_required;
+
+        emit!(WorkPackagePolicyUpdated {
+            project: project_key,
+            work_package: work_package_key,
+            authority: authority_key,
+            high_approval_required,
+            updated_at: clock.unix_timestamp,
+        });
+
+        Ok(())
+    }
+
     pub fn release_payment(
         ctx: Context<ReleasePayment>,
     ) -> Result<()> {
@@ -1015,6 +1055,12 @@ pub mod construkt {
                 || ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
             ConstruktError::InvalidStatus
         );
+        if ctx.accounts.work_package.high_approval_required {
+            require!(
+                ctx.accounts.payment_request.status == PaymentRequestStatus::HighApproved,
+                ConstruktError::HighApprovalRequired
+            );
+        }
         require!(
             ctx.accounts.work_package.status == WorkPackageStatus::Active,
             ConstruktError::InvalidStatus
@@ -1593,6 +1639,19 @@ pub struct RemoveHold<'info> {
 }
 
 #[derive(Accounts)]
+pub struct UpdateHighApprovalPolicy<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+}
+
+#[derive(Accounts)]
 pub struct ReleasePayment<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
@@ -1707,6 +1766,7 @@ pub struct WorkPackageAccount {
     pub request_counter: u64,
     pub has_active_request: bool,
     pub active_request: Pubkey,
+    pub high_approval_required: bool,
     /// Stored for account provenance and future PDA signer paths.
     pub bump: u8,
 }
@@ -1730,6 +1790,7 @@ impl WorkPackageAccount {
         + 8
         + 1
         + 32
+        + 1
         + 1;
 
     pub fn remaining_funding_capacity(&self) -> Result<u64> {
@@ -2025,6 +2086,7 @@ pub struct WorkPackageCreated {
     pub mint: Pubkey,
     pub vault: Pubkey,
     pub cap_amount: u64,
+    pub high_approval_required: bool,
     pub project_budget_amount: u64,
     pub project_allocated_amount: u64,
 }
@@ -2055,6 +2117,7 @@ pub struct WorkPackageDraftCreated {
     pub contractor: Pubkey,
     pub mint: Pubkey,
     pub cap_amount: u64,
+    pub high_approval_required: bool,
 }
 
 #[event]
@@ -2065,9 +2128,19 @@ pub struct WorkPackageActivated {
     pub contractor: Pubkey,
     pub vault: Pubkey,
     pub cap_amount: u64,
+    pub high_approval_required: bool,
     pub project_budget_amount: u64,
     pub project_allocated_amount: u64,
     pub activated_at: i64,
+}
+
+#[event]
+pub struct WorkPackagePolicyUpdated {
+    pub project: Pubkey,
+    pub work_package: Pubkey,
+    pub authority: Pubkey,
+    pub high_approval_required: bool,
+    pub updated_at: i64,
 }
 
 #[event]
@@ -2235,6 +2308,8 @@ pub enum ConstruktError {
     ArithmeticOverflow,
     #[msg("Amount must be greater than zero")]
     InvalidAmount,
+    #[msg("Package requires high approval before release")]
+    HighApprovalRequired,
 }
 
 const fn string_space(max_len: usize) -> usize {

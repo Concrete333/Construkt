@@ -55,16 +55,17 @@ describe("selectAuditTimeline", () => {
     const sources = await seedWithAdvancingClock();
     const timeline = selectAuditTimeline(sources);
     const roles = timeline.filter((e) => e.kind === "roleAssigned");
-    // 6 packages × 3 roles each
-    expect(roles).toHaveLength(18);
+    // 7 packages × 3 roles each
+    expect(roles).toHaveLength(21);
   });
 
   it("emits exactly one requestSubmitted event per payment request", async () => {
     const sources = await seedWithAdvancingClock();
     const timeline = selectAuditTimeline(sources);
     const submitted = timeline.filter((e) => e.kind === "requestSubmitted");
-    // foundation, steelFrame, mepFirstFix, facade, rejectedDelta — five total
-    expect(submitted).toHaveLength(5);
+    // foundation, steelFrame, mepFirstFix, facade, rejectedDelta,
+    // complianceUpgrade — six total
+    expect(submitted).toHaveLength(6);
   });
 
   it("emits a requestReleased event only for the foundation request", async () => {

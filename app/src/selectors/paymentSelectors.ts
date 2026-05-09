@@ -137,6 +137,7 @@ export type ReleaseBlockedReason =
   | "RequestRejected"
   | "PackageNotActive"
   | "OnHold"
+  | "HighApprovalRequired"
   | "InsufficientRemainingCap"
   | "InsufficientFundedRemaining";
 
@@ -163,6 +164,9 @@ export const selectReleaseReadiness = (
   }
   if (workPackage.status !== "active") reasons.push("PackageNotActive");
   if (request.holdActive) reasons.push("OnHold");
+  if (workPackage.highApprovalRequired && request.status === "lowApproved") {
+    reasons.push("HighApprovalRequired");
+  }
 
   const remainingCap = workPackage.capAmount - workPackage.releasedAmount;
   if (request.amount > remainingCap) reasons.push("InsufficientRemainingCap");
@@ -187,6 +191,8 @@ export const releaseBlockedReasonLabel = (
       return "Work package is no longer active.";
     case "OnHold":
       return "Request is currently on hold.";
+    case "HighApprovalRequired":
+      return "Director (high) approval is required before release.";
     case "InsufficientRemainingCap":
       return "Release amount exceeds the package cap.";
     case "InsufficientFundedRemaining":

@@ -44,7 +44,8 @@ describe("construkt b5 project budget and mint controls", () => {
           new anchor.BN(90),
           capAmount,
           fx.contractor.publicKey,
-          "ipfs://wrong-mint-scope"
+          "ipfs://wrong-mint-scope",
+          false
         )
         .accountsStrict({
           authority: fx.finance.publicKey,
@@ -70,7 +71,8 @@ describe("construkt b5 project budget and mint controls", () => {
         new anchor.BN(89),
         capAmount,
         fx.contractor.publicKey,
-        "ipfs://event-scope"
+        "ipfs://event-scope",
+        false
       )
       .accountsStrict({
         authority: fx.finance.publicKey,
@@ -165,7 +167,8 @@ describe("construkt b5 project budget and mint controls", () => {
           new anchor.BN(95),
           new anchor.BN(600_000),
           fx.contractor.publicKey,
-          "ipfs://over-budget-scope"
+          "ipfs://over-budget-scope",
+          false
         )
         .accountsStrict({
           authority: fx.finance.publicKey,

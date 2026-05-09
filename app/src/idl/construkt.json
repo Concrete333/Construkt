@@ -713,6 +713,10 @@
         {
           "name": "scopeRef",
           "type": "string"
+        },
+        {
+          "name": "highApprovalRequired",
+          "type": "bool"
         }
       ]
     },
@@ -927,6 +931,10 @@
         {
           "name": "scopeRef",
           "type": "string"
+        },
+        {
+          "name": "highApprovalRequired",
+          "type": "bool"
         }
       ]
     },
@@ -1469,6 +1477,42 @@
           "type": "bool"
         }
       ]
+    },
+    {
+      "name": "updateHighApprovalPolicy",
+      "discriminator": [
+        246,
+        243,
+        31,
+        226,
+        206,
+        163,
+        33,
+        189
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "highApprovalRequired",
+          "type": "bool"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -1785,6 +1829,19 @@
         78,
         84
       ]
+    },
+    {
+      "name": "WorkPackagePolicyUpdated",
+      "discriminator": [
+        172,
+        65,
+        17,
+        4,
+        230,
+        68,
+        83,
+        111
+      ]
     }
   ],
   "errors": [
@@ -1907,6 +1964,11 @@
       "code": 6023,
       "name": "InvalidAmount",
       "msg": "Amount must be greater than zero"
+    },
+    {
+      "code": 6024,
+      "name": "HighApprovalRequired",
+      "msg": "Package requires high approval before release"
     }
   ],
   "types": [
@@ -2883,6 +2945,10 @@
             "type": "pubkey"
           },
           {
+            "name": "highApprovalRequired",
+            "type": "bool"
+          },
+          {
             "name": "bump",
             "docs": [
               "Stored for account provenance and future PDA signer paths."
@@ -2920,6 +2986,10 @@
           {
             "name": "capAmount",
             "type": "u64"
+          },
+          {
+            "name": "highApprovalRequired",
+            "type": "bool"
           },
           {
             "name": "projectBudgetAmount",
@@ -2970,6 +3040,10 @@
             "type": "u64"
           },
           {
+            "name": "highApprovalRequired",
+            "type": "bool"
+          },
+          {
             "name": "projectBudgetAmount",
             "type": "u64"
           },
@@ -3012,6 +3086,38 @@
           {
             "name": "capAmount",
             "type": "u64"
+          },
+          {
+            "name": "highApprovalRequired",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkPackagePolicyUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "highApprovalRequired",
+            "type": "bool"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
           }
         ]
       }

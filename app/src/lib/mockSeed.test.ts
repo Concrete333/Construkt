@@ -28,13 +28,13 @@ describe("seedHospitalFitOut — shape", () => {
     expect(projects[0].account.name).toBe("Demo Hospital Fit-Out");
   });
 
-  it("creates six work packages under the project", async () => {
+  it("creates seven work packages under the project", async () => {
     const { client, world } = await seed();
     const packages = await client.fetchWorkPackagesForProject(world.project);
-    expect(packages).toHaveLength(6);
+    expect(packages).toHaveLength(7);
   });
 
-  it("creates five payment requests (interior has none)", async () => {
+  it("creates six payment requests (interior has none)", async () => {
     const { client, world } = await seed();
     const packages = await client.fetchWorkPackagesForProject(world.project);
     const requestCounts = await Promise.all(
@@ -43,7 +43,7 @@ describe("seedHospitalFitOut — shape", () => {
           (await client.fetchPaymentRequestsForPackage(p.address)).length,
       ),
     );
-    expect(requestCounts.reduce((a, b) => a + b, 0)).toBe(5);
+    expect(requestCounts.reduce((a, b) => a + b, 0)).toBe(6);
   });
 
   it("assigns contractor + LowApprover + HighApprover on every package", async () => {
@@ -126,6 +126,19 @@ describe("seedHospitalFitOut — per-package final state", () => {
     );
     expect(request?.status).toBe("rejected");
     expect(wp?.hasActiveRequest).toBe(false);
+  });
+
+  it("complianceUpgrade requires high approval and is parked at lowApproved", async () => {
+    const { client, world } = await seed();
+    const wp = await client.fetchWorkPackage(
+      world.packages.complianceUpgrade.address,
+    );
+    const request = await client.fetchPaymentRequest(
+      world.packages.complianceUpgrade.request!,
+    );
+    expect(wp?.highApprovalRequired).toBe(true);
+    expect(request?.status).toBe("lowApproved");
+    expect(request?.holdActive).toBe(false);
   });
 });
 

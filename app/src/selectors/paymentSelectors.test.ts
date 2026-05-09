@@ -194,6 +194,61 @@ describe("selectReleaseReadiness", () => {
     expect(releaseBlockedReasonLabel("RequestRejected")).toMatch(/rejected/i);
   });
 
+  it("blocks low-only release with HighApprovalRequired when the package requires high approval", () => {
+    const wp: WorkPackageAccount = {
+      project: PublicKey.default,
+      packageId: 1n,
+      capAmount: 1_000n,
+      fundedAmount: 1_000n,
+      releasedAmount: 0n,
+      reservedRequestAmount: 0n,
+      allocatedMilestoneAmount: 0n,
+      milestoneCounter: 0n,
+      contractor: PublicKey.default,
+      mint: PublicKey.default,
+      vault: PublicKey.default,
+      vaultAuthorityBump: 0,
+      status: "active",
+      scopeRef: "",
+      requestCounter: 1n,
+      hasActiveRequest: true,
+      activeRequest: PublicKey.default,
+      highApprovalRequired: true,
+      bump: 0,
+    };
+    const lowApprovedRequest: PaymentRequestAccount = {
+      workPackage: PublicKey.default,
+      requestId: 1n,
+      contractor: PublicKey.default,
+      amount: 100n,
+      hasMilestone: false,
+      milestone: PublicKey.default,
+      documentRef: "x",
+      status: "lowApproved",
+      submittedAt: 0n,
+      updatedAt: 0n,
+      releasedAmount: 0n,
+      holdActive: false,
+      holdBy: PublicKey.default,
+      holdRef: "",
+      bump: 0,
+    };
+    const blocked = selectReleaseReadiness(lowApprovedRequest, wp);
+    expect(blocked.ready).toBe(false);
+    expect(blocked.reasons).toContain("HighApprovalRequired");
+    expect(releaseBlockedReasonLabel("HighApprovalRequired")).toMatch(
+      /director.*high.*approval/i,
+    );
+
+    const highApprovedRequest = {
+      ...lowApprovedRequest,
+      status: "highApproved" as const,
+    };
+    const ready = selectReleaseReadiness(highApprovedRequest, wp);
+    expect(ready.ready).toBe(true);
+    expect(ready.reasons).not.toContain("HighApprovalRequired");
+  });
+
   it("flags InsufficientRemainingCap and InsufficientFundedRemaining when amount exceeds budgets", () => {
     const wp: WorkPackageAccount = {
       project: PublicKey.default,
@@ -213,6 +268,7 @@ describe("selectReleaseReadiness", () => {
       requestCounter: 1n,
       hasActiveRequest: true,
       activeRequest: PublicKey.default,
+      highApprovalRequired: false,
       bump: 0,
     };
     const pr: PaymentRequestAccount = {
