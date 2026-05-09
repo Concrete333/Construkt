@@ -1,14 +1,40 @@
-# frontend-prototype — Static Demo UI + Frontend Unit Tests
+# frontend-prototype - Static Demo UI + Frontend Unit Tests
 
 Contains the canonical backendless demo and the unit test suite for its helper functions.
 
 ## Demo UI
 
-Open [`web/index.html`](web/index.html) in any browser. No build step, no server, no wallet required. Business state is fully mocked — used for UX iteration before the full Solana-integrated frontend.
+Open [`web/index.html`](web/index.html) in any browser. No build step, no server, and no blockchain connection are required. Business state is fully mocked.
+
+This is the current canonical demo surface for product walkthroughs.
+
+## What the prototype currently demonstrates
+
+The prototype models the current intended user flow:
+
+1. Finance Director creates a project.
+2. Project Manager creates an estimated work package.
+3. Project Manager assigns a contractor.
+4. Finance Director approves escrow for that package.
+5. Contractor submits an invoice against the package or a milestone.
+6. Project Manager reviews evidence and approves or rejects the request.
+7. Finance Director releases funds to the contractor withdrawal balance.
+8. Contractor withdraws released funds.
+
+The prototype also includes lightweight UX around:
+
+- milestone, valuation, and bespoke payment schedules
+- variation requests
+- document references and uploads
+- evidence pack review
+- audit history
+- chain-state placeholders
+
+These flows are mocked in the prototype. They are the product target, not a claim that every step is already implemented on-chain.
 
 ## Frontend unit tests
 
-75 unit tests for the pure helper functions in [`web/static/projects/js/construkt.js`](web/static/projects/js/construkt.js). Runs in Node via ts-mocha — no WSL, no localnet, no browser required.
+75 unit tests cover the pure helper functions in [`web/static/projects/js/construkt.js`](web/static/projects/js/construkt.js). Runs in Node via ts-mocha - no WSL, localnet, or browser required.
 
 ```bash
 # From the repo root
@@ -24,15 +50,21 @@ npx ts-mocha -p ../tsconfig.json -t 10000 "tests/construkt.frontend.ts"
 
 ## Directory layout
 
-```
+```text
 frontend-prototype/
-├── web/
-│   ├── index.html                          # demo entry point (open in browser)
-│   ├── static/projects/css/construkt.css  # shared styles
-│   ├── static/projects/js/construkt.js    # all business logic helpers
-│   └── static/projects/img/               # logos and assets
-└── tests/
-    └── construkt.frontend.ts              # 75 unit tests
+|-- web/
+|   |-- index.html                          # demo entry point
+|   |-- static/projects/css/construkt.css  # shared styles
+|   |-- static/projects/js/construkt.js    # demo logic and mocked business state
+|   `-- static/projects/img/               # logos and assets
+`-- tests/
+    `-- construkt.frontend.ts              # 75 unit tests
 ```
 
-Behavior changes should go into `web/static/projects/js/construkt.js`, `web/index.html`, and shared CSS as needed. The old duplicate Django/standalone HTML exports were removed during the front/back merge cleanup and should not be treated as active surfaces.
+Behavior changes should go into:
+
+- `web/index.html`
+- `web/static/projects/js/construkt.js`
+- `web/static/projects/css/construkt.css`
+
+The old duplicate Django and standalone HTML exports were removed during the front/back merge cleanup and should not be treated as active surfaces.
