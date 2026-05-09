@@ -16,6 +16,7 @@ describe("construkt b9 approval policy", () => {
   type PreparedRequest = {
     packageAddresses: PackageAddresses;
     paymentRequest: anchor.web3.PublicKey;
+    milestone?: anchor.web3.PublicKey;
     contractorRoleAssignment: anchor.web3.PublicKey;
     pmRoleAssignment: anchor.web3.PublicKey;
     directorRoleAssignment: anchor.web3.PublicKey;
@@ -106,7 +107,7 @@ describe("construkt b9 approval policy", () => {
         project: fx.project,
         workPackage: prepared.packageAddresses.workPackage,
         paymentRequest: prepared.paymentRequest,
-        milestone: prepared.packageAddresses.workPackage,
+        milestone: prepared.milestone ?? prepared.packageAddresses.workPackage,
         vaultAuthority: prepared.packageAddresses.vaultAuthority,
         vault: prepared.packageAddresses.vault,
         contractorTokenAccount: fx.contractorTokenAccount,
@@ -141,6 +142,62 @@ describe("construkt b9 approval policy", () => {
     };
   };
 
+  const prepareMilestoneRequest = async (
+    highApprovalRequired: boolean
+  ): Promise<PreparedRequest> => {
+    const amount = new anchor.BN(100_000);
+    const packageCap = new anchor.BN(200_000);
+    const packageAddresses = await fx.createWorkPackageForTest(
+      nextPackageId++,
+      fx.contractor.publicKey,
+      packageCap,
+      "ipfs://b9-milestone-scope",
+      highApprovalRequired
+    );
+    const milestone = await fx.createMilestoneForTest(
+      packageAddresses,
+      1,
+      packageCap,
+      new anchor.BN(1_700_000_000),
+      new anchor.BN(1_700_086_400),
+      "ipfs://b9-milestone-policy"
+    );
+    await fx.fundPackage(packageAddresses, packageCap);
+    const roles = await fx.assignDefaultRoles(packageAddresses);
+    const paymentRequest = fx.derivePaymentRequestAddress(
+      packageAddresses.workPackage,
+      1
+    );
+
+    await fx.program.methods
+      .submitPaymentRequest(
+        new anchor.BN(1),
+        amount,
+        "ipfs://invoice-b9-milestone",
+        true
+      )
+      .accountsStrict({
+        contractor: fx.contractor.publicKey,
+        project: fx.project,
+        workPackage: packageAddresses.workPackage,
+        contractorRoleAssignment: roles.contractorRoleAssignment,
+        paymentRequest,
+        milestone,
+        vault: packageAddresses.vault,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .signers([fx.contractor])
+      .rpc();
+
+    return {
+      packageAddresses,
+      paymentRequest,
+      milestone,
+      amount,
+      ...roles,
+    };
+  };
+
   it("default policy stores high_approval_required = false on the work package", async () => {
     const prepared = await prepareRequest(false);
     const wp = await fx.program.account.workPackageAccount.fetch(
@@ -170,6 +227,18 @@ describe("construkt b9 approval policy", () => {
 
   it("required-high policy blocks release after PM-only approval", async () => {
     const prepared = await prepareRequest(true);
+    await approvePm(prepared);
+
+    await expectError(releasePayment(prepared), "HighApprovalRequired");
+
+    const requestAccount = await fx.program.account.paymentRequestAccount.fetch(
+      prepared.paymentRequest
+    );
+    assert.deepStrictEqual(requestAccount.status, { lowApproved: {} });
+  });
+
+  it("required-high policy blocks milestone release after PM-only approval", async () => {
+    const prepared = await prepareMilestoneRequest(true);
     await approvePm(prepared);
 
     await expectError(releasePayment(prepared), "HighApprovalRequired");
@@ -231,6 +300,21 @@ describe("construkt b9 approval policy", () => {
     assert.isFalse(wp.highApprovalRequired);
   });
 
+  it("rejects no-op high_approval_required updates", async () => {
+    const packageAddresses = await fx.createWorkPackageForTest(
+      nextPackageId++,
+      fx.contractor.publicKey,
+      new anchor.BN(200_000),
+      "ipfs://b9-policy-noop",
+      false
+    );
+
+    await expectError(
+      updatePolicy(packageAddresses.workPackage, false),
+      "RoleAlreadyInRequestedState"
+    );
+  });
+
   it("non-Finance cannot flip high_approval_required", async () => {
     const packageAddresses = await fx.createWorkPackageForTest(
       nextPackageId++,
@@ -248,6 +332,20 @@ describe("construkt b9 approval policy", () => {
 
   it("flipping high_approval_required is blocked while a request is active", async () => {
     const prepared = await prepareRequest(false);
+
+    await expectError(
+      updatePolicy(prepared.packageAddresses.workPackage, true),
+      "ActiveRequestExists"
+    );
+
+    const wp = await fx.program.account.workPackageAccount.fetch(
+      prepared.packageAddresses.workPackage
+    );
+    assert.isFalse(wp.highApprovalRequired);
+  });
+
+  it("flipping high_approval_required is blocked while a milestone request is active", async () => {
+    const prepared = await prepareMilestoneRequest(false);
 
     await expectError(
       updatePolicy(prepared.packageAddresses.workPackage, true),

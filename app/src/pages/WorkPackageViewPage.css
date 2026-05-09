@@ -558,6 +558,10 @@
   color: var(--color-text-muted);
 }
 
+.work-package-view__aside-note--warning {
+  color: var(--color-warning);
+}
+
 .work-package-view__tracker {
   list-style: none;
   margin: 0;

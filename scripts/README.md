@@ -69,4 +69,4 @@ Seed keypairs use deterministic fill-byte seeds so the same demo wallets are rep
 
 `app/src/idl/construkt.json` is generated output. Do not edit it by hand; rerun `npm run idl:sync` or `npm run reset:localnet` after `anchor build`.
 
-The seed creates one demo project with six package states: released after PM plus optional high approval, high-approved waiting for Finance, low-approved ready for Finance, submitted on hold, funded with no request, and rejected/unblocked.
+The seed creates one demo project with seven package states: released after PM plus optional high approval, high-approved waiting for Finance, low-approved ready for Finance, submitted on hold, funded with no request, rejected/unblocked, and a required-high compliance package waiting for Director approval.

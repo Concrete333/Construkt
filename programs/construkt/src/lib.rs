@@ -1019,7 +1019,11 @@ pub mod construkt {
             ConstruktError::InvalidStatus
         );
         require!(
-            !ctx.accounts.work_package.has_active_request,
+            ctx.accounts.work_package.high_approval_required != high_approval_required,
+            ConstruktError::RoleAlreadyInRequestedState
+        );
+        require!(
+            ctx.accounts.work_package.reserved_request_amount == 0,
             ConstruktError::ActiveRequestExists
         );
 

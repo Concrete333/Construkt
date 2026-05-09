@@ -87,6 +87,7 @@ interface LoadedDetail {
   requests: RequestRow[];
   timeline: EnrichedAuditEvent[];
   teamMembers: TeamMember[];
+  hasHighApproverAssignment: boolean;
   contractorDisplayName: string;
 }
 
@@ -206,6 +207,11 @@ export const WorkPackageViewPage = ({
         teamByWallet.set(member.wallet, member.displayName);
         teamMembers.push(member);
       }
+      const hasHighApproverAssignment = roleAssignments.some(
+        (assignment) =>
+          assignment.account.active &&
+          assignment.account.role === "highApprover",
+      );
 
       const enriched: EnrichedAuditEvent[] = [];
       for (const event of scopedTimeline) {
@@ -239,6 +245,7 @@ export const WorkPackageViewPage = ({
           requests: requestRows,
           timeline: enriched,
           teamMembers,
+          hasHighApproverAssignment,
           contractorDisplayName,
         });
       }
@@ -511,7 +518,8 @@ export const WorkPackageViewPage = ({
             isFinance={role === "financeDirector"}
             highApprovalRequired={rollup.package.highApprovalRequired}
             packageStatus={rollup.package.status}
-            hasActiveRequest={rollup.package.hasActiveRequest}
+            hasInFlightRequest={rollup.package.reservedRequestAmount > 0n}
+            hasHighApprover={loaded.hasHighApproverAssignment}
             pending={pending}
             onFlip={(next) =>
               void onAct(() =>
@@ -1005,7 +1013,8 @@ interface ApprovalPolicyPanelProps {
   isFinance: boolean;
   highApprovalRequired: boolean;
   packageStatus: WorkPackageAccount["status"];
-  hasActiveRequest: boolean;
+  hasInFlightRequest: boolean;
+  hasHighApprover: boolean;
   pending: boolean;
   onFlip: (next: boolean) => void;
 }
@@ -1014,7 +1023,8 @@ const ApprovalPolicyPanel = ({
   isFinance,
   highApprovalRequired,
   packageStatus,
-  hasActiveRequest,
+  hasInFlightRequest,
+  hasHighApprover,
   pending,
   onFlip,
 }: ApprovalPolicyPanelProps) => {
@@ -1022,7 +1032,7 @@ const ApprovalPolicyPanel = ({
     packageStatus === "draft" || packageStatus === "active";
   const blockedReason = !isUpdatablePackageStatus
     ? "Policy can only change while the package is in Draft or Active."
-    : hasActiveRequest
+    : hasInFlightRequest
       ? "A payment request is in flight. The policy is locked until that request reaches a final state."
       : null;
   const canFlip = isFinance && !blockedReason;
@@ -1039,6 +1049,12 @@ const ApprovalPolicyPanel = ({
           ? "Finance can only release after both PM and Director approve this request."
           : "PM approval is enough for Finance to release."}
       </p>
+      {highApprovalRequired && !hasHighApprover && (
+        <p className="work-package-view__aside-note work-package-view__aside-note--warning">
+          Required high approval is on, but no Director is assigned. Finance
+          must assign one before release can complete.
+        </p>
+      )}
       {isFinance && (
         <>
           {blockedReason && (

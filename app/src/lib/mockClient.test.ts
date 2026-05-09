@@ -86,7 +86,9 @@ const seedFundedPackage = async (
   return { client, w, project, workPackage, projectId, packageId };
 };
 
-const seedMilestonePackage = async () => {
+const seedMilestonePackage = async (
+  options: { highApprovalRequired?: boolean } = {},
+) => {
   const client = newClient();
   const w = wallets();
   const projectId = 7n;
@@ -112,6 +114,7 @@ const seedMilestonePackage = async () => {
     contractor: w.contractor,
     mint: w.mint,
     scopeRef: "ipfs://milestone-scope",
+    highApprovalRequired: options.highApprovalRequired,
   });
   await client.createMilestone({
     authority: w.finance,
@@ -1039,6 +1042,45 @@ describe("MockConstruktClient — high approval policy parity", () => {
     expect(pr?.status).toBe("lowApproved");
   });
 
+  it("required-high policy rejects low-only milestone release with HighApprovalRequired", async () => {
+    const seeded = await seedMilestonePackage({ highApprovalRequired: true });
+    const paymentRequest = derivePaymentRequestAddress(
+      PROGRAM_ID,
+      seeded.workPackage,
+      1n,
+    );
+    await seeded.client.submitPaymentRequest({
+      contractor: seeded.w.contractor,
+      project: seeded.project,
+      workPackage: seeded.workPackage,
+      requestId: 1n,
+      milestone: seeded.milestoneOne,
+      amount: 100_000n,
+      documentRef: "ipfs://milestone-policy-invoice",
+    });
+    await seeded.client.approveRequest({
+      approver: seeded.w.pm,
+      project: seeded.project,
+      workPackage: seeded.workPackage,
+      paymentRequest,
+      role: "lowApprover",
+      noteRef: "pm note",
+    });
+
+    await expect(
+      seeded.client.releasePayment({
+        authority: seeded.w.finance,
+        project: seeded.project,
+        workPackage: seeded.workPackage,
+        paymentRequest,
+        contractorTokenAccount: Keypair.generate().publicKey,
+      }),
+    ).rejects.toMatchObject({ code: "HighApprovalRequired" });
+
+    const pr = await seeded.client.fetchPaymentRequest(paymentRequest);
+    expect(pr?.status).toBe("lowApproved");
+  });
+
   it("required-high policy releases after low + high approval", async () => {
     const seeded = await seedFundedPackage({ highApprovalRequired: true });
     const paymentRequest = await submitAndApprove(seeded, {
@@ -1079,6 +1121,18 @@ describe("MockConstruktClient — high approval policy parity", () => {
     ).toBe(false);
   });
 
+  it("updateHighApprovalPolicy rejects no-op updates", async () => {
+    const { client, w, project, workPackage } = await seedFundedPackage();
+    await expect(
+      client.updateHighApprovalPolicy({
+        authority: w.finance,
+        project,
+        workPackage,
+        highApprovalRequired: false,
+      }),
+    ).rejects.toMatchObject({ code: "RoleAlreadyInRequestedState" });
+  });
+
   it("non-Finance cannot updateHighApprovalPolicy", async () => {
     const { client, w, project, workPackage } = await seedFundedPackage();
     await expect(
@@ -1106,5 +1160,31 @@ describe("MockConstruktClient — high approval policy parity", () => {
 
     const wp = await seeded.client.fetchWorkPackage(seeded.workPackage);
     expect(wp?.highApprovalRequired).toBe(false);
+  });
+
+  it("updateHighApprovalPolicy is blocked while a milestone request is active", async () => {
+    const seeded = await seedMilestonePackage();
+    await seeded.client.submitPaymentRequest({
+      contractor: seeded.w.contractor,
+      project: seeded.project,
+      workPackage: seeded.workPackage,
+      requestId: 1n,
+      milestone: seeded.milestoneOne,
+      amount: 100_000n,
+      documentRef: "ipfs://milestone-policy-lock",
+    });
+
+    await expect(
+      seeded.client.updateHighApprovalPolicy({
+        authority: seeded.w.finance,
+        project: seeded.project,
+        workPackage: seeded.workPackage,
+        highApprovalRequired: true,
+      }),
+    ).rejects.toMatchObject({ code: "ActiveRequestExists" });
+
+    const wp = await seeded.client.fetchWorkPackage(seeded.workPackage);
+    expect(wp?.highApprovalRequired).toBe(false);
+    expect(wp?.reservedRequestAmount).toBe(100_000n);
   });
 });

@@ -100,12 +100,12 @@ export interface SeedOptions {
 
 /**
  * Drives a `ConstruktClient` through the on-chain instruction set to build
- * a representative "Demo Hospital Fit-Out" world: one project, six work
+ * a representative "Demo Hospital Fit-Out" world: one project, seven work
  * packages each in a different state, plus all the role assignments and
  * payment requests needed to exercise the V0 dashboard, project list, and
  * work-package surfaces.
  *
- * Status coverage across the six packages:
+ * Status coverage across the seven packages:
  *   - foundation:    released
  *   - steelFrame:    highApproved (optional high approval recorded; waiting on finance)
  *   - mepFirstFix:   lowApproved (PM-approved and ready for finance release)
@@ -113,6 +113,8 @@ export interface SeedOptions {
  *   - interior:      funded but no request yet
  *   - rejectedDelta: rejected (request was rejected; package is unblocked
  *     for a new request)
+ *   - complianceUpgrade: lowApproved with required-high policy (waiting on
+ *     Director approval)
  */
 export const seedHospitalFitOut = async (
   client: ConstruktClient,

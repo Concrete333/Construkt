@@ -786,7 +786,9 @@ export class MockConstruktClient implements ConstruktClient {
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
     if (wp.status !== "draft" && wp.status !== "active") fail("InvalidStatus");
-    if (wp.hasActiveRequest) fail("ActiveRequestExists");
+    if (wp.highApprovalRequired === p.highApprovalRequired)
+      fail("RoleAlreadyInRequestedState");
+    if (wp.reservedRequestAmount > 0n) fail("ActiveRequestExists");
 
     wp.highApprovalRequired = p.highApprovalRequired;
     return this.tx();
