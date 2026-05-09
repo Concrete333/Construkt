@@ -8,359 +8,1216 @@
   },
   "instructions": [
     {
-      "name": "initializeProject",
-      "discriminator": [69, 126, 215, 37, 20, 60, 73, 235],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project", "writable": true },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "projectId", "type": "u64" },
-        { "name": "name", "type": "string" },
-        { "name": "metadataRef", "type": "string" }
-      ]
-    },
-    {
-      "name": "createWorkPackage",
-      "discriminator": [132, 142, 234, 76, 77, 147, 78, 228],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "vaultAuthority" },
-        { "name": "mint" },
-        { "name": "vault", "writable": true },
-        { "name": "associatedTokenProgram", "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe8bv8" },
-        { "name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "packageId", "type": "u64" },
-        { "name": "capAmount", "type": "u64" },
-        { "name": "contractor", "type": "pubkey" },
-        { "name": "scopeRef", "type": "string" }
-      ]
-    },
-    {
-      "name": "fundEscrow",
-      "discriminator": [155, 18, 218, 141, 182, 213, 69, 201],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "mint" },
-        { "name": "financeTokenAccount", "writable": true },
-        { "name": "vault", "writable": true },
-        { "name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
-      ],
-      "args": [
-        { "name": "amount", "type": "u64" }
-      ]
-    },
-    {
-      "name": "assignRole",
-      "discriminator": [255, 174, 125, 180, 203, 155, 202, 131],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "roleAssignment", "writable": true },
-        { "name": "opposingApproverRoleAssignment" },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "role", "type": { "defined": { "name": "Role" } } },
-        { "name": "wallet", "type": "pubkey" }
-      ]
-    },
-    {
-      "name": "setRoleActive",
-      "discriminator": [48, 87, 27, 161, 229, 29, 173, 188],
-      "accounts": [
-        { "name": "authority", "signer": true },
-        { "name": "project" },
-        { "name": "workPackage" },
-        { "name": "roleAssignment", "writable": true }
-      ],
-      "args": [
-        { "name": "active", "type": "bool" }
-      ]
-    },
-    {
-      "name": "submitPaymentRequest",
-      "discriminator": [207, 224, 93, 126, 29, 32, 97, 231],
-      "accounts": [
-        { "name": "contractor", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "contractorRoleAssignment" },
-        { "name": "paymentRequest", "writable": true },
-        { "name": "vault" },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
-      ],
-      "args": [
-        { "name": "requestId", "type": "u64" },
-        { "name": "amount", "type": "u64" },
-        { "name": "documentRef", "type": "string" }
-      ]
-    },
-    {
       "name": "addDocumentReference",
-      "discriminator": [69, 22, 34, 143, 120, 69, 174, 205],
+      "discriminator": [
+        69,
+        22,
+        34,
+        143,
+        120,
+        69,
+        174,
+        205
+      ],
       "accounts": [
-        { "name": "contractor", "signer": true },
-        { "name": "project" },
-        { "name": "workPackage" },
-        { "name": "paymentRequest", "writable": true },
-        { "name": "contractorRoleAssignment" }
+        {
+          "name": "contractor",
+          "signer": true
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage"
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        },
+        {
+          "name": "contractorRoleAssignment"
+        }
       ],
       "args": [
-        { "name": "documentRef", "type": "string" }
+        {
+          "name": "documentRef",
+          "type": "string"
+        }
       ]
     },
     {
       "name": "approveRequest",
-      "discriminator": [89, 68, 167, 104, 93, 25, 178, 205],
+      "discriminator": [
+        89,
+        68,
+        167,
+        104,
+        93,
+        25,
+        178,
+        205
+      ],
       "accounts": [
-        { "name": "approver", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage" },
-        { "name": "paymentRequest", "writable": true },
-        { "name": "approverRoleAssignment" },
-        { "name": "approvalRecord", "writable": true },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
+        {
+          "name": "approver",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage"
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        },
+        {
+          "name": "approverRoleAssignment"
+        },
+        {
+          "name": "approvalRecord",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "role", "type": { "defined": { "name": "Role" } } },
-        { "name": "noteRef", "type": "string" }
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "Role"
+            }
+          }
+        },
+        {
+          "name": "noteRef",
+          "type": "string"
+        }
       ]
     },
     {
-      "name": "rejectRequest",
-      "discriminator": [11, 232, 75, 149, 197, 137, 152, 208],
+      "name": "assignRole",
+      "discriminator": [
+        255,
+        174,
+        125,
+        180,
+        203,
+        155,
+        202,
+        131
+      ],
       "accounts": [
-        { "name": "approver", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "paymentRequest", "writable": true },
-        { "name": "approverRoleAssignment" },
-        { "name": "approvalRecord", "writable": true },
-        { "name": "systemProgram", "address": "11111111111111111111111111111111" }
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "roleAssignment",
+          "writable": true
+        },
+        {
+          "name": "opposingApproverRoleAssignment"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
       ],
       "args": [
-        { "name": "role", "type": { "defined": { "name": "Role" } } },
-        { "name": "noteRef", "type": "string" }
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "Role"
+            }
+          }
+        },
+        {
+          "name": "wallet",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "createWorkPackage",
+      "discriminator": [
+        132,
+        142,
+        234,
+        76,
+        77,
+        147,
+        78,
+        228
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project",
+          "writable": true
+        },
+        {
+          "name": "workPackage",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  119,
+                  111,
+                  114,
+                  107,
+                  95,
+                  112,
+                  97,
+                  99,
+                  107,
+                  97,
+                  103,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              },
+              {
+                "kind": "arg",
+                "path": "packageId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vaultAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "workPackage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "account",
+                "path": "vaultAuthority"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  6,
+                  221,
+                  246,
+                  225,
+                  215,
+                  101,
+                  161,
+                  147,
+                  217,
+                  203,
+                  225,
+                  70,
+                  206,
+                  235,
+                  121,
+                  172,
+                  28,
+                  180,
+                  133,
+                  237,
+                  95,
+                  91,
+                  55,
+                  145,
+                  58,
+                  140,
+                  245,
+                  133,
+                  126,
+                  255,
+                  0,
+                  169
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "mint"
+              }
+            ],
+            "program": {
+              "kind": "const",
+              "value": [
+                140,
+                151,
+                37,
+                143,
+                78,
+                36,
+                137,
+                241,
+                187,
+                61,
+                16,
+                41,
+                20,
+                142,
+                13,
+                131,
+                11,
+                90,
+                19,
+                153,
+                218,
+                255,
+                16,
+                132,
+                4,
+                142,
+                123,
+                216,
+                219,
+                233,
+                248,
+                89
+              ]
+            }
+          }
+        },
+        {
+          "name": "associatedTokenProgram",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "packageId",
+          "type": "u64"
+        },
+        {
+          "name": "capAmount",
+          "type": "u64"
+        },
+        {
+          "name": "contractor",
+          "type": "pubkey"
+        },
+        {
+          "name": "scopeRef",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "fundEscrow",
+      "discriminator": [
+        155,
+        18,
+        218,
+        141,
+        182,
+        213,
+        69,
+        201
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "financeTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "initializeProject",
+      "discriminator": [
+        69,
+        126,
+        215,
+        37,
+        20,
+        60,
+        73,
+        235
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "project",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "arg",
+                "path": "projectId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "projectId",
+          "type": "u64"
+        },
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "metadataRef",
+          "type": "string"
+        },
+        {
+          "name": "budgetAmount",
+          "type": "u64"
+        }
       ]
     },
     {
       "name": "placeHold",
-      "discriminator": [26, 142, 195, 169, 37, 133, 174, 185],
+      "discriminator": [
+        26,
+        142,
+        195,
+        169,
+        37,
+        133,
+        174,
+        185
+      ],
       "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage" },
-        { "name": "paymentRequest", "writable": true }
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage"
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        }
       ],
       "args": [
-        { "name": "holdRef", "type": "string" }
+        {
+          "name": "holdRef",
+          "type": "string"
+        }
       ]
     },
     {
-      "name": "removeHold",
-      "discriminator": [72, 115, 99, 234, 96, 232, 35, 94],
-      "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage" },
-        { "name": "paymentRequest", "writable": true }
+      "name": "rejectRequest",
+      "discriminator": [
+        11,
+        232,
+        75,
+        149,
+        197,
+        137,
+        152,
+        208
       ],
-      "args": []
+      "accounts": [
+        {
+          "name": "approver",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        },
+        {
+          "name": "approverRoleAssignment"
+        },
+        {
+          "name": "approvalRecord",
+          "writable": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "role",
+          "type": {
+            "defined": {
+              "name": "Role"
+            }
+          }
+        },
+        {
+          "name": "noteRef",
+          "type": "string"
+        }
+      ]
     },
     {
       "name": "releasePayment",
-      "discriminator": [24, 34, 191, 86, 145, 160, 183, 233],
+      "discriminator": [
+        24,
+        34,
+        191,
+        86,
+        145,
+        160,
+        183,
+        233
+      ],
       "accounts": [
-        { "name": "authority", "writable": true, "signer": true },
-        { "name": "project" },
-        { "name": "workPackage", "writable": true },
-        { "name": "paymentRequest", "writable": true },
-        { "name": "vaultAuthority" },
-        { "name": "vault", "writable": true },
-        { "name": "contractorTokenAccount", "writable": true },
-        { "name": "tokenProgram", "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" }
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        },
+        {
+          "name": "vaultAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "workPackage"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true
+        },
+        {
+          "name": "contractorTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
       ],
       "args": []
+    },
+    {
+      "name": "removeHold",
+      "discriminator": [
+        72,
+        115,
+        99,
+        234,
+        96,
+        232,
+        35,
+        94
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage"
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "setRoleActive",
+      "discriminator": [
+        48,
+        87,
+        27,
+        161,
+        229,
+        29,
+        173,
+        188
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage"
+        },
+        {
+          "name": "roleAssignment",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "active",
+          "type": "bool"
+        }
+      ]
+    },
+    {
+      "name": "submitPaymentRequest",
+      "discriminator": [
+        207,
+        224,
+        93,
+        126,
+        29,
+        32,
+        97,
+        231
+      ],
+      "accounts": [
+        {
+          "name": "contractor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "contractorRoleAssignment"
+        },
+        {
+          "name": "paymentRequest",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  109,
+                  101,
+                  110,
+                  116,
+                  95,
+                  114,
+                  101,
+                  113,
+                  117,
+                  101,
+                  115,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "workPackage"
+              },
+              {
+                "kind": "arg",
+                "path": "requestId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "requestId",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "documentRef",
+          "type": "string"
+        }
+      ]
     }
   ],
   "accounts": [
-    { "name": "ApprovalRecord", "discriminator": [201, 139, 178, 150, 83, 187, 182, 213] },
-    { "name": "PaymentRequestAccount", "discriminator": [214, 94, 44, 72, 67, 246, 255, 3] },
-    { "name": "ProjectAccount", "discriminator": [179, 110, 82, 178, 208, 35, 171, 116] },
-    { "name": "RoleAssignmentAccount", "discriminator": [156, 86, 12, 219, 214, 32, 119, 145] },
-    { "name": "WorkPackageAccount", "discriminator": [64, 88, 0, 142, 238, 170, 31, 170] }
-  ],
-  "errors": [
-    { "code": 6000, "name": "Unauthorized", "msg": "Signer is not authorized for this action" },
-    { "code": 6001, "name": "InvalidRole", "msg": "Invalid role" },
-    { "code": 6002, "name": "InactiveRoleAssignment", "msg": "Role assignment is inactive" },
-    { "code": 6003, "name": "RoleAlreadyInRequestedState", "msg": "Role assignment is already in the requested active state" },
-    { "code": 6004, "name": "ApproverRoleConflict", "msg": "Wallet already has the opposing approver role for this work package" },
-    { "code": 6005, "name": "InvalidAccountRelationship", "msg": "Account relationship is invalid" },
-    { "code": 6006, "name": "InvalidStatus", "msg": "Account or request status is invalid for this action" },
-    { "code": 6007, "name": "InvalidApprovalOrder", "msg": "Approval order is invalid" },
-    { "code": 6008, "name": "ContractorCannotApprove", "msg": "Contractor cannot approve their own request" },
-    { "code": 6009, "name": "InvalidRequestId", "msg": "Payment request id does not match the next request counter" },
-    { "code": 6010, "name": "ActiveRequestExists", "msg": "An active request already exists for this work package" },
-    { "code": 6011, "name": "MissingDocumentReference", "msg": "Document reference is required" },
-    { "code": 6012, "name": "DocumentReferenceUnchanged", "msg": "Document reference is unchanged" },
-    { "code": 6013, "name": "StringTooLong", "msg": "String is too long" },
-    { "code": 6014, "name": "RequestOnHold", "msg": "Request is on hold" },
-    { "code": 6015, "name": "HoldNotActive", "msg": "Hold is not active" },
-    { "code": 6016, "name": "HoldAlreadyActive", "msg": "Hold is already active" },
-    { "code": 6017, "name": "RequestAlreadyReleased", "msg": "Request has already been released" },
-    { "code": 6018, "name": "InsufficientRemainingCap", "msg": "Insufficient remaining cap" },
-    { "code": 6019, "name": "InsufficientVaultBalance", "msg": "Insufficient vault balance" },
-    { "code": 6020, "name": "WrongMint", "msg": "Token mint does not match expected mint" },
-    { "code": 6021, "name": "WrongTokenOwner", "msg": "Token account owner does not match expected owner" },
-    { "code": 6022, "name": "ArithmeticOverflow", "msg": "Arithmetic overflow" },
-    { "code": 6023, "name": "InvalidAmount", "msg": "Amount must be greater than zero" }
-  ],
-  "types": [
     {
-      "name": "ProjectAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          { "name": "authority", "type": "pubkey" },
-          { "name": "projectId", "type": "u64" },
-          { "name": "name", "type": "string" },
-          { "name": "status", "type": { "defined": { "name": "ProjectStatus" } } },
-          { "name": "createdAt", "type": "i64" },
-          { "name": "metadataRef", "type": "string" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
-    },
-    {
-      "name": "WorkPackageAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          { "name": "project", "type": "pubkey" },
-          { "name": "packageId", "type": "u64" },
-          { "name": "capAmount", "type": "u64" },
-          { "name": "fundedAmount", "type": "u64" },
-          { "name": "releasedAmount", "type": "u64" },
-          { "name": "contractor", "type": "pubkey" },
-          { "name": "mint", "type": "pubkey" },
-          { "name": "vault", "type": "pubkey" },
-          { "name": "vaultAuthorityBump", "type": "u8" },
-          { "name": "status", "type": { "defined": { "name": "WorkPackageStatus" } } },
-          { "name": "scopeRef", "type": "string" },
-          { "name": "requestCounter", "type": "u64" },
-          { "name": "hasActiveRequest", "type": "bool" },
-          { "name": "activeRequest", "type": "pubkey" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
-    },
-    {
-      "name": "RoleAssignmentAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          { "name": "workPackage", "type": "pubkey" },
-          { "name": "wallet", "type": "pubkey" },
-          { "name": "role", "type": { "defined": { "name": "Role" } } },
-          { "name": "active", "type": "bool" },
-          { "name": "assignedBy", "type": "pubkey" },
-          { "name": "assignedAt", "type": "i64" },
-          { "name": "updatedBy", "type": "pubkey" },
-          { "name": "updatedAt", "type": "i64" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
+      "name": "ApprovalRecord",
+      "discriminator": [
+        201,
+        139,
+        178,
+        150,
+        83,
+        187,
+        182,
+        213
+      ]
     },
     {
       "name": "PaymentRequestAccount",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          { "name": "workPackage", "type": "pubkey" },
-          { "name": "requestId", "type": "u64" },
-          { "name": "contractor", "type": "pubkey" },
-          { "name": "amount", "type": "u64" },
-          { "name": "documentRef", "type": "string" },
-          { "name": "status", "type": { "defined": { "name": "PaymentRequestStatus" } } },
-          { "name": "submittedAt", "type": "i64" },
-          { "name": "updatedAt", "type": "i64" },
-          { "name": "releasedAmount", "type": "u64" },
-          { "name": "holdActive", "type": "bool" },
-          { "name": "holdBy", "type": "pubkey" },
-          { "name": "holdRef", "type": "string" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
+      "discriminator": [
+        214,
+        94,
+        44,
+        72,
+        67,
+        246,
+        255,
+        3
+      ]
     },
+    {
+      "name": "ProjectAccount",
+      "discriminator": [
+        179,
+        110,
+        82,
+        178,
+        208,
+        35,
+        171,
+        116
+      ]
+    },
+    {
+      "name": "RoleAssignmentAccount",
+      "discriminator": [
+        156,
+        86,
+        12,
+        219,
+        214,
+        32,
+        119,
+        145
+      ]
+    },
+    {
+      "name": "WorkPackageAccount",
+      "discriminator": [
+        64,
+        88,
+        0,
+        142,
+        238,
+        170,
+        31,
+        170
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "DocumentReferenceUpdated",
+      "discriminator": [
+        172,
+        176,
+        21,
+        97,
+        163,
+        211,
+        110,
+        101
+      ]
+    },
+    {
+      "name": "EscrowFunded",
+      "discriminator": [
+        228,
+        243,
+        166,
+        74,
+        22,
+        167,
+        157,
+        244
+      ]
+    },
+    {
+      "name": "HoldPlaced",
+      "discriminator": [
+        188,
+        90,
+        170,
+        2,
+        166,
+        153,
+        108,
+        121
+      ]
+    },
+    {
+      "name": "HoldRemoved",
+      "discriminator": [
+        33,
+        39,
+        250,
+        94,
+        6,
+        80,
+        113,
+        222
+      ]
+    },
+    {
+      "name": "PaymentReleased",
+      "discriminator": [
+        160,
+        132,
+        155,
+        232,
+        46,
+        254,
+        69,
+        219
+      ]
+    },
+    {
+      "name": "PaymentRequestApproved",
+      "discriminator": [
+        150,
+        182,
+        161,
+        151,
+        60,
+        15,
+        180,
+        241
+      ]
+    },
+    {
+      "name": "PaymentRequestRejected",
+      "discriminator": [
+        26,
+        119,
+        214,
+        82,
+        58,
+        166,
+        33,
+        153
+      ]
+    },
+    {
+      "name": "PaymentRequestSubmitted",
+      "discriminator": [
+        89,
+        23,
+        69,
+        168,
+        17,
+        124,
+        148,
+        134
+      ]
+    },
+    {
+      "name": "ProjectInitialized",
+      "discriminator": [
+        222,
+        194,
+        81,
+        9,
+        16,
+        183,
+        224,
+        22
+      ]
+    },
+    {
+      "name": "RoleAssigned",
+      "discriminator": [
+        15,
+        207,
+        225,
+        171,
+        169,
+        117,
+        98,
+        131
+      ]
+    },
+    {
+      "name": "RoleSetActive",
+      "discriminator": [
+        209,
+        252,
+        79,
+        62,
+        77,
+        221,
+        172,
+        123
+      ]
+    },
+    {
+      "name": "WorkPackageCreated",
+      "discriminator": [
+        6,
+        162,
+        103,
+        111,
+        159,
+        217,
+        246,
+        228
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Signer is not authorized for this action"
+    },
+    {
+      "code": 6001,
+      "name": "InvalidRole",
+      "msg": "Invalid role"
+    },
+    {
+      "code": 6002,
+      "name": "InactiveRoleAssignment",
+      "msg": "Role assignment is inactive"
+    },
+    {
+      "code": 6003,
+      "name": "RoleAlreadyInRequestedState",
+      "msg": "Role assignment is already in the requested active state"
+    },
+    {
+      "code": 6004,
+      "name": "ApproverRoleConflict",
+      "msg": "Wallet already has the opposing approver role for this work package"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidAccountRelationship",
+      "msg": "Account relationship is invalid"
+    },
+    {
+      "code": 6006,
+      "name": "InvalidStatus",
+      "msg": "Account or request status is invalid for this action"
+    },
+    {
+      "code": 6007,
+      "name": "InvalidApprovalOrder",
+      "msg": "Approval order is invalid"
+    },
+    {
+      "code": 6008,
+      "name": "ContractorCannotApprove",
+      "msg": "Contractor cannot approve their own request"
+    },
+    {
+      "code": 6009,
+      "name": "InvalidRequestId",
+      "msg": "Payment request id does not match the next request counter"
+    },
+    {
+      "code": 6010,
+      "name": "ActiveRequestExists",
+      "msg": "An active request already exists for this work package"
+    },
+    {
+      "code": 6011,
+      "name": "MissingDocumentReference",
+      "msg": "Document reference is required"
+    },
+    {
+      "code": 6012,
+      "name": "DocumentReferenceUnchanged",
+      "msg": "Document reference is unchanged"
+    },
+    {
+      "code": 6013,
+      "name": "StringTooLong",
+      "msg": "String is too long"
+    },
+    {
+      "code": 6014,
+      "name": "RequestOnHold",
+      "msg": "Request is on hold"
+    },
+    {
+      "code": 6015,
+      "name": "HoldNotActive",
+      "msg": "Hold is not active"
+    },
+    {
+      "code": 6016,
+      "name": "HoldAlreadyActive",
+      "msg": "Hold is already active"
+    },
+    {
+      "code": 6017,
+      "name": "RequestAlreadyReleased",
+      "msg": "Request has already been released"
+    },
+    {
+      "code": 6018,
+      "name": "InsufficientRemainingCap",
+      "msg": "Insufficient remaining cap"
+    },
+    {
+      "code": 6019,
+      "name": "InsufficientVaultBalance",
+      "msg": "Insufficient vault balance"
+    },
+    {
+      "code": 6020,
+      "name": "WrongMint",
+      "msg": "Token mint does not match expected mint"
+    },
+    {
+      "code": 6021,
+      "name": "WrongTokenOwner",
+      "msg": "Token account owner does not match expected owner"
+    },
+    {
+      "code": 6022,
+      "name": "ArithmeticOverflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidAmount",
+      "msg": "Amount must be greater than zero"
+    }
+  ],
+  "types": [
     {
       "name": "ApprovalRecord",
       "type": {
         "kind": "struct",
         "fields": [
-          { "name": "paymentRequest", "type": "pubkey" },
-          { "name": "approver", "type": "pubkey" },
-          { "name": "role", "type": { "defined": { "name": "Role" } } },
-          { "name": "decision", "type": { "defined": { "name": "Decision" } } },
-          { "name": "noteRef", "type": "string" },
-          { "name": "createdAt", "type": "i64" },
-          { "name": "bump", "type": "u8" }
-        ]
-      }
-    },
-    {
-      "name": "ProjectStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          { "name": "Active" },
-          { "name": "Completed" },
-          { "name": "Cancelled" }
-        ]
-      }
-    },
-    {
-      "name": "WorkPackageStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          { "name": "Active" },
-          { "name": "Completed" },
-          { "name": "Cancelled" }
-        ]
-      }
-    },
-    {
-      "name": "PaymentRequestStatus",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          { "name": "Submitted" },
-          { "name": "LowApproved" },
-          { "name": "HighApproved" },
-          { "name": "Rejected" },
-          { "name": "Released" }
-        ]
-      }
-    },
-    {
-      "name": "Role",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          { "name": "Contractor" },
-          { "name": "LowApprover" },
-          { "name": "HighApprover" }
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "approver",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "decision",
+            "type": {
+              "defined": {
+                "name": "Decision"
+              }
+            }
+          },
+          {
+            "name": "noteRef",
+            "type": "string"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Stored for account provenance and future PDA signer paths."
+            ],
+            "type": "u8"
+          }
         ]
       }
     },
@@ -369,8 +1226,754 @@
       "type": {
         "kind": "enum",
         "variants": [
-          { "name": "Approved" },
-          { "name": "Rejected" }
+          {
+            "name": "Approved"
+          },
+          {
+            "name": "Rejected"
+          }
+        ]
+      }
+    },
+    {
+      "name": "DocumentReferenceUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "documentRef",
+            "type": "string"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EscrowFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "fundedAmount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HoldPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "holdRef",
+            "type": "string"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "HoldRemoved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentReleased",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractorTokenAccount",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "releasedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "requestId",
+            "type": "u64"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "documentRef",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "PaymentRequestStatus"
+              }
+            }
+          },
+          {
+            "name": "submittedAt",
+            "type": "i64"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
+          },
+          {
+            "name": "releasedAmount",
+            "docs": [
+              "V0 releases a request in full, so this is either 0 or equal to `amount`."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "holdActive",
+            "type": "bool"
+          },
+          {
+            "name": "holdBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "holdRef",
+            "type": "string"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Stored for account provenance and future PDA signer paths."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestApproved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "approver",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "newStatus",
+            "type": {
+              "defined": {
+                "name": "PaymentRequestStatus"
+              }
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestRejected",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "approver",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "decision",
+            "type": {
+              "defined": {
+                "name": "Decision"
+              }
+            }
+          },
+          {
+            "name": "newStatus",
+            "type": {
+              "defined": {
+                "name": "PaymentRequestStatus"
+              }
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Submitted"
+          },
+          {
+            "name": "LowApproved"
+          },
+          {
+            "name": "HighApproved"
+          },
+          {
+            "name": "Rejected"
+          },
+          {
+            "name": "Released"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PaymentRequestSubmitted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "paymentRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "documentRef",
+            "type": "string"
+          },
+          {
+            "name": "submittedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProjectAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "projectId",
+            "type": "u64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "budgetAmount",
+            "type": "u64"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "ProjectStatus"
+              }
+            }
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "metadataRef",
+            "type": "string"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Stored for account provenance and future PDA signer paths."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProjectInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "projectId",
+            "type": "u64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "budgetAmount",
+            "type": "u64"
+          },
+          {
+            "name": "allocatedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ProjectStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Role",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Contractor"
+          },
+          {
+            "name": "LowApprover"
+          },
+          {
+            "name": "HighApprover"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleAssigned",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "assignedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "assignedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleAssignmentAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "assignedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "assignedAt",
+            "type": "i64"
+          },
+          {
+            "name": "updatedBy",
+            "type": "pubkey"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RoleSetActive",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "role",
+            "type": {
+              "defined": {
+                "name": "Role"
+              }
+            }
+          },
+          {
+            "name": "active",
+            "type": "bool"
+          },
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkPackageAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "packageId",
+            "type": "u64"
+          },
+          {
+            "name": "capAmount",
+            "type": "u64"
+          },
+          {
+            "name": "fundedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "releasedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "vaultAuthorityBump",
+            "type": "u8"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "WorkPackageStatus"
+              }
+            }
+          },
+          {
+            "name": "scopeRef",
+            "type": "string"
+          },
+          {
+            "name": "requestCounter",
+            "type": "u64"
+          },
+          {
+            "name": "hasActiveRequest",
+            "type": "bool"
+          },
+          {
+            "name": "activeRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Stored for account provenance and future PDA signer paths."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkPackageCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "packageId",
+            "type": "u64"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault",
+            "type": "pubkey"
+          },
+          {
+            "name": "capAmount",
+            "type": "u64"
+          },
+          {
+            "name": "projectBudgetAmount",
+            "type": "u64"
+          },
+          {
+            "name": "projectAllocatedAmount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkPackageStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          }
         ]
       }
     }

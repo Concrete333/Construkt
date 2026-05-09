@@ -23,6 +23,7 @@ export const defaultPubkey = new anchor.web3.PublicKey(
 
 export const capAmount = new anchor.BN(1_000_000);
 export const firstFundingAmount = new anchor.BN(600_000);
+export const budgetAmount = new anchor.BN(10_000_000);
 
 let fixtureCounter = 0;
 
@@ -162,7 +163,7 @@ export const createFixture = () => {
       mint,
       financeTokenAccount,
       finance,
-      3_000_000
+      20_000_000
     );
     contractorTokenAccount = await createAssociatedTokenAccount(
       provider.connection,
@@ -175,13 +176,20 @@ export const createFixture = () => {
 
   const initializeProject = async (
     name = "Demo Hospital Fit-Out",
-    metadataRef = "ipfs://project-metadata"
+    metadataRef = "ipfs://project-metadata",
+    projectBudget = budgetAmount
   ) => {
     await program.methods
-      .initializeProject(new anchor.BN(projectId), name, metadataRef)
+      .initializeProject(
+        new anchor.BN(projectId),
+        name,
+        metadataRef,
+        projectBudget
+      )
       .accountsStrict({
         authority: finance.publicKey,
         project,
+        mint,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc();

@@ -4,6 +4,7 @@ import { Money } from "../components/Money";
 import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { walletForRole } from "../lib/clients";
+import { parseMockUsdc } from "../lib/format";
 import { shortAddress } from "../lib/format";
 import { nextProjectId, projectMetadataRef } from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
@@ -53,6 +54,7 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
   const [createOpen, setCreateOpen] = useState(false);
   const [nameText, setNameText] = useState("");
   const [clientText, setClientText] = useState("");
+  const [budgetText, setBudgetText] = useState("");
 
   const wallet = walletForRole(world, role);
 
@@ -125,6 +127,25 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
   const onCreateSubmit = () => {
     const name = nameText.trim();
     if (!name) return;
+
+    let budgetAmount: bigint;
+    try {
+      budgetAmount = parseMockUsdc(budgetText);
+    } catch (err) {
+      setFeedback({
+        kind: "error",
+        message: err instanceof Error ? err.message : "Invalid budget amount",
+      });
+      return;
+    }
+    if (budgetAmount <= 0n) {
+      setFeedback({
+        kind: "error",
+        message: "Budget must be greater than zero.",
+      });
+      return;
+    }
+
     const projectId = nextProjectId(allProjects);
     const metadataRef = projectMetadataRef(wallet, projectId);
     metadataWriter?.putProject(metadataRef, {
@@ -136,6 +157,8 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
       client.initializeProject({
         authority: wallet,
         projectId,
+        mint: world.mint,
+        budgetAmount,
         name,
         metadataRef,
       }),
@@ -143,6 +166,7 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
       setCreateOpen(false);
       setNameText("");
       setClientText("");
+      setBudgetText("");
     });
   };
 
@@ -200,6 +224,17 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
                 disabled={pending}
               />
             </div>
+            <div className="project-list__form-field">
+              <label className="project-list__form-label">Budget</label>
+              <input
+                className="project-list__form-input"
+                type="text"
+                value={budgetText}
+                onChange={(e) => setBudgetText(e.target.value)}
+                placeholder="e.g. 1000000"
+                disabled={pending}
+              />
+            </div>
             <div className="project-list__create-actions">
               <button
                 type="button"
@@ -208,6 +243,7 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
                   setCreateOpen(false);
                   setNameText("");
                   setClientText("");
+                  setBudgetText("");
                 }}
                 disabled={pending}
               >
@@ -217,7 +253,11 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
                 type="button"
                 className="project-list__btn project-list__btn--primary"
                 onClick={onCreateSubmit}
-                disabled={pending || nameText.trim().length === 0}
+                disabled={
+                  pending ||
+                  nameText.trim().length === 0 ||
+                  budgetText.trim().length === 0
+                }
               >
                 Create project
               </button>
@@ -285,16 +325,20 @@ const ProjectListItem = ({ entry }: { entry: LoadedProject }) => {
         )}
         <dl className="project-list__metrics">
           <Metric label="Packages">{rollup.packageCount}</Metric>
-          <Metric label="Active">{rollup.activePackageCount}</Metric>
-          <Metric label="Completed">{rollup.completedPackageCount}</Metric>
-          <Metric label="Total cap">
-            <Money amount={rollup.totalCap} withSymbol />
+          <Metric label="Budget">
+            <Money amount={rollup.projectBudget} withSymbol />
+          </Metric>
+          <Metric label="Allocated">
+            <Money amount={rollup.allocatedPackageBudget} withSymbol />
+          </Metric>
+          <Metric label="Remaining">
+            <Money amount={rollup.remainingAllocatableBudget} withSymbol />
+          </Metric>
+          <Metric label="Funded">
+            <Money amount={rollup.totalFunded} withSymbol />
           </Metric>
           <Metric label="Released">
             <Money amount={rollup.totalReleased} withSymbol />
-          </Metric>
-          <Metric label="Outstanding">
-            <Money amount={rollup.totalOutstandingFunded} withSymbol />
           </Metric>
         </dl>
         {packagesWithActiveHeldRequest > 0 && (

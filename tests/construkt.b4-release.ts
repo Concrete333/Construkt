@@ -2,6 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { assert } from "chai";
 import {
   createAssociatedTokenAccount,
+  createAssociatedTokenAccountIdempotent,
   createMint,
   getAccount,
   mintTo,
@@ -445,7 +446,7 @@ describe("construkt b4 holds and release", () => {
 
   it("release rejects wrong contractor token owner", async () => {
     const prepared = await prepareRequest();
-    const unrelatedTokenAccount = await createAssociatedTokenAccount(
+    const unrelatedTokenAccount = await createAssociatedTokenAccountIdempotent(
       fx.provider.connection,
       fx.finance,
       fx.mint,
@@ -465,7 +466,7 @@ describe("construkt b4 holds and release", () => {
       false
     );
     await approveThroughPm(prepared);
-    const unrelatedTokenAccount = await createAssociatedTokenAccount(
+    const unrelatedTokenAccount = await createAssociatedTokenAccountIdempotent(
       fx.provider.connection,
       fx.finance,
       fx.mint,

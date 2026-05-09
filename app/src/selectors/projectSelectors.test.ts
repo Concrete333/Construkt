@@ -104,6 +104,13 @@ describe("selectProjectRollup", () => {
       (a, b) => a + b.package.releasedAmount,
       0n,
     );
+    expect(summary.projectBudget).toBe(projects[0].account.budgetAmount);
+    expect(summary.allocatedPackageBudget).toBe(
+      projects[0].account.allocatedAmount,
+    );
+    expect(summary.remainingAllocatableBudget).toBe(
+      projects[0].account.budgetAmount - projects[0].account.allocatedAmount,
+    );
     expect(summary.totalCap).toBe(totalCap);
     expect(summary.totalFunded).toBe(totalFunded);
     expect(summary.totalReleased).toBe(totalReleased);
@@ -117,6 +124,9 @@ describe("selectProjectRollup", () => {
       account: {
         authority: PublicKey.default,
         projectId: 1n,
+        mint: PublicKey.default,
+        budgetAmount: 2_000_000n,
+        allocatedAmount: 0n,
         name: "Empty",
         status: "active" as const,
         createdAt: 0n,
@@ -126,6 +136,9 @@ describe("selectProjectRollup", () => {
     };
     const summary = selectProjectRollup(project, []);
     expect(summary.packageCount).toBe(0);
+    expect(summary.projectBudget).toBe(2_000_000n);
+    expect(summary.allocatedPackageBudget).toBe(0n);
+    expect(summary.remainingAllocatableBudget).toBe(2_000_000n);
     expect(summary.totalCap).toBe(0n);
     expect(summary.totalFunded).toBe(0n);
     expect(summary.totalReleased).toBe(0n);

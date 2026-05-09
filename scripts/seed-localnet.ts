@@ -42,6 +42,7 @@ const PROGRAM_ID = new anchor.web3.PublicKey(IDL.address);
 const RPC_URL = process.env.ANCHOR_RPC_URL ?? "http://localhost:8899";
 
 const PROJECT_ID = 1;
+const PROJECT_BUDGET = 1_200_000_000;
 const CAP_AMOUNT = 200_000_000;
 const MINT_SUPPLY = 2_000_000_000;
 
@@ -240,11 +241,13 @@ async function main() {
     .initializeProject(
       new anchor.BN(PROJECT_ID),
       "Demo Hospital Fit-Out",
-      "metadata://demo/project/hospital-fit-out"
+      "metadata://demo/project/hospital-fit-out",
+      new anchor.BN(PROJECT_BUDGET)
     )
     .accounts({
       authority: finance.publicKey,
       project,
+      mint,
       systemProgram: anchor.web3.SystemProgram.programId,
     })
     .rpc();

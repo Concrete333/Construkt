@@ -12,6 +12,7 @@ import {
 const PROGRAM_ID = new PublicKey(
   "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
 );
+const PROJECT_BUDGET = 2_000_000n;
 
 const newClient = () =>
   new MockConstruktClient({
@@ -39,6 +40,8 @@ const seedFundedPackage = async () => {
   await client.initializeProject({
     authority: w.finance,
     projectId,
+    mint: w.mint,
+    budgetAmount: PROJECT_BUDGET,
     name: "Demo Hospital Fit-Out",
     metadataRef: "ipfs://project-metadata",
   });
@@ -150,6 +153,8 @@ describe("MockConstruktClient happy path", () => {
       const tx = await client.initializeProject({
         authority: Keypair.generate().publicKey,
         projectId: BigInt(i),
+        mint: Keypair.generate().publicKey,
+        budgetAmount: PROJECT_BUDGET,
         name: `p${i}`,
         metadataRef: "x",
       });
@@ -166,6 +171,8 @@ describe("MockConstruktClient invariants", () => {
     await client.initializeProject({
       authority: w.finance,
       projectId: 1n,
+      mint: w.mint,
+      budgetAmount: PROJECT_BUDGET,
       name: "p",
       metadataRef: "x",
     });
@@ -181,6 +188,132 @@ describe("MockConstruktClient invariants", () => {
         scopeRef: "x",
       }),
     ).rejects.toMatchObject({ code: "Unauthorized" });
+  });
+
+  it("rejects createWorkPackage when package mint differs from project mint", async () => {
+    const client = newClient();
+    const w = wallets();
+    await client.initializeProject({
+      authority: w.finance,
+      projectId: 1n,
+      mint: w.mint,
+      budgetAmount: PROJECT_BUDGET,
+      name: "p",
+      metadataRef: "x",
+    });
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, 1n);
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 1n,
+        capAmount: 100n,
+        contractor: w.contractor,
+        mint: Keypair.generate().publicKey,
+        scopeRef: "x",
+      }),
+    ).rejects.toMatchObject({ code: "WrongMint" });
+  });
+
+  it("rejects createWorkPackage when cap exceeds project remaining budget", async () => {
+    const client = newClient();
+    const w = wallets();
+    await client.initializeProject({
+      authority: w.finance,
+      projectId: 1n,
+      mint: w.mint,
+      budgetAmount: 150n,
+      name: "p",
+      metadataRef: "x",
+    });
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, 1n);
+
+    await client.createWorkPackage({
+      authority: w.finance,
+      project,
+      packageId: 1n,
+      capAmount: 100n,
+      contractor: w.contractor,
+      mint: w.mint,
+      scopeRef: "x",
+    });
+
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 2n,
+        capAmount: 100n,
+        contractor: w.contractor,
+        mint: w.mint,
+        scopeRef: "x",
+      }),
+    ).rejects.toMatchObject({ code: "InsufficientRemainingCap" });
+  });
+
+  it("matches on-chain createWorkPackage error precedence for overlapping validation failures", async () => {
+    const client = newClient();
+    const w = wallets();
+    await client.initializeProject({
+      authority: w.finance,
+      projectId: 1n,
+      mint: w.mint,
+      budgetAmount: 150n,
+      name: "p",
+      metadataRef: "x",
+    });
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, 1n);
+
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 1n,
+        capAmount: 200n,
+        contractor: PublicKey.default,
+        mint: w.mint,
+        scopeRef: "x",
+      }),
+    ).rejects.toMatchObject({ code: "InvalidAccountRelationship" });
+
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 2n,
+        capAmount: 200n,
+        contractor: w.contractor,
+        mint: w.mint,
+        scopeRef: "x".repeat(129),
+      }),
+    ).rejects.toMatchObject({ code: "StringTooLong" });
+
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 3n,
+        capAmount: 200n,
+        contractor: w.contractor,
+        mint: Keypair.generate().publicKey,
+        scopeRef: "x".repeat(129),
+      }),
+    ).rejects.toMatchObject({ code: "WrongMint" });
+
+    // cap=0 + wrongMint: on chain, the mint constraint is at the account
+    // validation phase and fires before the body's cap > 0 check. The mock
+    // must report WrongMint here, not InvalidAmount.
+    await expect(
+      client.createWorkPackage({
+        authority: w.finance,
+        project,
+        packageId: 4n,
+        capAmount: 0n,
+        contractor: w.contractor,
+        mint: Keypair.generate().publicKey,
+        scopeRef: "x",
+      }),
+    ).rejects.toMatchObject({ code: "WrongMint" });
   });
 
   it("rejects a second active request before the first is closed", async () => {
@@ -417,12 +550,16 @@ describe("MockConstruktClient reads", () => {
     await client.initializeProject({
       authority: a,
       projectId: 1n,
+      mint: Keypair.generate().publicKey,
+      budgetAmount: PROJECT_BUDGET,
       name: "A",
       metadataRef: "x",
     });
     await client.initializeProject({
       authority: b,
       projectId: 1n,
+      mint: Keypair.generate().publicKey,
+      budgetAmount: PROJECT_BUDGET,
       name: "B",
       metadataRef: "x",
     });

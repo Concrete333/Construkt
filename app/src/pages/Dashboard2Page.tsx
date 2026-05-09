@@ -61,6 +61,9 @@ interface OutstandingTask {
 interface CrossProjectKpis {
   projectCount: number;
   packageCount: number;
+  totalProjectBudget: bigint;
+  totalAllocatedPackageBudget: bigint;
+  totalRemainingAllocatableBudget: bigint;
   totalCap: bigint;
   totalFunded: bigint;
   totalReleased: bigint;
@@ -333,6 +336,13 @@ const aggregateKpis = (bundles: ProjectBundle[]): CrossProjectKpis => {
   return {
     projectCount: bundles.length,
     packageCount: bundles.reduce((a, b) => a + b.rollup.packageCount, 0),
+    totalProjectBudget: sumBig(bundles.map((b) => b.rollup.projectBudget)),
+    totalAllocatedPackageBudget: sumBig(
+      bundles.map((b) => b.rollup.allocatedPackageBudget),
+    ),
+    totalRemainingAllocatableBudget: sumBig(
+      bundles.map((b) => b.rollup.remainingAllocatableBudget),
+    ),
     totalCap: sumBig(bundles.map((b) => b.rollup.totalCap)),
     totalFunded: sumBig(bundles.map((b) => b.rollup.totalFunded)),
     totalReleased: sumBig(bundles.map((b) => b.rollup.totalReleased)),
@@ -354,8 +364,14 @@ const KpiStrip = ({ kpis }: { kpis: CrossProjectKpis }) => (
   <dl className="dashboard2__kpis">
     <KpiTile label="Projects" value={kpis.projectCount.toString()} />
     <KpiTile label="Packages" value={kpis.packageCount.toString()} />
-    <KpiTile label="Total cap">
-      <Money amount={kpis.totalCap} withSymbol />
+    <KpiTile label="Budget">
+      <Money amount={kpis.totalProjectBudget} withSymbol />
+    </KpiTile>
+    <KpiTile label="Allocated">
+      <Money amount={kpis.totalAllocatedPackageBudget} withSymbol />
+    </KpiTile>
+    <KpiTile label="Remaining">
+      <Money amount={kpis.totalRemainingAllocatableBudget} withSymbol />
     </KpiTile>
     <KpiTile label="Funded">
       <Money amount={kpis.totalFunded} withSymbol />
@@ -412,6 +428,12 @@ const ProjectQuickCard = ({ bundle }: { bundle: ProjectBundle }) => {
         )}
         <dl className="dashboard2__project-metrics">
           <KpiTile label="Packages" value={rollup.packageCount.toString()} />
+          <KpiTile label="Budget">
+            <Money amount={rollup.projectBudget} withSymbol />
+          </KpiTile>
+          <KpiTile label="Remaining">
+            <Money amount={rollup.remainingAllocatableBudget} withSymbol />
+          </KpiTile>
           <KpiTile label="Released">
             <Money amount={rollup.totalReleased} withSymbol />
           </KpiTile>

@@ -169,6 +169,7 @@ export class MockConstruktClient implements ConstruktClient {
   async initializeProject(p: InitializeProjectParams): Promise<TxResult> {
     if (p.name.length > MAX_NAME_LEN) fail("StringTooLong");
     if (p.metadataRef.length > MAX_REF_LEN) fail("StringTooLong");
+    if (p.budgetAmount <= 0n) fail("InvalidAmount");
 
     const address = deriveProjectAddress(
       this.programId,
@@ -181,6 +182,9 @@ export class MockConstruktClient implements ConstruktClient {
     this.projects.set(address.toBase58(), {
       authority: p.authority,
       projectId: p.projectId,
+      mint: p.mint,
+      budgetAmount: p.budgetAmount,
+      allocatedAmount: 0n,
       name: p.name,
       status: "active",
       createdAt: now,
@@ -193,10 +197,17 @@ export class MockConstruktClient implements ConstruktClient {
   async createWorkPackage(p: CreateWorkPackageParams): Promise<TxResult> {
     const project = this.requireProject(p.project);
     if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    // Mint check is an account-level constraint on chain, so it fires before
+    // any body-level check including `cap_amount > 0`. Mirror that order here
+    // so mock and Anchor return the same code on overlapping validation
+    // failures (e.g. cap=0 + wrongMint -> WrongMint, not InvalidAmount).
+    if (!p.mint.equals(project.mint)) fail("WrongMint");
     if (p.capAmount <= 0n) fail("InvalidAmount");
     if (p.contractor.equals(PublicKey.default))
       fail("InvalidAccountRelationship");
     if (p.scopeRef.length > MAX_REF_LEN) fail("StringTooLong");
+    const remainingAllocatable = project.budgetAmount - project.allocatedAmount;
+    if (p.capAmount > remainingAllocatable) fail("InsufficientRemainingCap");
 
     const wpAddress = deriveWorkPackageAddress(
       this.programId,
@@ -229,6 +240,7 @@ export class MockConstruktClient implements ConstruktClient {
       activeRequest: PublicKey.default,
       bump: 255,
     });
+    project.allocatedAmount += p.capAmount;
     return this.tx();
   }
 

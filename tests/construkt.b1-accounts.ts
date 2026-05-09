@@ -5,6 +5,7 @@ import {
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
+  budgetAmount,
   capAmount,
   createFixture,
   defaultPubkey,
@@ -37,6 +38,12 @@ describe("construkt b1 accounts and roles", () => {
     );
     assert.ok(projectAccount.authority.equals(fx.finance.publicKey));
     assert.strictEqual(projectAccount.projectId.toNumber(), fx.projectId);
+    assert.ok(projectAccount.mint.equals(fx.mint));
+    assert.strictEqual(
+      projectAccount.budgetAmount.toNumber(),
+      budgetAmount.toNumber()
+    );
+    assert.strictEqual(projectAccount.allocatedAmount.toNumber(), 0);
     assert.strictEqual(projectAccount.name, "Demo Hospital Fit-Out");
     assert.deepStrictEqual(projectAccount.status, { active: {} });
 
@@ -62,6 +69,9 @@ describe("construkt b1 accounts and roles", () => {
 
     const workPackageAccount =
       await fx.program.account.workPackageAccount.fetch(workPackage);
+    const projectAfterPackage = await fx.program.account.projectAccount.fetch(
+      fx.project
+    );
     assert.ok(workPackageAccount.project.equals(fx.project));
     assert.strictEqual(workPackageAccount.packageId.toNumber(), packageId);
     assert.strictEqual(
@@ -73,6 +83,10 @@ describe("construkt b1 accounts and roles", () => {
     assert.ok(workPackageAccount.vault.equals(vault));
     assert.deepStrictEqual(workPackageAccount.status, { active: {} });
     assert.isFalse(workPackageAccount.hasActiveRequest);
+    assert.strictEqual(
+      projectAfterPackage.allocatedAmount.toNumber(),
+      capAmount.toNumber()
+    );
   });
 
   it("finance assigns roles", async () => {
@@ -242,11 +256,13 @@ describe("construkt b1 accounts and roles", () => {
         .initializeProject(
           new anchor.BN(fx.projectId + 1),
           "x".repeat(65),
-          "ipfs://ok"
+          "ipfs://ok",
+          budgetAmount
         )
         .accountsStrict({
           authority: fx.finance.publicKey,
           project: longNameProject,
+          mint: fx.mint,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc(),
@@ -262,15 +278,39 @@ describe("construkt b1 accounts and roles", () => {
         .initializeProject(
           new anchor.BN(fx.projectId + 2),
           "Valid Name",
-          "x".repeat(129)
+          "x".repeat(129),
+          budgetAmount
         )
         .accountsStrict({
           authority: fx.finance.publicKey,
           project: longMetadataProject,
+          mint: fx.mint,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .rpc(),
       "StringTooLong"
+    );
+
+    const zeroBudgetProject = fx.deriveProjectAddress(
+      fx.finance.publicKey,
+      fx.projectId + 3
+    );
+    await expectError(
+      fx.program.methods
+        .initializeProject(
+          new anchor.BN(fx.projectId + 3),
+          "Valid Name",
+          "ipfs://ok",
+          new anchor.BN(0)
+        )
+        .accountsStrict({
+          authority: fx.finance.publicKey,
+          project: zeroBudgetProject,
+          mint: fx.mint,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        })
+        .rpc(),
+      "InvalidAmount"
     );
 
     await expectError(

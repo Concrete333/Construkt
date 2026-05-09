@@ -266,7 +266,7 @@ export const ProjectDetailPage = ({
         packageId,
         capAmount,
         contractor: contractorKey,
-        mint: world.mint,
+        mint: rollup.project.mint,
         scopeRef,
       }),
     ).then(() => {
@@ -380,8 +380,14 @@ export const ProjectDetailPage = ({
         )}
         <dl className="project-detail__metrics">
           <Metric label="Packages">{rollup.packageCount}</Metric>
-          <Metric label="Total cap">
-            <Money amount={rollup.totalCap} withSymbol />
+          <Metric label="Budget">
+            <Money amount={rollup.projectBudget} withSymbol />
+          </Metric>
+          <Metric label="Allocated">
+            <Money amount={rollup.allocatedPackageBudget} withSymbol />
+          </Metric>
+          <Metric label="Remaining">
+            <Money amount={rollup.remainingAllocatableBudget} withSymbol />
           </Metric>
           <Metric label="Funded">
             <Money amount={rollup.totalFunded} withSymbol />

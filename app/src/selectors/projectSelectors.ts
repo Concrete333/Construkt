@@ -54,6 +54,9 @@ export interface ProjectRollup {
   cancelledPackageCount: number;
   packagesWithActiveRequest: number;
   heldPackageCount: number;
+  projectBudget: bigint;
+  allocatedPackageBudget: bigint;
+  remainingAllocatableBudget: bigint;
   totalCap: bigint;
   totalFunded: bigint;
   totalReleased: bigint;
@@ -72,6 +75,8 @@ export const selectProjectRollup = (
   const totalCap = sumBig(packages.map((p) => p.package.capAmount));
   const totalFunded = sumBig(packages.map((p) => p.package.fundedAmount));
   const totalReleased = sumBig(packages.map((p) => p.package.releasedAmount));
+  const projectBudget = fetched.account.budgetAmount;
+  const allocatedPackageBudget = fetched.account.allocatedAmount;
   const byStatus = (s: WorkPackageStatus) =>
     packages.filter((p) => p.package.status === s).length;
   return {
@@ -84,6 +89,9 @@ export const selectProjectRollup = (
     packagesWithActiveRequest: packages.filter((p) => p.hasActiveRequest)
       .length,
     heldPackageCount: packages.filter((p) => p.isHeld).length,
+    projectBudget,
+    allocatedPackageBudget,
+    remainingAllocatableBudget: projectBudget - allocatedPackageBudget,
     totalCap,
     totalFunded,
     totalReleased,

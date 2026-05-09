@@ -23,6 +23,9 @@ export type Decision = "approved" | "rejected";
 export interface ProjectAccount {
   authority: PublicKey;
   projectId: bigint;
+  mint: PublicKey;
+  budgetAmount: bigint;
+  allocatedAmount: bigint;
   name: string;
   status: ProjectStatus;
   createdAt: bigint;
@@ -108,6 +111,8 @@ export interface TxResult {
 export interface InitializeProjectParams {
   authority: PublicKey;
   projectId: bigint;
+  mint: PublicKey;
+  budgetAmount: bigint;
   name: string;
   metadataRef: string;
 }

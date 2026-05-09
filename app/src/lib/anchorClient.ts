@@ -55,6 +55,9 @@ import type {
 interface RawProjectAccount {
   authority: PublicKey;
   projectId: BN;
+  mint: PublicKey;
+  budgetAmount: BN;
+  allocatedAmount: BN;
   name: string;
   status: unknown;
   createdAt: BN;
@@ -259,6 +262,9 @@ const fromAnchorPrStatus = (raw: unknown): PaymentRequestStatus => {
 const fromRawProject = (raw: RawProjectAccount): ProjectAccount => ({
   authority: raw.authority,
   projectId: toBigInt(raw.projectId),
+  mint: raw.mint,
+  budgetAmount: toBigInt(raw.budgetAmount),
+  allocatedAmount: toBigInt(raw.allocatedAmount),
   name: raw.name,
   status: fromAnchorProjectStatus(raw.status),
   createdAt: toBigInt(raw.createdAt),
@@ -537,10 +543,12 @@ class AnchorConstruktClient implements ConstruktClient {
         toBn(params.projectId),
         params.name,
         params.metadataRef,
+        toBn(params.budgetAmount),
       )
         .accounts({
           authority: params.authority,
           project,
+          mint: params.mint,
           systemProgram: SystemProgram.programId,
         })
         .signers(this.extraSigners(params.authority))

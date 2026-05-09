@@ -17,17 +17,22 @@ pub mod construkt {
         project_id: u64,
         name: String,
         metadata_ref: String,
+        budget_amount: u64,
     ) -> Result<()> {
         require!(name.len() <= MAX_NAME_LEN, ConstruktError::StringTooLong);
         require!(
             metadata_ref.len() <= MAX_REF_LEN,
             ConstruktError::StringTooLong
         );
+        require!(budget_amount > 0, ConstruktError::InvalidAmount);
 
         let clock = Clock::get()?;
         let project = &mut ctx.accounts.project;
         project.authority = ctx.accounts.authority.key();
         project.project_id = project_id;
+        project.mint = ctx.accounts.mint.key();
+        project.budget_amount = budget_amount;
+        project.allocated_amount = 0;
         project.name = name;
         project.status = ProjectStatus::Active;
         project.created_at = clock.unix_timestamp;
@@ -38,6 +43,9 @@ pub mod construkt {
             project: project.key(),
             authority: project.authority,
             project_id,
+            mint: project.mint,
+            budget_amount: project.budget_amount,
+            allocated_amount: project.allocated_amount,
             created_at: project.created_at,
         });
 
@@ -66,6 +74,8 @@ pub mod construkt {
             ConstruktError::StringTooLong
         );
 
+        let next_allocated_amount = ctx.accounts.project.allocate_package_cap(cap_amount)?;
+
         let work_package = &mut ctx.accounts.work_package;
         work_package.project = ctx.accounts.project.key();
         work_package.package_id = package_id;
@@ -83,6 +93,9 @@ pub mod construkt {
         work_package.active_request = Pubkey::default();
         work_package.bump = ctx.bumps.work_package;
 
+        let project = &mut ctx.accounts.project;
+        project.allocated_amount = next_allocated_amount;
+
         emit!(WorkPackageCreated {
             project: work_package.project,
             work_package: work_package.key(),
@@ -91,6 +104,8 @@ pub mod construkt {
             mint: work_package.mint,
             vault: work_package.vault,
             cap_amount,
+            project_budget_amount: project.budget_amount,
+            project_allocated_amount: project.allocated_amount,
         });
 
         Ok(())
@@ -727,6 +742,7 @@ pub struct InitializeProject<'info> {
         bump
     )]
     pub project: Account<'info, ProjectAccount>,
+    pub mint: Account<'info, Mint>,
     pub system_program: Program<'info, System>,
 }
 
@@ -735,7 +751,7 @@ pub struct InitializeProject<'info> {
 pub struct CreateWorkPackage<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
-    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    #[account(mut, has_one = authority @ ConstruktError::Unauthorized)]
     pub project: Account<'info, ProjectAccount>,
     #[account(
         init,
@@ -751,6 +767,7 @@ pub struct CreateWorkPackage<'info> {
         bump
     )]
     pub vault_authority: UncheckedAccount<'info>,
+    #[account(address = project.mint @ ConstruktError::WrongMint)]
     pub mint: Account<'info, Mint>,
     #[account(
         init,
@@ -1014,6 +1031,9 @@ pub struct ReleasePayment<'info> {
 pub struct ProjectAccount {
     pub authority: Pubkey,
     pub project_id: u64,
+    pub mint: Pubkey,
+    pub budget_amount: u64,
+    pub allocated_amount: u64,
     pub name: String,
     pub status: ProjectStatus,
     pub created_at: i64,
@@ -1023,8 +1043,34 @@ pub struct ProjectAccount {
 }
 
 impl ProjectAccount {
-    pub const SPACE: usize =
-        8 + 32 + 8 + string_space(MAX_NAME_LEN) + 1 + 8 + string_space(MAX_REF_LEN) + 1;
+    pub const SPACE: usize = 8
+        + 32
+        + 8
+        + 32
+        + 8
+        + 8
+        + string_space(MAX_NAME_LEN)
+        + 1
+        + 8
+        + string_space(MAX_REF_LEN)
+        + 1;
+
+    pub fn remaining_allocatable_amount(&self) -> Result<u64> {
+        self.budget_amount
+            .checked_sub(self.allocated_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn allocate_package_cap(&self, cap_amount: u64) -> Result<u64> {
+        let remaining = self.remaining_allocatable_amount()?;
+        require!(
+            cap_amount <= remaining,
+            ConstruktError::InsufficientRemainingCap
+        );
+        self.allocated_amount
+            .checked_add(cap_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
 }
 
 #[account]
@@ -1211,6 +1257,9 @@ pub struct ProjectInitialized {
     pub project: Pubkey,
     pub authority: Pubkey,
     pub project_id: u64,
+    pub mint: Pubkey,
+    pub budget_amount: u64,
+    pub allocated_amount: u64,
     pub created_at: i64,
 }
 
@@ -1223,6 +1272,8 @@ pub struct WorkPackageCreated {
     pub mint: Pubkey,
     pub vault: Pubkey,
     pub cap_amount: u64,
+    pub project_budget_amount: u64,
+    pub project_allocated_amount: u64,
 }
 
 #[event]

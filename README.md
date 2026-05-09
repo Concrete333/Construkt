@@ -38,6 +38,9 @@ npm run test:frontend
 All Anchor and Solana CLI commands must run inside WSL (Ubuntu). Solana and Anchor are not installed on the Windows side.
 
 ```bash
+# Preferred: rebuild, reset localnet, sync IDL, and reseed in one command
+npm run reset:localnet
+
 # In WSL
 npm run anchor:test
 
@@ -68,6 +71,8 @@ npm run dev
 |---|---|---|
 | `npm run anchor:test` | Run on-chain Anchor tests against localnet | Yes |
 | `npm run anchor:test:wsl` | Run the WSL Anchor test wrapper from Windows PowerShell | Yes |
+| `npm run idl:sync` | Regenerate the app-facing camelCase IDL from `target/idl/construkt.json` | Yes |
+| `npm run reset:localnet` | Build, sync IDL, reset localnet, preload the program, and reseed demo state | Yes |
 | `npm run seed:localnet` | Seed localnet with deterministic demo data | Yes |
 | `npm run seed:localnet:wsl` | Run the WSL localnet seed wrapper from Windows PowerShell | Yes |
 | `npm run typecheck:scripts` | Type-check TypeScript utility scripts | No |

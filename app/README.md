@@ -48,7 +48,10 @@ app/
 The app does not use a real wallet adapter yet. In Anchor mode it signs with deterministic demo keypairs that match the seeded localnet data. Start localnet and seed it from the repo root:
 
 ```bash
-# In WSL, from repo root
+# Preferred, from repo root
+npm run reset:localnet
+
+# Manual fallback in WSL, from repo root
 bash scripts/setup-localnet.sh
 npm run seed:localnet
 ```

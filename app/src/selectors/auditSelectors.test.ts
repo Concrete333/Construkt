@@ -125,6 +125,9 @@ describe("selectAuditTimeline", () => {
       account: {
         authority: PublicKey.default,
         projectId: 1n,
+        mint: PublicKey.default,
+        budgetAmount: 1_000_000n,
+        allocatedAmount: 0n,
         name: "Empty",
         status: "active" as const,
         createdAt: 1_700_000_000n,

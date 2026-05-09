@@ -24,6 +24,7 @@ const SEED_BYTES = {
 } as const;
 
 const PROJECT_ID = 1n;
+const PROJECT_BUDGET = 1_200_000_000n;
 
 /**
  * Mock USDC has 6 decimals, so 200_000_000 base units = $200.00. Cap and
@@ -120,6 +121,8 @@ export const seedHospitalFitOut = async (
   await client.initializeProject({
     authority: finance.publicKey,
     projectId: PROJECT_ID,
+    mint,
+    budgetAmount: PROJECT_BUDGET,
     name: "Demo Hospital Fit-Out",
     metadataRef: PROJECT_METADATA_REF,
   });
