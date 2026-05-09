@@ -16,7 +16,8 @@ Current repo status:
 - Phase 3 is complete: `app/` can create milestone-mode packages on the Finance-created active package path, display real milestone account state, target contractor invoices at milestones, and seed one milestone-backed package in mock and localnet demo state.
 - Phase 4 is complete: project drafter authorization, PM-created draft packages, draft milestone schedules, Finance activation, contractor role assignment at activation, and post-activation funding are implemented in Anchor, mirrored in app clients, and wired into the React project-detail flow.
 - Phase 5 is complete: `WorkPackageAccount.high_approval_required` is plumbed through `create_work_package`, `create_package_draft`, and `activate_work_package`; `release_payment` rejects low-only releases on required-high packages with `HighApprovalRequired`; `update_high_approval_policy` lets Finance flip the flag only while no request value is reserved on the package, covering both package-level and milestone-targeted active requests; mock and Anchor clients mirror everything; React UI exposes the toggle in the create form, switches Optional/Required labels, and ships a Finance-only `ApprovalPolicyPanel`. Demo seed adds a `complianceUpgrade` package parked at `lowApproved` to demonstrate the gated release.
-- Phase 6 onward remain open.
+- Phase 6 is complete as an app/metadata convergence slice: document requests and withdrawal clearances are modeled in `MetadataClient`; the work-package view supports request-linked evidence/document requests, contractor document fulfillment, released-but-not-cleared withdrawal balances, and "mark withdrawn" clearing; `Dashboard2Page` uses a tested dashboard selector for allocated, funded, requested, approved, released, withdrawal, held, evidence-review, and document-request metrics. The backend withdrawal/claim instruction remains out of scope for V0.
+- Phase 7 remains open.
 
 Important repo notes for the remaining phases:
 
@@ -686,6 +687,15 @@ Deliverable: evidence review, document-reference state, contractor withdrawal ba
 
 Why sixth: this becomes most valuable once richer backend state exists.
 
+Implementation notes:
+
+- `MetadataClient` now carries document-request metadata (`requested` / `fulfilled`) and withdrawal-clearance metadata keyed to package/request refs.
+- Work-package views show released-but-not-cleared funds and let the contractor mark released payments withdrawn in app state.
+- PM/Finance can request evidence/documents against the active request; contractor document uploads fulfill the oldest outstanding request for that payment request.
+- `app/src/selectors/dashboardSelectors.ts` derives Phase 6 dashboard metrics from chain reads plus metadata. `Dashboard2Page` consumes that selector for cross-project totals and contractor withdrawal tasks.
+- Demo metadata seeds an outstanding evidence request for the held facade package.
+- No backend withdrawal/claim instruction was added; V0 still transfers tokens at Finance release, and withdrawal clearing is app-derived metadata.
+
 ### Phase 7: Static Prototype Audit
 
 Deliverable: walk through `frontend-prototype/web/index.html` and `frontend-prototype/web/static/projects/js/construkt.js`; every core product claim is either backed by a workstream, backed by current backend behavior, or removed/reworded.
@@ -711,14 +721,14 @@ Workstream 7 is continuous rather than a discrete phase: every backend phase end
 
 ## Near-Term First Slice
 
-Phase 0 through Phase 5 are complete. The next useful slice is Phase 6 (Workstream 6 — evidence, withdrawal, dashboard, audit polish):
+Phase 0 through Phase 6 are complete. Phase 6 shipped the Workstream 6 app/metadata convergence slice:
 
 1. Treat evidence packs and document requests as request-linked metadata with status (`requested`, `fulfilled`, reviewer note).
 2. Derive contractor withdrawal balance in the app from released-but-not-cleared state and add a "mark withdrawn" UX.
 3. Promote dashboard selectors to surface project-level totals (allocated, funded, requested, approved, released, contractor-withdrawal balance, held amount, evidence awaiting review, document requests outstanding).
 4. Strengthen audit-trail event coverage so user-facing state transitions are reconstructable from chain reads plus metadata.
 
-This is the next useful slice because the on-chain payment-control surface is now feature-complete for V0; Phase 6 makes the resulting state understandable and demoable on the React surface.
+The next useful slice is Phase 7: audit the static prototype against the converged `app/` behavior so every remaining product claim is backed by current backend/app behavior, assigned to a future workstream, or removed/reworded.
 
 ## Resolved Decisions
 

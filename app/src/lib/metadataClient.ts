@@ -109,6 +109,31 @@ export interface HoldMetadata {
   authoredAt: string;
 }
 
+export type DocumentRequestStatus = "requested" | "fulfilled";
+
+export interface DocumentRequestMetadata {
+  workPackage: string;
+  paymentRequest?: string;
+  milestone?: string;
+  status: DocumentRequestStatus;
+  requestedByDisplayName: string;
+  requestedByRole: TeamRole;
+  requestedAt: string;
+  note: string;
+  fulfilledDocumentRef?: string;
+  fulfilledAt?: string;
+  reviewerNote?: string;
+}
+
+export interface WithdrawalClearanceMetadata {
+  workPackage: string;
+  paymentRequest: string;
+  amount: bigint;
+  clearedByDisplayName: string;
+  clearedByRole: TeamRole;
+  clearedAt: string;
+}
+
 /**
  * Read-side surface used by selectors and components. Every method is
  * async (so a network-backed implementation drops in cleanly) and
@@ -121,6 +146,16 @@ export interface MetadataClient {
   resolveDocument(ref: string): Promise<DocumentMetadata | null>;
   resolveNote(ref: string): Promise<NoteMetadata | null>;
   resolveHold(ref: string): Promise<HoldMetadata | null>;
+  resolveDocumentRequest(ref: string): Promise<DocumentRequestMetadata | null>;
+  listDocumentRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, DocumentRequestMetadata]>>;
+  resolveWithdrawalClearance(
+    ref: string,
+  ): Promise<WithdrawalClearanceMetadata | null>;
+  listWithdrawalClearancesForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, WithdrawalClearanceMetadata]>>;
 }
 
 /**
@@ -134,6 +169,8 @@ export interface MetadataWriter {
   putDocument(ref: string, data: DocumentMetadata): void;
   putNote(ref: string, data: NoteMetadata): void;
   putHold(ref: string, data: HoldMetadata): void;
+  putDocumentRequest(ref: string, data: DocumentRequestMetadata): void;
+  putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void;
 }
 
 export interface MetadataSnapshot {
@@ -142,6 +179,8 @@ export interface MetadataSnapshot {
   documents: Record<string, DocumentMetadata>;
   notes: Record<string, NoteMetadata>;
   holds: Record<string, HoldMetadata>;
+  documentRequests: Record<string, DocumentRequestMetadata>;
+  withdrawalClearances: Record<string, WithdrawalClearanceMetadata>;
 }
 
 export interface MetadataSnapshotStore {
@@ -165,6 +204,8 @@ const emptySnapshot = (): MetadataSnapshot => ({
   documents: {},
   notes: {},
   holds: {},
+  documentRequests: {},
+  withdrawalClearances: {},
 });
 
 const BIGINT_MARKER = "__construktBigInt";
@@ -204,6 +245,14 @@ export class MockMetadataClient
   private readonly documents = new Map<string, DocumentMetadata>();
   private readonly notes = new Map<string, NoteMetadata>();
   private readonly holds = new Map<string, HoldMetadata>();
+  private readonly documentRequests = new Map<
+    string,
+    DocumentRequestMetadata
+  >();
+  private readonly withdrawalClearances = new Map<
+    string,
+    WithdrawalClearanceMetadata
+  >();
 
   async resolveProject(ref: string): Promise<ProjectMetadata | null> {
     return cloneOrNull(this.projects.get(ref));
@@ -219,6 +268,30 @@ export class MockMetadataClient
   }
   async resolveHold(ref: string): Promise<HoldMetadata | null> {
     return cloneOrNull(this.holds.get(ref));
+  }
+  async resolveDocumentRequest(
+    ref: string,
+  ): Promise<DocumentRequestMetadata | null> {
+    return cloneOrNull(this.documentRequests.get(ref));
+  }
+  async listDocumentRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, DocumentRequestMetadata]>> {
+    return [...this.documentRequests]
+      .filter(([, data]) => data.workPackage === workPackage)
+      .map(([ref, data]) => [ref, structuredClone(data)]);
+  }
+  async resolveWithdrawalClearance(
+    ref: string,
+  ): Promise<WithdrawalClearanceMetadata | null> {
+    return cloneOrNull(this.withdrawalClearances.get(ref));
+  }
+  async listWithdrawalClearancesForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, WithdrawalClearanceMetadata]>> {
+    return [...this.withdrawalClearances]
+      .filter(([, data]) => data.workPackage === workPackage)
+      .map(([ref, data]) => [ref, structuredClone(data)]);
   }
 
   putProject(ref: string, data: ProjectMetadata): void {
@@ -236,6 +309,12 @@ export class MockMetadataClient
   putHold(ref: string, data: HoldMetadata): void {
     this.holds.set(ref, structuredClone(data));
   }
+  putDocumentRequest(ref: string, data: DocumentRequestMetadata): void {
+    this.documentRequests.set(ref, structuredClone(data));
+  }
+  putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void {
+    this.withdrawalClearances.set(ref, structuredClone(data));
+  }
 
   loadSnapshot(snapshot: Partial<MetadataSnapshot>): void {
     this.projects.clear();
@@ -243,6 +322,8 @@ export class MockMetadataClient
     this.documents.clear();
     this.notes.clear();
     this.holds.clear();
+    this.documentRequests.clear();
+    this.withdrawalClearances.clear();
 
     for (const [ref, data] of Object.entries(snapshot.projects ?? {})) {
       this.putProject(ref, data);
@@ -258,6 +339,14 @@ export class MockMetadataClient
     }
     for (const [ref, data] of Object.entries(snapshot.holds ?? {})) {
       this.putHold(ref, data);
+    }
+    for (const [ref, data] of Object.entries(snapshot.documentRequests ?? {})) {
+      this.putDocumentRequest(ref, data);
+    }
+    for (const [ref, data] of Object.entries(
+      snapshot.withdrawalClearances ?? {},
+    )) {
+      this.putWithdrawalClearance(ref, data);
     }
   }
 
@@ -277,6 +366,18 @@ export class MockMetadataClient
       ),
       holds: Object.fromEntries(
         [...this.holds].map(([ref, data]) => [ref, structuredClone(data)]),
+      ),
+      documentRequests: Object.fromEntries(
+        [...this.documentRequests].map(([ref, data]) => [
+          ref,
+          structuredClone(data),
+        ]),
+      ),
+      withdrawalClearances: Object.fromEntries(
+        [...this.withdrawalClearances].map(([ref, data]) => [
+          ref,
+          structuredClone(data),
+        ]),
       ),
     };
   }
@@ -316,6 +417,26 @@ export class LocalStorageMetadataClient
   async resolveHold(ref: string): Promise<HoldMetadata | null> {
     return this.client.resolveHold(ref);
   }
+  async resolveDocumentRequest(
+    ref: string,
+  ): Promise<DocumentRequestMetadata | null> {
+    return this.client.resolveDocumentRequest(ref);
+  }
+  async listDocumentRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, DocumentRequestMetadata]>> {
+    return this.client.listDocumentRequestsForPackage(workPackage);
+  }
+  async resolveWithdrawalClearance(
+    ref: string,
+  ): Promise<WithdrawalClearanceMetadata | null> {
+    return this.client.resolveWithdrawalClearance(ref);
+  }
+  async listWithdrawalClearancesForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, WithdrawalClearanceMetadata]>> {
+    return this.client.listWithdrawalClearancesForPackage(workPackage);
+  }
 
   putProject(ref: string, data: ProjectMetadata): void {
     this.client.putProject(ref, data);
@@ -335,6 +456,14 @@ export class LocalStorageMetadataClient
   }
   putHold(ref: string, data: HoldMetadata): void {
     this.client.putHold(ref, data);
+    this.persist();
+  }
+  putDocumentRequest(ref: string, data: DocumentRequestMetadata): void {
+    this.client.putDocumentRequest(ref, data);
+    this.persist();
+  }
+  putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void {
+    this.client.putWithdrawalClearance(ref, data);
     this.persist();
   }
 

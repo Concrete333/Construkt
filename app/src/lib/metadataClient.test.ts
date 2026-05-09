@@ -5,11 +5,13 @@ import {
 } from "./metadataClient";
 import type {
   DocumentMetadata,
+  DocumentRequestMetadata,
   HoldMetadata,
   NoteMetadata,
   PackageScopeMetadata,
   ProjectMetadata,
   MetadataStorage,
+  WithdrawalClearanceMetadata,
 } from "./metadataClient";
 
 const sampleProject: ProjectMetadata = {
@@ -58,6 +60,25 @@ const sampleHold: HoldMetadata = {
   authoredAt: "2026-04-15T14:20:00Z",
 };
 
+const sampleDocumentRequest: DocumentRequestMetadata = {
+  workPackage: "pkg1",
+  paymentRequest: "req1",
+  status: "requested",
+  requestedByDisplayName: "Eleanor Lane",
+  requestedByRole: "projectManager",
+  requestedAt: "2026-04-16T08:00:00Z",
+  note: "Upload site photos for the completed works.",
+};
+
+const sampleWithdrawalClearance: WithdrawalClearanceMetadata = {
+  workPackage: "pkg1",
+  paymentRequest: "req1",
+  amount: 100n,
+  clearedByDisplayName: "Daniel Okafor",
+  clearedByRole: "contractor",
+  clearedAt: "2026-04-18T12:00:00Z",
+};
+
 describe("MockMetadataClient — null on miss", () => {
   it("returns null for refs that have not been written", async () => {
     const client = new MockMetadataClient();
@@ -66,6 +87,8 @@ describe("MockMetadataClient — null on miss", () => {
     expect(await client.resolveDocument("missing")).toBeNull();
     expect(await client.resolveNote("missing")).toBeNull();
     expect(await client.resolveHold("missing")).toBeNull();
+    expect(await client.resolveDocumentRequest("missing")).toBeNull();
+    expect(await client.resolveWithdrawalClearance("missing")).toBeNull();
   });
 });
 
@@ -107,12 +130,20 @@ describe("LocalStorageMetadataClient", () => {
         },
       ],
     });
+    first.putDocumentRequest("dr1", sampleDocumentRequest);
+    first.putWithdrawalClearance("wc1", sampleWithdrawalClearance);
 
     const second = new LocalStorageMetadataClient(storage, "test");
     expect(await second.resolveProject("p1")).toEqual(sampleProject);
     expect(await second.resolvePackageScope("pkg1")).toMatchObject({
       internalMilestones: [{ amount: 10n }],
     });
+    expect(await second.resolveDocumentRequest("dr1")).toEqual(
+      sampleDocumentRequest,
+    );
+    expect(await second.resolveWithdrawalClearance("wc1")).toEqual(
+      sampleWithdrawalClearance,
+    );
   });
 
   it("falls back to an empty store when persisted JSON is invalid", async () => {
@@ -137,6 +168,8 @@ describe("LocalStorageMetadataClient", () => {
         documents: {},
         notes: {},
         holds: {},
+        documentRequests: {},
+        withdrawalClearances: {},
       }),
     );
     const client = new LocalStorageMetadataClient(storage, "test");
@@ -185,6 +218,36 @@ describe("MockMetadataClient — round trips", () => {
     const client = new MockMetadataClient();
     client.putHold("hold1", sampleHold);
     expect(await client.resolveHold("hold1")).toEqual(sampleHold);
+  });
+
+  it("stores and lists document requests by work package", async () => {
+    const client = new MockMetadataClient();
+    client.putDocumentRequest("dr1", sampleDocumentRequest);
+    client.putDocumentRequest("dr2", {
+      ...sampleDocumentRequest,
+      workPackage: "pkg2",
+    });
+    expect(await client.resolveDocumentRequest("dr1")).toEqual(
+      sampleDocumentRequest,
+    );
+    expect(await client.listDocumentRequestsForPackage("pkg1")).toEqual([
+      ["dr1", sampleDocumentRequest],
+    ]);
+  });
+
+  it("stores and lists withdrawal clearances by work package", async () => {
+    const client = new MockMetadataClient();
+    client.putWithdrawalClearance("wc1", sampleWithdrawalClearance);
+    client.putWithdrawalClearance("wc2", {
+      ...sampleWithdrawalClearance,
+      workPackage: "pkg2",
+    });
+    expect(await client.resolveWithdrawalClearance("wc1")).toEqual(
+      sampleWithdrawalClearance,
+    );
+    expect(await client.listWithdrawalClearancesForPackage("pkg1")).toEqual([
+      ["wc1", sampleWithdrawalClearance],
+    ]);
   });
 });
 

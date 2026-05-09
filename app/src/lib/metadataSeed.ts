@@ -32,6 +32,9 @@ export const demoNoteRef = (packageName: string, kind: string): string =>
 export const demoHoldRef = (packageName: string): string =>
   demoNoteRef(packageName, "hold");
 
+export const demoDocumentRequestRef = (packageName: string): string =>
+  `${DEMO_BASE}/document-request/${packageScopeSlug(packageName)}-evidence`;
+
 export interface MetadataSeedOptions {
   /** Defaults to a fixed demo timestamp so seeded values are stable in tests. */
   now?: () => string;
@@ -255,4 +258,16 @@ export const seedDemoMetadata = (
     authorRole: "financeDirector",
     authoredAt: now(),
   });
+  metadata.putDocumentRequest(
+    demoDocumentRequestRef(world.packages.facade.name),
+    {
+      workPackage: world.packages.facade.address.toBase58(),
+      paymentRequest: world.packages.facade.request?.toBase58(),
+      status: "requested",
+      requestedByDisplayName: FINANCE.displayName,
+      requestedByRole: "financeDirector",
+      requestedAt: now(),
+      note: "Upload the independent structural inspector report before the hold can be removed.",
+    },
+  );
 };

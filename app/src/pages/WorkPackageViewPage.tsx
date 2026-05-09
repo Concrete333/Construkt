@@ -13,10 +13,12 @@ import {
 } from "../lib/format";
 import {
   documentMetadataRef,
+  documentRequestMetadataRef,
   holdMetadataRef,
   nextDocumentVersion,
   nextPaymentRequestId,
   noteMetadataRef,
+  withdrawalClearanceMetadataRef,
 } from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
@@ -49,10 +51,12 @@ import type {
 } from "../lib/program";
 import type {
   DocumentMetadata,
+  DocumentRequestMetadata,
   MetadataWriter,
   PackageScopeMetadata,
   ProjectMetadata,
   TeamMember,
+  WithdrawalClearanceMetadata,
 } from "../lib/metadataClient";
 import type { DemoRole } from "../lib/theme";
 import { DEMO_ROLE_LABEL } from "../lib/theme";
@@ -85,6 +89,8 @@ interface LoadedDetail {
   projectMetadata: ProjectMetadata | null;
   milestones: Fetched<MilestoneAccount>[];
   requests: RequestRow[];
+  documentRequests: Array<[string, DocumentRequestMetadata]>;
+  withdrawalClearances: Array<[string, WithdrawalClearanceMetadata]>;
   timeline: EnrichedAuditEvent[];
   teamMembers: TeamMember[];
   hasHighApproverAssignment: boolean;
@@ -144,14 +150,23 @@ export const WorkPackageViewPage = ({
         account: projectFetched,
       };
 
-      const [scope, projectMetadata, roleAssignments, requests, milestones] =
-        await Promise.all([
-          metadata.resolvePackageScope(pkg.scopeRef),
-          metadata.resolveProject(projectFetched.metadataRef),
-          client.fetchRoleAssignmentsForPackage(packageKey),
-          client.fetchPaymentRequestsForPackage(packageKey),
-          client.fetchMilestonesForPackage(packageKey),
-        ]);
+      const [
+        scope,
+        projectMetadata,
+        roleAssignments,
+        requests,
+        milestones,
+        documentRequests,
+        withdrawalClearances,
+      ] = await Promise.all([
+        metadata.resolvePackageScope(pkg.scopeRef),
+        metadata.resolveProject(projectFetched.metadataRef),
+        client.fetchRoleAssignmentsForPackage(packageKey),
+        client.fetchPaymentRequestsForPackage(packageKey),
+        client.fetchMilestonesForPackage(packageKey),
+        metadata.listDocumentRequestsForPackage(packageKey.toBase58()),
+        metadata.listWithdrawalClearancesForPackage(packageKey.toBase58()),
+      ]);
       const milestonesByAddress = new Map(
         milestones.map((m) => [m.address.toBase58(), m]),
       );
@@ -243,6 +258,8 @@ export const WorkPackageViewPage = ({
           projectMetadata,
           milestones,
           requests: requestRows,
+          documentRequests,
+          withdrawalClearances,
           timeline: enriched,
           teamMembers,
           hasHighApproverAssignment,
@@ -285,6 +302,8 @@ export const WorkPackageViewPage = ({
     projectMetadata,
     milestones,
     requests,
+    documentRequests,
+    withdrawalClearances,
     timeline,
     teamMembers,
     contractorDisplayName,
@@ -318,6 +337,11 @@ export const WorkPackageViewPage = ({
     } finally {
       setPending(false);
     }
+  };
+
+  const onMetadataChange = (message: string) => {
+    setFeedback({ kind: "success", message });
+    setRefreshKey((k) => k + 1);
   };
 
   const walletDisplayName =
@@ -408,6 +432,27 @@ export const WorkPackageViewPage = ({
 
           <section className="work-package-view__panel">
             <div className="work-package-view__panel-head">
+              <h2>Withdrawal</h2>
+              <span className="work-package-view__panel-eyebrow">
+                Contractor release clearing
+              </span>
+            </div>
+            <WithdrawalPanel
+              rows={requests}
+              clearances={withdrawalClearances}
+              role={role}
+              wallet={wallet}
+              walletDisplayName={walletDisplayName}
+              packageContractor={rollup.package.contractor}
+              workPackage={loaded.packageAddress}
+              metadataWriter={metadataWriter}
+              pending={pending}
+              onMetadataChange={onMetadataChange}
+            />
+          </section>
+
+          <section className="work-package-view__panel">
+            <div className="work-package-view__panel-head">
               <h2>Documents</h2>
               <span className="work-package-view__panel-eyebrow">
                 Linked to active or past requests
@@ -422,10 +467,12 @@ export const WorkPackageViewPage = ({
               activeRequest={activeRequest}
               activeRequestRow={activeRequestRow}
               activeRequestAddress={activeRequestAddress}
+              documentRequests={documentRequests}
               project={loaded.project.address}
               workPackage={loaded.packageAddress}
               pending={pending}
               onAct={onAct}
+              onMetadataChange={onMetadataChange}
               client={client}
               metadataWriter={metadataWriter}
             />
@@ -1257,10 +1304,12 @@ interface DocumentPanelProps {
   activeRequest: PaymentRequestAccount | null;
   activeRequestRow: RequestRow | null;
   activeRequestAddress: PublicKey | null;
+  documentRequests: Array<[string, DocumentRequestMetadata]>;
   project: PublicKey;
   workPackage: PublicKey;
   pending: boolean;
   onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
+  onMetadataChange: (message: string) => void;
   client: ReturnType<typeof useClients>["client"];
   metadataWriter: MetadataWriter | null;
 }
@@ -1274,14 +1323,17 @@ const DocumentPanel = ({
   activeRequest,
   activeRequestRow,
   activeRequestAddress,
+  documentRequests,
   project,
   workPackage,
   pending,
   onAct,
+  onMetadataChange,
   client,
   metadataWriter,
 }: DocumentPanelProps) => {
   const [docText, setDocText] = useState("");
+  const [requestText, setRequestText] = useState("");
 
   const seen = new Set<string>();
   const docs: Array<{
@@ -1314,6 +1366,18 @@ const DocumentPanel = ({
     activeRequest != null &&
     !isTerminal &&
     activeRequestAddress != null;
+  const canRequestDocument =
+    (role === "projectManager" || role === "financeDirector") &&
+    activeRequest != null &&
+    activeRequestAddress != null &&
+    !isTerminal &&
+    metadataWriter !== null;
+  const outstandingDocumentRequests = documentRequests.filter(
+    ([, request]) =>
+      request.status === "requested" &&
+      (!activeRequestAddress ||
+        request.paymentRequest === activeRequestAddress.toBase58()),
+  );
 
   const onAddDoc = () => {
     if (!activeRequestAddress || !activeRequest) return;
@@ -1346,14 +1410,72 @@ const DocumentPanel = ({
         uploadedAt,
         documentType: "invoice",
       });
+      const requestToFulfill = outstandingDocumentRequests[0];
+      if (requestToFulfill) {
+        const [ref, request] = requestToFulfill;
+        metadataWriter?.putDocumentRequest(ref, {
+          ...request,
+          status: "fulfilled",
+          fulfilledDocumentRef: docRef,
+          fulfilledAt: uploadedAt,
+        });
+      }
       return result;
     }).then(() => {
       setDocText("");
     });
   };
 
+  const onRequestDocument = () => {
+    if (!metadataWriter || !activeRequestAddress || !activeRequest) return;
+    const note = requestText.trim();
+    if (!note) return;
+    const requestedAt = new Date().toISOString();
+    const ref = documentRequestMetadataRef(workPackage, requestedAt);
+    metadataWriter.putDocumentRequest(ref, {
+      workPackage: workPackage.toBase58(),
+      paymentRequest: activeRequestAddress.toBase58(),
+      milestone: activeRequest.hasMilestone
+        ? activeRequest.milestone.toBase58()
+        : undefined,
+      status: "requested",
+      requestedByDisplayName:
+        walletDisplayName ?? shortAddress(wallet.toBase58()),
+      requestedByRole: role,
+      requestedAt,
+      note,
+    });
+    setRequestText("");
+    onMetadataChange("Document request recorded.");
+  };
+
   return (
     <>
+      {documentRequests.some(([, request]) => request.status === "requested") && (
+        <section className="work-package-view__document-requests">
+          <h3>Document requests</h3>
+          <ul className="work-package-view__documents">
+            {documentRequests.map(([ref, request]) => (
+              <li key={ref} className="work-package-view__document">
+                <div className="work-package-view__document-icon">
+                  {request.status === "fulfilled" ? "OK" : "REQ"}
+                </div>
+                <div className="work-package-view__document-body">
+                  <p className="work-package-view__document-name">
+                    {request.note}
+                  </p>
+                  <p className="work-package-view__document-meta">
+                    {request.status === "fulfilled" ? "Fulfilled" : "Requested"}{" "}
+                    · {request.requestedByDisplayName} ·{" "}
+                    {new Date(request.requestedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {docs.length === 0 ? (
         <p className="work-package-view__empty">
           No documents linked yet. Documents are attached when contractors
@@ -1383,6 +1505,40 @@ const DocumentPanel = ({
         </ul>
       )}
 
+      {canRequestDocument && (
+        <div className="work-package-view__add-doc-form">
+          <label className="work-package-view__reject-label">
+            Request evidence / document
+          </label>
+          <textarea
+            className="work-package-view__reject-input"
+            value={requestText}
+            onChange={(e) => setRequestText(e.target.value)}
+            rows={3}
+            placeholder="What should the contractor upload before review?"
+            disabled={pending}
+          />
+          <div className="work-package-view__reject-actions">
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={() => setRequestText("")}
+              disabled={pending}
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--primary"
+              onClick={onRequestDocument}
+              disabled={pending || requestText.trim().length === 0}
+            >
+              Request document
+            </button>
+          </div>
+        </div>
+      )}
+
       {showAddDoc && (
         <div className="work-package-view__add-doc-form">
           <label className="work-package-view__reject-label">
@@ -1396,6 +1552,11 @@ const DocumentPanel = ({
             placeholder="Filename or description (e.g. Invoice-v2.pdf)"
             disabled={pending}
           />
+          {outstandingDocumentRequests.length > 0 && (
+            <p className="work-package-view__aside-note">
+              Uploading will fulfill the oldest outstanding document request.
+            </p>
+          )}
           <div className="work-package-view__reject-actions">
             <button
               type="button"
@@ -1432,6 +1593,134 @@ const Metric = ({
     <dd>{children}</dd>
   </div>
 );
+
+// `DemoRole` is a structural subset of `TeamRole`, so its values can be
+// assigned directly to TeamRole fields without conversion.
+
+interface WithdrawalPanelProps {
+  rows: RequestRow[];
+  clearances: Array<[string, WithdrawalClearanceMetadata]>;
+  role: DemoRole;
+  wallet: PublicKey;
+  walletDisplayName: string | null;
+  packageContractor: PublicKey;
+  workPackage: PublicKey;
+  metadataWriter: MetadataWriter | null;
+  pending: boolean;
+  onMetadataChange: (message: string) => void;
+}
+
+const WithdrawalPanel = ({
+  rows,
+  clearances,
+  role,
+  wallet,
+  walletDisplayName,
+  packageContractor,
+  workPackage,
+  metadataWriter,
+  pending,
+  onMetadataChange,
+}: WithdrawalPanelProps) => {
+  const clearedByRequest = new Set(
+    clearances.map(([, clearance]) => clearance.paymentRequest),
+  );
+  const releasedRows = rows.filter(
+    (row) =>
+      row.request.account.status === "released" &&
+      row.request.account.releasedAmount > 0n,
+  );
+  const availableRows = releasedRows.filter(
+    (row) => !clearedByRequest.has(row.request.address.toBase58()),
+  );
+  const clearedRows = releasedRows.filter((row) =>
+    clearedByRequest.has(row.request.address.toBase58()),
+  );
+  const available = availableRows.reduce(
+    (sum, row) => sum + row.request.account.releasedAmount,
+    0n,
+  );
+  const canClear =
+    role === "contractor" &&
+    wallet.equals(packageContractor) &&
+    metadataWriter !== null;
+
+  const onClear = (row: RequestRow) => {
+    if (!metadataWriter) return;
+    const clearedAt = new Date().toISOString();
+    const paymentRequest = row.request.address;
+    metadataWriter.putWithdrawalClearance(
+      withdrawalClearanceMetadataRef(paymentRequest),
+      {
+        workPackage: workPackage.toBase58(),
+        paymentRequest: paymentRequest.toBase58(),
+        amount: row.request.account.releasedAmount,
+        clearedByDisplayName:
+          walletDisplayName ?? shortAddress(wallet.toBase58()),
+        clearedByRole: role,
+        clearedAt,
+      },
+    );
+    onMetadataChange("Withdrawal marked as cleared.");
+  };
+
+  if (releasedRows.length === 0) {
+    return (
+      <p className="work-package-view__empty">
+        No released payments are available on this package yet.
+      </p>
+    );
+  }
+
+  return (
+    <div className="work-package-view__withdrawal">
+      <dl className="work-package-view__metrics">
+        <Metric label="Available">
+          <Money amount={available} withSymbol />
+        </Metric>
+        <Metric label="Cleared">{clearedRows.length.toString()}</Metric>
+      </dl>
+      {availableRows.length === 0 ? (
+        <p className="work-package-view__empty">
+          All released payments on this package have been marked withdrawn.
+        </p>
+      ) : (
+        <ul className="work-package-view__documents">
+          {availableRows.map((row) => (
+            <li
+              key={row.request.address.toBase58()}
+              className="work-package-view__document"
+            >
+              <div className="work-package-view__document-icon">PAY</div>
+              <div className="work-package-view__document-body">
+                <p className="work-package-view__document-name">
+                  Request #{row.request.account.requestId.toString()}
+                </p>
+                <p className="work-package-view__document-meta">
+                  Released {formatTimestamp(row.request.account.updatedAt)} ·{" "}
+                  <Money
+                    amount={row.request.account.releasedAmount}
+                    withSymbol
+                  />
+                </p>
+              </div>
+              {canClear && (
+                <button
+                  type="button"
+                  className="work-package-view__btn work-package-view__btn--ghost"
+                  onClick={() => onClear(row)}
+                  disabled={pending}
+                >
+                  Mark withdrawn
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+};
 
 interface ActionPanelProps {
   role: DemoRole;

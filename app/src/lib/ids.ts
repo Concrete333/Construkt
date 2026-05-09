@@ -47,6 +47,9 @@ export const packageScopeMetadataRef = (
   packageId: bigint,
 ): string => `metadata://demo/package-scope/${project.toBase58()}/${packageId}`;
 
+const timestampKey = (value: string): string =>
+  value.replace(/[^0-9A-Za-z]+/g, "-").replace(/^-+|-+$/g, "");
+
 export const documentMetadataRef = (
   workPackage: PublicKey,
   requestId: bigint,
@@ -54,8 +57,16 @@ export const documentMetadataRef = (
 ): string =>
   `metadata://demo/document/${workPackage.toBase58()}/${requestId}/v${version}`;
 
-const timestampKey = (value: string): string =>
-  value.replace(/[^0-9A-Za-z]+/g, "-").replace(/^-+|-+$/g, "");
+export const documentRequestMetadataRef = (
+  workPackage: PublicKey,
+  requestedAt: string,
+): string =>
+  `metadata://demo/document-request/${workPackage.toBase58()}/${timestampKey(requestedAt)}`;
+
+export const withdrawalClearanceMetadataRef = (
+  paymentRequest: PublicKey,
+): string =>
+  `metadata://demo/withdrawal-clearance/${paymentRequest.toBase58()}`;
 
 /**
  * Approval records are immutable per (request, role) on chain, but the

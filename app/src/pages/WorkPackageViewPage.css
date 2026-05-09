@@ -409,12 +409,26 @@
 
 .work-package-view__document {
   display: grid;
-  grid-template-columns: 48px 1fr;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm, var(--radius-md));
   background: var(--color-surface);
+}
+
+.work-package-view__document-requests,
+.work-package-view__withdrawal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.work-package-view__document-requests h3 {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text);
 }
 
 .work-package-view__document-icon {

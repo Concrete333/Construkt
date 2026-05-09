@@ -11,6 +11,10 @@ import {
   selectPackageRollup,
   selectProjectRollup,
 } from "../selectors/projectSelectors";
+import {
+  isWithdrawalCleared,
+  selectDashboardSummary,
+} from "../selectors/dashboardSelectors";
 import { selectAuditTimeline } from "../selectors/auditSelectors";
 import {
   isPaymentRequestActive,
@@ -22,6 +26,10 @@ import type {
   PackageRollup,
   ProjectRollup,
 } from "../selectors/projectSelectors";
+import type {
+  DashboardPackageSource,
+  DashboardSummary,
+} from "../selectors/dashboardSelectors";
 import type { AuditEvent, AuditEventKind } from "../selectors/auditSelectors";
 import type { PaymentRequestDisplayStatus } from "../selectors/paymentSelectors";
 import type {
@@ -39,6 +47,7 @@ interface ProjectBundle {
   rollup: ProjectRollup;
   metadata: ProjectMetadata | null;
   packages: PackageRollup[];
+  packageSources: DashboardPackageSource[];
   /** Active payment requests for the project's packages (one per package max). */
   activeRequests: Array<{
     workPackage: PublicKeyB58;
@@ -59,23 +68,9 @@ interface OutstandingTask {
   tone: "info" | "warning" | "success" | "error" | "neutral";
 }
 
-interface CrossProjectKpis {
-  projectCount: number;
-  packageCount: number;
-  totalProjectBudget: bigint;
-  totalAllocatedPackageBudget: bigint;
-  totalRemainingAllocatableBudget: bigint;
-  totalCap: bigint;
-  totalFunded: bigint;
-  totalReleased: bigint;
-  totalOutstandingFunded: bigint;
-  activeRequestCount: number;
-  heldRequestCount: number;
-}
-
 interface LoadedDashboard {
   bundles: ProjectBundle[];
-  kpis: CrossProjectKpis;
+  kpis: DashboardSummary;
   recentActivity: EnrichedAuditEvent[];
   outstanding: OutstandingTask[];
 }
@@ -130,6 +125,7 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
           packagesByProject.get(project.address.toBase58()) ?? [];
 
         const rollups: PackageRollup[] = [];
+        const packageSources: DashboardPackageSource[] = [];
         const activeRequests: ProjectBundle["activeRequests"] = [];
         const allRoleAssignments: Fetched<RoleAssignmentAccount>[] = [];
         const allRequests: Fetched<PaymentRequestAccount>[] = [];
@@ -141,6 +137,10 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
 
           const reqs = await client.fetchPaymentRequestsForPackage(pkg.address);
           allRequests.push(...reqs);
+          const [documentRequests, withdrawalClearances] = await Promise.all([
+            metadata.listDocumentRequestsForPackage(pkg.address.toBase58()),
+            metadata.listWithdrawalClearancesForPackage(pkg.address.toBase58()),
+          ]);
 
           for (const r of reqs) {
             const approvals = await client.fetchApprovalsForRequest(r.address);
@@ -157,13 +157,18 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
                   a.account.requestId < b.account.requestId ? 1 : -1,
                 )[0] ?? null);
           const activeRequest = activeFetchedRequest?.account ?? null;
-          rollups.push(
-            selectPackageRollup(
-              pkg,
-              activeRequest,
-              activeFetchedRequest?.address ?? null,
-            ),
+          const packageRollup = selectPackageRollup(
+            pkg,
+            activeRequest,
+            activeFetchedRequest?.address ?? null,
           );
+          rollups.push(packageRollup);
+          packageSources.push({
+            rollup: packageRollup,
+            requests: reqs,
+            documentRequests: documentRequests.map(([, data]) => data),
+            withdrawalClearances: withdrawalClearances.map(([, data]) => data),
+          });
           if (activeRequest && activeFetchedRequest?.address) {
             const scope = await metadata.resolvePackageScope(
               pkg.account.scopeRef,
@@ -184,6 +189,7 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
           rollup,
           metadata: projectMeta,
           packages: rollups,
+          packageSources,
           activeRequests,
         });
 
@@ -347,36 +353,15 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
   );
 };
 
-const aggregateKpis = (bundles: ProjectBundle[]): CrossProjectKpis => {
-  const sumBig = (xs: bigint[]): bigint => xs.reduce((a, b) => a + b, 0n);
-  return {
-    projectCount: bundles.length,
-    packageCount: bundles.reduce((a, b) => a + b.rollup.packageCount, 0),
-    totalProjectBudget: sumBig(bundles.map((b) => b.rollup.projectBudget)),
-    totalAllocatedPackageBudget: sumBig(
-      bundles.map((b) => b.rollup.allocatedPackageBudget),
-    ),
-    totalRemainingAllocatableBudget: sumBig(
-      bundles.map((b) => b.rollup.remainingAllocatableBudget),
-    ),
-    totalCap: sumBig(bundles.map((b) => b.rollup.totalCap)),
-    totalFunded: sumBig(bundles.map((b) => b.rollup.totalFunded)),
-    totalReleased: sumBig(bundles.map((b) => b.rollup.totalReleased)),
-    totalOutstandingFunded: sumBig(
-      bundles.map((b) => b.rollup.totalOutstandingFunded),
-    ),
-    activeRequestCount: bundles.reduce(
-      (a, b) => a + b.rollup.packagesWithActiveRequest,
-      0,
-    ),
-    heldRequestCount: bundles.reduce(
-      (a, b) => a + b.rollup.heldPackageCount,
-      0,
-    ),
-  };
-};
+const aggregateKpis = (bundles: ProjectBundle[]): DashboardSummary =>
+  selectDashboardSummary(
+    bundles.map((bundle) => ({
+      rollup: bundle.rollup,
+      packages: bundle.packageSources,
+    })),
+  );
 
-const KpiStrip = ({ kpis }: { kpis: CrossProjectKpis }) => (
+const KpiStrip = ({ kpis }: { kpis: DashboardSummary }) => (
   <dl className="dashboard2__kpis">
     <KpiTile label="Projects" value={kpis.projectCount.toString()} />
     <KpiTile label="Packages" value={kpis.packageCount.toString()} />
@@ -392,17 +377,37 @@ const KpiStrip = ({ kpis }: { kpis: CrossProjectKpis }) => (
     <KpiTile label="Funded">
       <Money amount={kpis.totalFunded} withSymbol />
     </KpiTile>
+    <KpiTile label="Requested">
+      <Money amount={kpis.totalRequested} withSymbol />
+    </KpiTile>
+    <KpiTile label="Approved">
+      <Money amount={kpis.totalApproved} withSymbol />
+    </KpiTile>
     <KpiTile label="Released">
       <Money amount={kpis.totalReleased} withSymbol />
     </KpiTile>
+    <KpiTile label="Available">
+      <Money amount={kpis.contractorWithdrawalBalance} withSymbol />
+    </KpiTile>
     <KpiTile label="Outstanding">
       <Money amount={kpis.totalOutstandingFunded} withSymbol />
+    </KpiTile>
+    <KpiTile label="Held">
+      <Money amount={kpis.heldAmount} withSymbol />
     </KpiTile>
     <KpiTile
       label="Active requests"
       value={kpis.activeRequestCount.toString()}
     />
     <KpiTile label="Holds" value={kpis.heldRequestCount.toString()} />
+    <KpiTile
+      label="Evidence review"
+      value={kpis.evidenceAwaitingReviewCount.toString()}
+    />
+    <KpiTile
+      label="Doc requests"
+      value={kpis.documentRequestsOutstandingCount.toString()}
+    />
   </dl>
 );
 
@@ -529,6 +534,28 @@ const buildOutstandingTasks = (
       });
     }
     if (role === "contractor") {
+      for (const source of bundle.packageSources) {
+        const available = source.requests
+          .filter(
+            (request) =>
+              request.account.status === "released" &&
+              request.account.releasedAmount > 0n &&
+              !isWithdrawalCleared(request, source.withdrawalClearances),
+          )
+          .reduce((sum, request) => sum + request.account.releasedAmount, 0n);
+        if (available > 0n) {
+          tasks.push({
+            key: `withdraw-${source.rollup.address.toBase58()}`,
+            title: `Withdraw funds: package #${source.rollup.package.packageId.toString()}`,
+            meta: `${bundle.rollup.project.name} - released, not yet cleared`,
+            href: buildHash("workPackageView", {
+              address: source.rollup.address.toBase58(),
+            }),
+            amount: available,
+            tone: "success",
+          });
+        }
+      }
       // Surface packages with no active request as a prompt to submit one.
       for (const pkg of bundle.packages) {
         if (

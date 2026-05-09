@@ -5,6 +5,7 @@ import { MockMetadataClient } from "./metadataClient";
 import { seedHospitalFitOut } from "./mockSeed";
 import {
   demoDocumentRef,
+  demoDocumentRequestRef,
   demoHoldRef,
   demoNoteRef,
   demoPackageScopeRef,
@@ -122,6 +123,23 @@ describe("seedDemoMetadata — holds", () => {
     expect(hold).not.toBeNull();
     expect(hold!.authorRole).toBe("financeDirector");
     expect(hold!.reason).toMatch(/structural/i);
+  });
+});
+
+describe("seedDemoMetadata - document requests", () => {
+  it("creates an outstanding evidence request for the held facade package", async () => {
+    const { metadata, world } = await seedBoth();
+    const [ref, request] = (
+      await metadata.listDocumentRequestsForPackage(
+        world.packages.facade.address.toBase58(),
+      )
+    )[0];
+    expect(ref).toBe(demoDocumentRequestRef(world.packages.facade.name));
+    expect(request.status).toBe("requested");
+    expect(request.paymentRequest).toBe(
+      world.packages.facade.request!.toBase58(),
+    );
+    expect(request.note).toMatch(/inspector report/i);
   });
 });
 
