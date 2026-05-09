@@ -524,7 +524,6 @@ export class MockConstruktClient implements ConstruktClient {
     if (p.amount <= 0n) fail("InvalidAmount");
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
-    if (wp.status === "draft") fail("AccountNotInitialized");
     if (wp.status !== "active") fail("InvalidStatus");
     if (
       wp.milestoneCounter > 0n &&

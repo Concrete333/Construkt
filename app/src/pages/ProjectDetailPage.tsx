@@ -291,15 +291,16 @@ export const ProjectDetailPage = ({
         }
 
         const milestones = await client.fetchMilestonesForPackage(pkg.address);
-        const activeFetchedRequest = pkg.account.hasActiveRequest
-          ? (reqs.find((request) =>
-              request.address.equals(pkg.account.activeRequest),
-            ) ?? null)
-          : ([...reqs]
-              .filter((r) => isPaymentRequestActive(r.account))
-              .sort((a, b) =>
-                a.account.requestId < b.account.requestId ? 1 : -1,
-              )[0] ?? null);
+        const activeFetchedRequests = [...reqs]
+          .filter((r) => isPaymentRequestActive(r.account))
+          .sort((a, b) => (a.account.requestId < b.account.requestId ? 1 : -1));
+        const activeFetchedRequest =
+          activeFetchedRequests.find((request) => request.account.holdActive) ??
+          (pkg.account.hasActiveRequest
+            ? (reqs.find((request) =>
+                request.address.equals(pkg.account.activeRequest),
+              ) ?? null)
+            : (activeFetchedRequests[0] ?? null));
         const activeRequest = activeFetchedRequest?.account ?? null;
         const scope = await metadata.resolvePackageScope(pkg.account.scopeRef);
         packageRows.push({
@@ -402,7 +403,7 @@ export const ProjectDetailPage = ({
       })),
     );
     const scopeRef = packageScopeMetadataRef(projectKey, packageId);
-    metadataWriter?.putPackageScope(scopeRef, {
+    const packageScopeMetadata: PackageScopeMetadata = {
       description: scope,
       contractorDisplayName: "Demo Contractor",
       contractModel: packageMode === "milestone" ? "milestone" : "bespoke",
@@ -418,7 +419,7 @@ export const ProjectDetailPage = ({
               }),
             )
           : undefined,
-    });
+    };
     void onAct(async () => {
       if (packageMode === "milestone") {
         const workPackage = deriveWorkPackageAddress(
@@ -475,10 +476,11 @@ export const ProjectDetailPage = ({
             });
           }
         }
+        metadataWriter?.putPackageScope(scopeRef, packageScopeMetadata);
         return result;
       }
       if (role === "financeDirector") {
-        return client.createWorkPackage({
+        const result = await client.createWorkPackage({
           authority: wallet,
           project: projectKey,
           packageId,
@@ -488,8 +490,10 @@ export const ProjectDetailPage = ({
           scopeRef,
           highApprovalRequired,
         });
+        metadataWriter?.putPackageScope(scopeRef, packageScopeMetadata);
+        return result;
       }
-      return client.createPackageDraft({
+      const result = await client.createPackageDraft({
         drafter: wallet,
         project: projectKey,
         packageId,
@@ -498,6 +502,8 @@ export const ProjectDetailPage = ({
         scopeRef,
         highApprovalRequired,
       });
+      metadataWriter?.putPackageScope(scopeRef, packageScopeMetadata);
+      return result;
     }).then(() => {
       setAddPkgOpen(false);
       setScopeText("");

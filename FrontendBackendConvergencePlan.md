@@ -17,7 +17,7 @@ Current repo status:
 - Phase 4 is complete: project drafter authorization, PM-created draft packages, draft milestone schedules, Finance activation, contractor role assignment at activation, and post-activation funding are implemented in Anchor, mirrored in app clients, and wired into the React project-detail flow.
 - Phase 5 is complete: `WorkPackageAccount.high_approval_required` is plumbed through `create_work_package`, `create_package_draft`, and `activate_work_package`; `release_payment` rejects low-only releases on required-high packages with `HighApprovalRequired`; `update_high_approval_policy` lets Finance flip the flag only while no request value is reserved on the package, covering both package-level and milestone-targeted active requests; mock and Anchor clients mirror everything; React UI exposes the toggle in the create form, switches Optional/Required labels, and ships a Finance-only `ApprovalPolicyPanel`. Demo seed adds a `complianceUpgrade` package parked at `lowApproved` to demonstrate the gated release.
 - Phase 6 is complete as an app/metadata convergence slice: document requests and withdrawal clearances are modeled in `MetadataClient`; the work-package view supports request-linked evidence/document requests, contractor document fulfillment, released-but-not-cleared withdrawal balances, and "mark withdrawn" clearing; `Dashboard2Page` uses a tested dashboard selector for allocated, funded, requested, approved, released, withdrawal, held, evidence-review, and document-request metrics. The backend withdrawal/claim instruction remains out of scope for V0.
-- Phase 7 remains open.
+- Phase 7 is complete: the static prototype README, landing copy, mocked feedback cards, state-log links, release copy, and withdrawal language now label the prototype as a backendless walkthrough and align with the converged V0 split between on-chain payment-control state, app/metadata document-request state, and app-derived withdrawal clearing.
 
 Important repo notes for the remaining phases:
 
@@ -68,11 +68,11 @@ The static prototype currently demonstrates:
 - milestone / bespoke / valuation-style package language
 - contractor invoice submission against package-level or milestone-level payment sections
 - PM evidence review with linked document references
-- Finance release to a contractor withdrawal balance
-- contractor withdrawal of released funds
+- Finance release with app-derived contractor withdrawal balance
+- contractor clear/mark-withdrawn UX for released funds
 - lightweight variation requests and document/evidence references
 - role-specific actions for Finance, PM, and Contractor
-- holds, rejection, release, chain-state references, and audit trail
+- holds, rejection, release, mocked state/reference logs, and audit trail
 - polished UX copy and presentation-focused flow
 
 This surface is presentation-first. It can use mocked/local state, but it must not be described as on-chain truth.
@@ -719,16 +719,23 @@ Audit checklist:
 
 Workstream 7 is continuous rather than a discrete phase: every backend phase ends by extending localnet seed data enough to demonstrate that phase's behavior end-to-end.
 
+Implementation notes:
+
+- `frontend-prototype/README.md` now describes the prototype as a backendless static walkthrough, with `app/` as the converged implementation surface.
+- Landing copy now distinguishes Anchor-backed V0 payment-control state from mocked static state, off-chain raw files, metadata-backed document requests, and app-derived withdrawal clearing.
+- Prototype feedback cards and links now use "Mock State Feedback" / "state log" language instead of implying a live devnet explorer transaction.
+- Release and contractor withdrawal copy now matches the V0 model: Finance release transfers tokens, while the contractor-facing withdrawal/cleared state is app-derived.
+
 ## Near-Term First Slice
 
-Phase 0 through Phase 6 are complete. Phase 6 shipped the Workstream 6 app/metadata convergence slice:
+Phase 0 through Phase 7 are complete. Phase 6 shipped the Workstream 6 app/metadata convergence slice:
 
 1. Treat evidence packs and document requests as request-linked metadata with status (`requested`, `fulfilled`, reviewer note).
 2. Derive contractor withdrawal balance in the app from released-but-not-cleared state and add a "mark withdrawn" UX.
 3. Promote dashboard selectors to surface project-level totals (allocated, funded, requested, approved, released, contractor-withdrawal balance, held amount, evidence awaiting review, document requests outstanding).
 4. Strengthen audit-trail event coverage so user-facing state transitions are reconstructable from chain reads plus metadata.
 
-The next useful slice is Phase 7: audit the static prototype against the converged `app/` behavior so every remaining product claim is backed by current backend/app behavior, assigned to a future workstream, or removed/reworded.
+The convergence plan's V0 implementation slice is now complete. The next useful work is V1/product hardening: close the open decisions below, decide whether withdrawal claiming becomes an on-chain instruction, and keep the static prototype as an explicitly labeled walkthrough rather than a source of backend truth.
 
 ## Resolved Decisions
 

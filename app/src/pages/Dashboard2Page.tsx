@@ -147,15 +147,20 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
             allApprovals.push(...approvals);
           }
 
-          const activeFetchedRequest = pkg.account.hasActiveRequest
-            ? (reqs.find((request) =>
-                request.address.equals(pkg.account.activeRequest),
-              ) ?? null)
-            : ([...reqs]
-                .filter((r) => isPaymentRequestActive(r.account))
-                .sort((a, b) =>
-                  a.account.requestId < b.account.requestId ? 1 : -1,
-                )[0] ?? null);
+          const activeFetchedRequests = [...reqs]
+            .filter((r) => isPaymentRequestActive(r.account))
+            .sort((a, b) =>
+              a.account.requestId < b.account.requestId ? 1 : -1,
+            );
+          const activeFetchedRequest =
+            activeFetchedRequests.find(
+              (request) => request.account.holdActive,
+            ) ??
+            (pkg.account.hasActiveRequest
+              ? (reqs.find((request) =>
+                  request.address.equals(pkg.account.activeRequest),
+                ) ?? null)
+              : (activeFetchedRequests[0] ?? null));
           const activeRequest = activeFetchedRequest?.account ?? null;
           const packageRollup = selectPackageRollup(
             pkg,
@@ -169,18 +174,20 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
             documentRequests: documentRequests.map(([, data]) => data),
             withdrawalClearances: withdrawalClearances.map(([, data]) => data),
           });
-          if (activeRequest && activeFetchedRequest?.address) {
+          if (activeFetchedRequests.length > 0) {
             const scope = await metadata.resolvePackageScope(
               pkg.account.scopeRef,
             );
-            activeRequests.push({
-              workPackage: pkg.address.toBase58(),
-              workPackageName:
-                scope?.description?.split(".")[0] ??
-                `Package #${pkg.account.packageId.toString()}`,
-              request: activeRequest,
-              address: activeFetchedRequest.address.toBase58(),
-            });
+            for (const request of activeFetchedRequests) {
+              activeRequests.push({
+                workPackage: pkg.address.toBase58(),
+                workPackageName:
+                  scope?.description?.split(".")[0] ??
+                  `Package #${pkg.account.packageId.toString()}`,
+                request: request.account,
+                address: request.address.toBase58(),
+              });
+            }
           }
         }
 

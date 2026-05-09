@@ -997,6 +997,14 @@ describe("MockConstruktClient — high approval policy parity", () => {
     const draft = await client.fetchWorkPackage(workPackage);
     expect(draft?.status).toBe("draft");
     expect(draft?.highApprovalRequired).toBe(true);
+    await expect(
+      client.fundEscrow({
+        authority: w.finance,
+        project,
+        workPackage,
+        amount: 1n,
+      }),
+    ).rejects.toMatchObject({ code: "InvalidStatus" });
 
     await client.activateWorkPackage({
       authority: w.finance,

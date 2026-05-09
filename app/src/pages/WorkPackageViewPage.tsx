@@ -1451,7 +1451,9 @@ const DocumentPanel = ({
 
   return (
     <>
-      {documentRequests.some(([, request]) => request.status === "requested") && (
+      {documentRequests.some(
+        ([, request]) => request.status === "requested",
+      ) && (
         <section className="work-package-view__document-requests">
           <h3>Document requests</h3>
           <ul className="work-package-view__documents">

@@ -169,11 +169,11 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
 
     const projectId = nextProjectId(allProjects);
     const metadataRef = projectMetadataRef(wallet, projectId);
-    metadataWriter?.putProject(metadataRef, {
+    const projectMetadata = {
       client: clientText.trim() || name,
-      contractModel: "milestone",
+      contractModel: "milestone" as const,
       team: [],
-    });
+    };
     void onAct(async () => {
       const result = await client.initializeProject({
         authority: wallet,
@@ -183,6 +183,7 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
         name,
         metadataRef,
       });
+      metadataWriter?.putProject(metadataRef, projectMetadata);
       await client.assignProjectDrafter({
         authority: wallet,
         project: deriveProjectAddress(CONSTRUKT_PROGRAM_ID, wallet, projectId),

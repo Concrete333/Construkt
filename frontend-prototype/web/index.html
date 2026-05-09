@@ -116,7 +116,7 @@
             <p>Release stays blocked until approvals and hold checks are clear.</p>
           </article>
         </div>
-        <p class="landing-chain-note">The payment state, approvals, releases, and audit references are recorded on-chain. The documents themselves stay off-chain as hashes or references.</p>
+        <p class="landing-chain-note">Current V0 records payment-control state, approvals, holds, release decisions, and compact document references through the Anchor-backed app. This static walkthrough is fully mocked; document requests and withdrawal clearing are app/metadata state, while raw files stay off-chain.</p>
       </section>
 
       <section id="role-walkthrough" class="landing-role-picker landing-role-cta landing-reveal" aria-labelledby="landing-role-title">
@@ -655,8 +655,8 @@
               </div>
               <div class="on-chain-feedback-card">
                 <div class="on-chain-feedback-header">
-                  <h2 class="on-chain-feedback-title">On-Chain Feedback</h2>
-                  <span class="on-chain-feedback-network">Devnet demo</span>
+                  <h2 class="on-chain-feedback-title">Mock State Feedback</h2>
+                  <span class="on-chain-feedback-network">Static V0 walkthrough</span>
                 </div>
                 <div id="chain-feedback-list" class="on-chain-feedback-list"></div>
               </div>
@@ -1141,7 +1141,7 @@
                   <button class="section-tab" type="button" data-wp-tab="documents">Documents</button>
                   <button class="section-tab" type="button" data-wp-tab="payments">Payments</button>
                 </div>
-                <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state -></a>
+                <a class="chain-link" href="#work-package-view" data-chain-state-link>View state log -></a>
               </div>
               <div id="wp-tab-content"></div>
             </div>
@@ -1156,11 +1156,11 @@
               <div class="work-package-review-list" id="wp-review-list"></div>
             </div>
 
-            <!-- On-chain Feedback Card -->
+            <!-- Mock State Feedback Card -->
             <div class="work-package-chain-card">
               <div class="work-package-actions-head">
-                <h2 class="work-package-actions-heading">On-Chain Feedback</h2>
-                <span class="work-package-info-label">Solana devnet demo</span>
+                <h2 class="work-package-actions-heading">Mock State Feedback</h2>
+                <span class="work-package-info-label">Static V0 walkthrough</span>
               </div>
               <div id="wp-chain-feedback-list" class="on-chain-feedback-list"></div>
             </div>
@@ -1418,7 +1418,7 @@
                   <button class="section-tab" data-audit-tab="documents" type="button">Documents</button>
                   <button class="section-tab" data-audit-tab="payments" type="button">Payments</button>
                 </div>
-                <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a>
+                <a class="chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a>
               </div>
               <div class="audit-panel is-active" data-audit-panel="audit">
                 <div data-audit-trail-wrap>
@@ -1648,13 +1648,13 @@
                               <li class="approval-step done"><strong>Requested</strong><span>Daniel Okafor · 8 Apr 2026, 09:14</span></li>
                               <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 9 Apr 2026, 11:30</span></li>
                               <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 10 Apr 2026, 14:22</span></li>
-                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 10 Apr 2026, 14:25 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 10 Apr 2026, 14:25 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></span></li>
                             </ol>
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1681,8 +1681,8 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-notice">Approved Payment Notice</a><span>Payment Notice</span><span>DOC-PAY-008</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-foundation">Foundation Pour Certificate</a><span>Milestone Cert</span><span>DOC-FND-014</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1709,8 +1709,8 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-photos">Site Inspection Photo Set</a><span>Photo Evidence</span><span>DOC-PHO-031</span><span class="version-badge">V1</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-photos">Site Inspection Photo Set</a><span>Photo Evidence</span><span>DOC-PHO-031</span><span class="version-badge">V1</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1737,7 +1737,7 @@
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-variation">Steel Frame Variation Pack</a><span>Variation</span><span>DOC-VAR-017</span><span class="version-badge">V3</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1759,12 +1759,12 @@
                               <li class="approval-step done"><strong>Requested</strong><span>Harbour Interiors · 6 Apr 2026, 08:05</span></li>
                               <li class="approval-step done"><strong>PM Review</strong><span>Approved by Eleanor Lane · 6 Apr 2026, 15:40</span></li>
                               <li class="approval-step done"><strong>Finance Review</strong><span>Approved by Maya Shah · 7 Apr 2026, 10:12</span></li>
-                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 7 Apr 2026, 10:16 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></span></li>
+                              <li class="approval-step done"><strong>Released</strong><span>Funds released · 7 Apr 2026, 10:16 <a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></span></li>
                             </ol>
                             <div class="linked-documents">
                               <h4 class="linked-documents-title">Linked Documents</h4>
                               <div class="linked-document-list">
-                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-mep">MEP Schematic Rev B</a><span>Drawing</span><span>DOC-MEP-009</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></div>
+                                <div class="linked-document-row"><a class="document-link" href="#" data-linked-document="doc-mep">MEP Schematic Rev B</a><span>Drawing</span><span>DOC-MEP-009</span><span class="version-badge">V2</span><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></div>
                               </div>
                             </div>
                           </div>
@@ -1929,21 +1929,21 @@
                       <td>Milestone Cert</td>
                       <td>DOC-FND-014</td>
                       <td><span class="version-badge">V3</span></td>
-                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></td>
                     </tr>
                     <tr>
                       <td><a class="document-link" href="#">Site Inspection Photo Set</a></td>
                       <td>Photo Evidence</td>
                       <td>DOC-PHO-031</td>
                       <td><span class="version-badge">V1</span></td>
-                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></td>
                     </tr>
                     <tr>
                       <td><a class="document-link" href="#">Concrete Batch Delivery Log</a></td>
                       <td>Delivery Log</td>
                       <td>DOC-BAT-022</td>
                       <td><span class="version-badge">V2</span></td>
-                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a></td>
+                      <td><a class="doc-chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a></td>
                     </tr>
                   </tbody>
                 </table>
@@ -1987,7 +1987,7 @@
               <div class="tab-buttons" role="tablist" aria-label="Package audit trail">
                 <button class="section-tab is-active" type="button">Audit Trail</button>
               </div>
-              <a class="chain-link" href="#work-package-view" data-chain-state-link>View chain state ↗</a>
+              <a class="chain-link" href="#work-package-view" data-chain-state-link>View state log ↗</a>
             </div>
             <ul class="timeline-list">
               <li class="timeline-item">
@@ -2125,7 +2125,7 @@
             <section class="card settings-card settings-panel" data-settings-panel="notifications">
               <ul class="notification-list">
                 <li class="notification-row">
-                  <div><strong>Payment released</strong><span>When funds are released to your withdrawal balance</span></div>
+                  <div><strong>Payment released</strong><span>When released funds are available to mark withdrawn</span></div>
                   <button class="toggle-switch is-on" type="button" aria-pressed="true"></button>
                 </li>
                 <li class="notification-row">
@@ -2351,7 +2351,7 @@
         <div class="modal-summary-row"><span>Amount</span><strong>£92,400</strong></div>
         <div class="modal-summary-row"><span>Escrow Status</span><strong>Funded</strong></div>
       </div>
-      <label class="checkbox-row"><input type="checkbox"> I confirm release of £92,400 from escrow to the contractor withdrawal balance</label>
+      <label class="checkbox-row"><input type="checkbox"> I confirm release of £92,400 from escrow; the contractor view will show it as released-but-not-cleared</label>
       <div class="modal-footer">
         <button class="btn btn-ghost" data-modal-close type="button">Cancel</button>
         <button class="btn btn-primary" type="button">Confirm Release</button>

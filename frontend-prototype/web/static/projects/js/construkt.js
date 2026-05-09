@@ -17,7 +17,7 @@ const store = {
           projectName: 'Demo Hospital Fit-Out',
           packageName: 'Foundation Pour - Bay A',
           packageId: 'wp-001',
-          detail: 'Mock USDC released from package escrow to contractor withdrawal balance.',
+          detail: 'Mock USDC released from package escrow; contractor view shows it as released-but-not-cleared until marked withdrawn.',
           accountRef: 'escrow_wp_001',
           tx: 'demoRelease5J7kP9zQ2a',
           date: '2026-04-10T10:45:00',
@@ -756,7 +756,6 @@ const store = {
     }
 
     function chainEventHtml(event) {
-      const txUrl = `https://explorer.solana.com/tx/${event.tx}?cluster=devnet`;
       return `
         <article class="on-chain-feedback-item">
           <div class="on-chain-feedback-topline">
@@ -766,7 +765,7 @@ const store = {
           <div class="on-chain-feedback-meta">${escapeHtml(event.projectName)} · ${escapeHtml(event.packageName)}</div>
           <div class="on-chain-feedback-meta">${escapeHtml(event.detail)}</div>
           <div class="on-chain-feedback-meta">${escapeHtml(event.accountRef)} · ${formatDateTime(event.date)}</div>
-          <a class="on-chain-feedback-link" href="${txUrl}" target="_blank" rel="noreferrer">View transaction</a>
+          <span class="on-chain-feedback-link">Mock tx ref: ${escapeHtml(event.tx)}</span>
         </article>
       `;
     }
@@ -775,14 +774,14 @@ const store = {
       const dashboardList = document.getElementById('chain-feedback-list');
       const packageList = document.getElementById('wp-chain-feedback-list');
       if (dashboardList) {
-        dashboardList.innerHTML = store.chainEvents.slice(0, 4).map(chainEventHtml).join('') || '<p class="assignment-description">On-chain demo confirmations will appear here.</p>';
+        dashboardList.innerHTML = store.chainEvents.slice(0, 4).map(chainEventHtml).join('') || '<p class="assignment-description">Mock state confirmations will appear here.</p>';
       }
       if (packageList) {
         const activePkg = activePackage();
         const packageEvents = activePkg
           ? store.chainEvents.filter((event) => event.packageId === activePkg.id || event.packageName === activePkg.name).slice(0, 4)
           : store.chainEvents.slice(0, 4);
-        packageList.innerHTML = packageEvents.map(chainEventHtml).join('') || '<p class="assignment-description">No on-chain demo actions recorded for this package yet.</p>';
+        packageList.innerHTML = packageEvents.map(chainEventHtml).join('') || '<p class="assignment-description">No mock state actions recorded for this package yet.</p>';
       }
     }
 
@@ -1840,7 +1839,7 @@ const store = {
       }
       pkg.lastWithdrawalDate = new Date().toISOString().split('T')[0];
       logAudit(project, 'Contractor withdrawal recorded: ' + formatGBP(available) + ' from ' + pkg.name, 'released');
-      logChainAction('Contractor withdrawal', project, pkg, `${formatGBP(available)} marked as withdrawn from the contractor withdrawal balance.`, `withdraw_${pkg.id}`);
+      logChainAction('Contractor withdrawal', project, pkg, `${formatGBP(available)} marked as withdrawn in app-derived withdrawal state.`, `withdraw_${pkg.id}`);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
       renderDashboard();
       renderDashboard2();
@@ -3047,7 +3046,7 @@ const store = {
           body: `${request.ref} has PM approval and can be checked for release.`,
           primary: { label: 'Release funds', modal: 'release-funds', requestId: request.id },
           secondary: { label: 'Place hold', modal: 'place-hold' },
-          link: 'Review chain state ->',
+          link: 'Review state log ->',
         };
       }
       if (store.currentRole === 'finance_director' && packageApproval === 'Awaiting Finance Approval') {
@@ -3423,7 +3422,7 @@ const store = {
         const payments = pkg.requests || [];
         content.innerHTML = payments.length ? `
           <div class="table-card"><table class="action-table"><thead><tr><th>Invoice</th><th>Amount</th><th>Submitted</th><th>Status</th><th>Chain</th></tr></thead><tbody>
-            ${payments.map((request) => `<tr><td>${escapeHtml(request.ref)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td>${statusChip(request.status)}</td><td><a class="text-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg.id}">View chain state -></a></td></tr>`).join('')}
+            ${payments.map((request) => `<tr><td>${escapeHtml(request.ref)}</td><td>${formatGBP(request.amount)}</td><td>${formatDate(request.date)}</td><td>${statusChip(request.status)}</td><td><a class="text-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg.id}">View state log -></a></td></tr>`).join('')}
           </tbody></table></div>
         ` : '<div class="records-empty is-visible"><h3 class="records-empty__title">No payments recorded</h3><p class="records-empty__body">Payment history will appear as invoices are approved.</p></div>';
         return;
@@ -3670,7 +3669,7 @@ const store = {
             <td>${pkg ? escapeHtml(pkg.name) : 'Project'}</td>
             <td>${request ? `<a class="linked-to-link" href="#" onclick="showAuditPanel('payments'); openPayment('${request.id}', true); return false;">${escapeHtml(request.ref)}</a>` : '—'}</td>
             <td>${request ? statusChip(request.status) : ''}</td>
-            <td><button class="doc-chain-link" data-document-edit="${doc.id}" type="button">Edit</button> · <button class="doc-chain-link" data-document-update="${doc.id}" type="button">Update ↑</button> · <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg?.id || ''}">View chain state ↗</a></td>
+            <td><button class="doc-chain-link" data-document-edit="${doc.id}" type="button">Edit</button> · <button class="doc-chain-link" data-document-update="${doc.id}" type="button">Update ↑</button> · <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${project.id}" data-chain-package="${pkg?.id || ''}">View state log ↗</a></td>
           </tr>
           ${store.activeDocumentExpandId === doc.id ? renderDocumentInfoPanel(doc, project, request, pkg) : ''}
           ${store.activeDocumentUpdateId === doc.id ? `
@@ -3772,7 +3771,7 @@ const store = {
           ${paymentStep('Finance Review', financeState, financeActor, request.fdApprovedDate)}
           ${paymentStep('Released', releasedState, releasedActor, request.fdApprovedDate, {
             noteHtml: request.status === 'Released'
-              ? `<a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${projectId || request.projectId || ''}" data-chain-package="${pkg?.id || ''}">View chain state ↗</a>`
+              ? `<a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${projectId || request.projectId || ''}" data-chain-package="${pkg?.id || ''}">View state log ↗</a>`
               : '',
           })}
         </ol>
@@ -3794,7 +3793,7 @@ const store = {
                 <span>${escapeHtml(doc.type)}</span>
                 <span>${escapeHtml(doc.ref)}</span>
                 <span class="version-badge">V${doc.version}</span>
-                <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${doc.projectId}" data-chain-package="${doc.packageId || ''}">View chain state ↗</a>
+                <a class="doc-chain-link" href="#work-package-view" data-chain-state-link data-chain-project="${doc.projectId}" data-chain-package="${doc.packageId || ''}">View state log ↗</a>
               </div>
             `).join('')}
           </div>
@@ -4335,7 +4334,7 @@ const store = {
       syncMilestoneStatuses(project);
       const milestoneLabel = requestMilestoneLabel(pkg, req);
       logAudit(project, 'Funds released: ' + formatGBP(req.amount) + ' for ' + milestoneLabel, 'released');
-      logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow to the contractor withdrawal balance for ${milestoneLabel}.`, `release_${req.id}`);
+      logChainAction('Funds released', project, pkg, `${formatGBP(req.amount)} mock USDC released from escrow for ${milestoneLabel}; contractor view now shows released-but-not-cleared funds.`, `release_${req.id}`);
       renderProjectDetail(projectId);
       renderPayments(projectId);
       if (currentRoute() === 'work-package-view') renderWorkPackageView();
@@ -4690,6 +4689,17 @@ const store = {
     });
 
     document.addEventListener('click', (event) => {
+      const plainDocumentLink = event.target.closest('a.document-link[href="#"]');
+      if (plainDocumentLink && !plainDocumentLink.dataset.linkedDocument && !plainDocumentLink.dataset.documentExpand) {
+        event.preventDefault();
+        const row = plainDocumentLink.closest('[data-document-row]');
+        if (row?.dataset.documentRow) {
+          showAuditPanel('documents');
+          highlightDocument(row.dataset.documentRow);
+        }
+        return;
+      }
+
       const expandLink = event.target.closest('[data-document-expand]');
       if (expandLink) {
         event.preventDefault();
@@ -5537,7 +5547,7 @@ const store = {
         `;
       }
       const confirm = modal.querySelector('.checkbox-row');
-      if (confirm) confirm.innerHTML = `<input type="checkbox"> I confirm release of ${formatGBP(request.amount)} from escrow to the contractor withdrawal balance`;
+      if (confirm) confirm.innerHTML = `<input type="checkbox"> I confirm release of ${formatGBP(request.amount)} from escrow; the contractor view will show it as released-but-not-cleared`;
     }
 
     function prepareEditDocumentModal(docId) {

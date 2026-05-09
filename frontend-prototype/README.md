@@ -1,12 +1,12 @@
 # frontend-prototype - Static Demo UI + Frontend Unit Tests
 
-Contains the canonical backendless demo and the unit test suite for its helper functions.
+Contains the backendless static walkthrough and the unit test suite for its helper functions.
 
 ## Demo UI
 
 Open [`web/index.html`](web/index.html) in any browser. No build step, no server, and no blockchain connection are required. Business state is fully mocked.
 
-This is the current canonical demo surface for product walkthroughs.
+This is now a static product walkthrough used for comparison and demos. The converged implementation surface is `../app`, backed by the Anchor/mock client boundary described in `../FrontendBackendConvergencePlan.md`.
 
 ## What the prototype currently demonstrates
 
@@ -18,8 +18,8 @@ The prototype models the current intended user flow:
 4. Finance Director approves escrow for that package.
 5. Contractor submits an invoice against the package or a milestone.
 6. Project Manager reviews evidence and approves or rejects the request.
-7. Finance Director releases funds to the contractor withdrawal balance.
-8. Contractor withdraws released funds.
+7. Finance Director releases funds.
+8. Contractor sees released-but-not-cleared funds and can mark them withdrawn in app state.
 
 The prototype also includes lightweight UX around:
 
@@ -28,9 +28,9 @@ The prototype also includes lightweight UX around:
 - document references and uploads
 - evidence pack review
 - audit history
-- chain-state placeholders
+- mocked state/reference logs
 
-These flows are mocked in the prototype. They are the product target, not a claim that every step is already implemented on-chain.
+These flows are mocked in the prototype. They are the product target and static UX reference, not a claim that every step is implemented on-chain. Current V0 keeps raw files, document-request state, and contractor withdrawal clearing off-chain/app-derived; token release still happens at Finance release.
 
 ## Frontend unit tests
 
