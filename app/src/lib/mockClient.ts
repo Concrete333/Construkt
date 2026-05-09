@@ -1,6 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 import {
   deriveApprovalRecordAddress,
+  deriveMilestoneAddress,
   derivePaymentRequestAddress,
   deriveProjectAddress,
   deriveRoleAssignmentAddress,
@@ -16,10 +17,12 @@ import type {
   ApproveRequestParams,
   AssignRoleParams,
   ConstruktClient,
+  CreateMilestoneParams,
   CreateWorkPackageParams,
   Fetched,
   FundEscrowParams,
   InitializeProjectParams,
+  MilestoneAccount,
   PaymentRequestAccount,
   PlaceHoldParams,
   ProjectAccount,
@@ -48,8 +51,8 @@ const opposingApprover = (role: Role): Role | null =>
   role === "lowApprover"
     ? "highApprover"
     : role === "highApprover"
-      ? "lowApprover"
-      : null;
+    ? "lowApprover"
+    : null;
 
 const fail = (code: ConstruktClientError["code"], message?: string): never => {
   throw new ConstruktClientError(code, message);
@@ -77,6 +80,7 @@ export class MockConstruktClient implements ConstruktClient {
   private readonly clock: () => bigint;
   private readonly projects = new Map<string, ProjectAccount>();
   private readonly workPackages = new Map<string, WorkPackageAccount>();
+  private readonly milestones = new Map<string, MilestoneAccount>();
   private readonly roleAssignments = new Map<string, RoleAssignmentAccount>();
   private readonly paymentRequests = new Map<string, PaymentRequestAccount>();
   private readonly approvalRecords = new Map<string, ApprovalRecord>();
@@ -107,27 +111,39 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchWorkPackage(
-    address: PublicKey,
+    address: PublicKey
   ): Promise<WorkPackageAccount | null> {
     return this.workPackages.get(address.toBase58()) ?? null;
   }
 
   async fetchWorkPackagesForProject(
-    project: PublicKey,
+    project: PublicKey
   ): Promise<Fetched<WorkPackageAccount>[]> {
     return [...this.workPackages.entries()]
       .filter(([, account]) => account.project.equals(project))
       .map(([key, account]) => ({ address: new PublicKey(key), account }));
   }
 
+  async fetchMilestone(address: PublicKey): Promise<MilestoneAccount | null> {
+    return this.milestones.get(address.toBase58()) ?? null;
+  }
+
+  async fetchMilestonesForPackage(
+    workPackage: PublicKey
+  ): Promise<Fetched<MilestoneAccount>[]> {
+    return [...this.milestones.entries()]
+      .filter(([, account]) => account.workPackage.equals(workPackage))
+      .map(([key, account]) => ({ address: new PublicKey(key), account }));
+  }
+
   async fetchRoleAssignment(
-    address: PublicKey,
+    address: PublicKey
   ): Promise<RoleAssignmentAccount | null> {
     return this.roleAssignments.get(address.toBase58()) ?? null;
   }
 
   async fetchRoleAssignmentsForPackage(
-    workPackage: PublicKey,
+    workPackage: PublicKey
   ): Promise<Fetched<RoleAssignmentAccount>[]> {
     return [...this.roleAssignments.entries()]
       .filter(([, account]) => account.workPackage.equals(workPackage))
@@ -135,13 +151,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchPaymentRequest(
-    address: PublicKey,
+    address: PublicKey
   ): Promise<PaymentRequestAccount | null> {
     return this.paymentRequests.get(address.toBase58()) ?? null;
   }
 
   async fetchPaymentRequestsForPackage(
-    workPackage: PublicKey,
+    workPackage: PublicKey
   ): Promise<Fetched<PaymentRequestAccount>[]> {
     return [...this.paymentRequests.entries()]
       .filter(([, account]) => account.workPackage.equals(workPackage))
@@ -149,13 +165,13 @@ export class MockConstruktClient implements ConstruktClient {
   }
 
   async fetchApprovalRecord(
-    address: PublicKey,
+    address: PublicKey
   ): Promise<ApprovalRecord | null> {
     return this.approvalRecords.get(address.toBase58()) ?? null;
   }
 
   async fetchApprovalsForRequest(
-    paymentRequest: PublicKey,
+    paymentRequest: PublicKey
   ): Promise<Fetched<ApprovalRecord>[]> {
     return [...this.approvalRecords.entries()]
       .filter(([, account]) => account.paymentRequest.equals(paymentRequest))
@@ -174,7 +190,7 @@ export class MockConstruktClient implements ConstruktClient {
     const address = deriveProjectAddress(
       this.programId,
       p.authority,
-      p.projectId,
+      p.projectId
     );
     if (this.projects.has(address.toBase58())) fail("InvalidStatus");
 
@@ -212,13 +228,13 @@ export class MockConstruktClient implements ConstruktClient {
     const wpAddress = deriveWorkPackageAddress(
       this.programId,
       p.project,
-      p.packageId,
+      p.packageId
     );
     if (this.workPackages.has(wpAddress.toBase58())) fail("InvalidStatus");
 
     const vaultAuthority = deriveVaultAuthorityAddress(
       this.programId,
-      wpAddress,
+      wpAddress
     );
     // The mock doesn't model SPL ATAs; the vault address is synthetic but stable.
     const vault = vaultAuthority;
@@ -229,6 +245,9 @@ export class MockConstruktClient implements ConstruktClient {
       capAmount: p.capAmount,
       fundedAmount: 0n,
       releasedAmount: 0n,
+      reservedRequestAmount: 0n,
+      allocatedMilestoneAmount: 0n,
+      milestoneCounter: 0n,
       contractor: p.contractor,
       mint: p.mint,
       vault,
@@ -244,12 +263,61 @@ export class MockConstruktClient implements ConstruktClient {
     return this.tx();
   }
 
+  async createMilestone(p: CreateMilestoneParams): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "active") fail("InvalidStatus");
+    if (p.amount <= 0n) fail("InvalidAmount");
+    if (p.startAt >= p.endAt) fail("InvalidStatus");
+    if (p.metadataRef.length > MAX_REF_LEN) fail("StringTooLong");
+    if (wp.requestCounter !== 0n) fail("InvalidStatus");
+    if (wp.fundedAmount !== 0n) fail("InvalidStatus");
+
+    const nextMilestoneId = wp.milestoneCounter + 1n;
+    if (p.milestoneId !== nextMilestoneId) fail("InvalidRequestId");
+    const remainingMilestoneAllocation =
+      wp.capAmount - wp.allocatedMilestoneAmount;
+    if (p.amount > remainingMilestoneAllocation)
+      fail("InsufficientRemainingCap");
+
+    const address = deriveMilestoneAddress(
+      this.programId,
+      p.workPackage,
+      p.milestoneId
+    );
+    if (this.milestones.has(address.toBase58())) fail("InvalidStatus");
+
+    this.milestones.set(address.toBase58(), {
+      workPackage: p.workPackage,
+      milestoneId: p.milestoneId,
+      amount: p.amount,
+      releasedAmount: 0n,
+      startAt: p.startAt,
+      endAt: p.endAt,
+      status: "active",
+      metadataRef: p.metadataRef,
+      hasActiveRequest: false,
+      activeRequest: PublicKey.default,
+      bump: 255,
+    });
+    wp.allocatedMilestoneAmount += p.amount;
+    wp.milestoneCounter = p.milestoneId;
+    return this.tx();
+  }
+
   async fundEscrow(p: FundEscrowParams): Promise<TxResult> {
     const project = this.requireProject(p.project);
     if (!project.authority.equals(p.authority)) fail("Unauthorized");
     if (p.amount <= 0n) fail("InvalidAmount");
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (
+      wp.milestoneCounter > 0n &&
+      wp.allocatedMilestoneAmount !== wp.capAmount
+    )
+      fail("InvalidStatus");
     const remaining = wp.capAmount - wp.fundedAmount;
     if (p.amount > remaining) fail("InsufficientRemainingCap");
     wp.fundedAmount += p.amount;
@@ -272,7 +340,7 @@ export class MockConstruktClient implements ConstruktClient {
           this.programId,
           p.workPackage,
           roleByteOf[opposing],
-          p.wallet,
+          p.wallet
         );
         if (this.roleAssignments.has(opposingAddress.toBase58()))
           fail("ApproverRoleConflict");
@@ -283,7 +351,7 @@ export class MockConstruktClient implements ConstruktClient {
       this.programId,
       p.workPackage,
       roleByteOf[p.role],
-      p.wallet,
+      p.wallet
     );
     if (this.roleAssignments.has(address.toBase58())) fail("InvalidStatus");
 
@@ -324,32 +392,48 @@ export class MockConstruktClient implements ConstruktClient {
     const wp = this.requireWorkPackage(p.workPackage);
     if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
     if (wp.status !== "active") fail("InvalidStatus");
-    if (wp.hasActiveRequest) fail("ActiveRequestExists");
     if (!wp.contractor.equals(p.contractor)) fail("Unauthorized");
 
     const contractorRoleAddress = deriveRoleAssignmentAddress(
       this.programId,
       p.workPackage,
       ROLE_BYTES.contractor,
-      p.contractor,
+      p.contractor
     );
     const contractorRole = this.roleAssignments.get(
-      contractorRoleAddress.toBase58(),
+      contractorRoleAddress.toBase58()
     );
     if (!contractorRole) fail("InvalidAccountRelationship");
     if (!contractorRole!.active) fail("InactiveRoleAssignment");
 
     const expectedRequestId = wp.requestCounter + 1n;
     if (p.requestId !== expectedRequestId) fail("InvalidRequestId");
-    const remainingCap = wp.capAmount - wp.releasedAmount;
-    if (p.amount > remainingCap) fail("InsufficientRemainingCap");
-    const fundedRemaining = wp.fundedAmount - wp.releasedAmount;
+    const fundedRemaining =
+      wp.fundedAmount - wp.releasedAmount - wp.reservedRequestAmount;
     if (p.amount > fundedRemaining) fail("InsufficientVaultBalance");
+
+    let milestoneAddress = PublicKey.default;
+    if (p.milestone) {
+      if (wp.milestoneCounter === 0n) fail("InvalidStatus");
+      const milestone = this.requireMilestone(p.milestone);
+      if (!milestone.workPackage.equals(p.workPackage))
+        fail("InvalidAccountRelationship");
+      if (milestone.status !== "active") fail("InvalidStatus");
+      if (milestone.hasActiveRequest) fail("ActiveRequestExists");
+      const remainingMilestoneCap = milestone.amount - milestone.releasedAmount;
+      if (p.amount > remainingMilestoneCap) fail("InsufficientRemainingCap");
+      milestoneAddress = p.milestone;
+    } else {
+      if (wp.milestoneCounter > 0n) fail("InvalidStatus");
+      if (wp.hasActiveRequest) fail("ActiveRequestExists");
+      const remainingPackageCap = wp.capAmount - wp.releasedAmount;
+      if (p.amount > remainingPackageCap) fail("InsufficientRemainingCap");
+    }
 
     const address = derivePaymentRequestAddress(
       this.programId,
       p.workPackage,
-      p.requestId,
+      p.requestId
     );
     const now = this.clock();
     this.paymentRequests.set(address.toBase58(), {
@@ -357,6 +441,8 @@ export class MockConstruktClient implements ConstruktClient {
       requestId: p.requestId,
       contractor: p.contractor,
       amount: p.amount,
+      hasMilestone: !milestoneAddress.equals(PublicKey.default),
+      milestone: milestoneAddress,
       documentRef: p.documentRef,
       status: "submitted",
       submittedAt: now,
@@ -368,8 +454,15 @@ export class MockConstruktClient implements ConstruktClient {
       bump: 255,
     });
     wp.requestCounter = p.requestId;
-    wp.hasActiveRequest = true;
-    wp.activeRequest = address;
+    wp.reservedRequestAmount += p.amount;
+    if (milestoneAddress.equals(PublicKey.default)) {
+      wp.hasActiveRequest = true;
+      wp.activeRequest = address;
+    } else {
+      const milestone = this.requireMilestone(milestoneAddress);
+      milestone.hasActiveRequest = true;
+      milestone.activeRequest = address;
+    }
     return this.tx();
   }
 
@@ -450,8 +543,21 @@ export class MockConstruktClient implements ConstruktClient {
     pr.releasedAmount = pr.amount;
     pr.updatedAt = this.clock();
     wp.releasedAmount += pr.amount;
-    wp.hasActiveRequest = false;
-    wp.activeRequest = PublicKey.default;
+    this.releaseReservedRequestAmount(wp, pr.amount);
+    if (pr.hasMilestone) {
+      const milestone = this.requireMilestone(pr.milestone);
+      const remainingMilestoneCap = milestone.amount - milestone.releasedAmount;
+      if (pr.amount > remainingMilestoneCap) fail("InsufficientRemainingCap");
+      milestone.releasedAmount += pr.amount;
+      milestone.hasActiveRequest = false;
+      milestone.activeRequest = PublicKey.default;
+      if (milestone.releasedAmount === milestone.amount) {
+        milestone.status = "completed";
+      }
+    } else {
+      wp.hasActiveRequest = false;
+      wp.activeRequest = PublicKey.default;
+    }
     if (wp.releasedAmount === wp.capAmount) wp.status = "completed";
     return this.tx();
   }
@@ -462,7 +568,7 @@ export class MockConstruktClient implements ConstruktClient {
 
   private async recordDecision(
     p: ApproveRequestParams | RejectRequestParams,
-    decision: "approved" | "rejected",
+    decision: "approved" | "rejected"
   ): Promise<TxResult> {
     if (p.noteRef.length > MAX_NOTE_REF_LEN) fail("StringTooLong");
     if (p.role !== "lowApprover" && p.role !== "highApprover")
@@ -478,10 +584,10 @@ export class MockConstruktClient implements ConstruktClient {
       this.programId,
       p.workPackage,
       roleByteOf[p.role],
-      p.approver,
+      p.approver
     );
     const approverRole = this.roleAssignments.get(
-      approverRoleAddress.toBase58(),
+      approverRoleAddress.toBase58()
     );
     if (!approverRole) fail("InvalidAccountRelationship");
     if (!approverRole!.active) fail("InactiveRoleAssignment");
@@ -496,7 +602,7 @@ export class MockConstruktClient implements ConstruktClient {
     const recordAddress = deriveApprovalRecordAddress(
       this.programId,
       p.paymentRequest,
-      roleByteOf[p.role],
+      roleByteOf[p.role]
     );
     if (this.approvalRecords.has(recordAddress.toBase58()))
       fail("InvalidStatus");
@@ -518,8 +624,17 @@ export class MockConstruktClient implements ConstruktClient {
       pr.status = "rejected";
       const wp = this.workPackages.get(p.workPackage.toBase58());
       if (wp) {
-        wp.hasActiveRequest = false;
-        wp.activeRequest = PublicKey.default;
+        this.releaseReservedRequestAmount(wp, pr.amount);
+        if (pr.hasMilestone) {
+          const milestone = this.milestones.get(pr.milestone.toBase58());
+          if (milestone) {
+            milestone.hasActiveRequest = false;
+            milestone.activeRequest = PublicKey.default;
+          }
+        } else {
+          wp.hasActiveRequest = false;
+          wp.activeRequest = PublicKey.default;
+        }
       }
     }
     pr.updatedAt = now;
@@ -538,10 +653,24 @@ export class MockConstruktClient implements ConstruktClient {
     return v!;
   }
 
+  private requireMilestone(address: PublicKey): MilestoneAccount {
+    const v = this.milestones.get(address.toBase58());
+    if (!v) fail("InvalidAccountRelationship");
+    return v!;
+  }
+
   private requirePaymentRequest(address: PublicKey): PaymentRequestAccount {
     const v = this.paymentRequests.get(address.toBase58());
     if (!v) fail("InvalidAccountRelationship");
     return v!;
+  }
+
+  private releaseReservedRequestAmount(
+    wp: WorkPackageAccount,
+    amount: bigint
+  ): void {
+    if (amount > wp.reservedRequestAmount) fail("ArithmeticOverflow");
+    wp.reservedRequestAmount -= amount;
   }
 
   private isTerminal(pr: PaymentRequestAccount): boolean {

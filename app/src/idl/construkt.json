@@ -1,5 +1,5 @@
 {
-  "address": "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
+  "address": "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
   "metadata": {
     "name": "construkt",
     "version": "0.1.0",
@@ -152,6 +152,92 @@
         {
           "name": "wallet",
           "type": "pubkey"
+        }
+      ]
+    },
+    {
+      "name": "createMilestone",
+      "discriminator": [
+        239,
+        58,
+        201,
+        28,
+        40,
+        186,
+        173,
+        48
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "project"
+          ]
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        },
+        {
+          "name": "milestone",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  105,
+                  108,
+                  101,
+                  115,
+                  116,
+                  111,
+                  110,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "workPackage"
+              },
+              {
+                "kind": "arg",
+                "path": "milestoneId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "milestoneId",
+          "type": "u64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        },
+        {
+          "name": "startAt",
+          "type": "i64"
+        },
+        {
+          "name": "endAt",
+          "type": "i64"
+        },
+        {
+          "name": "metadataRef",
+          "type": "string"
         }
       ]
     },
@@ -569,6 +655,10 @@
           "writable": true
         },
         {
+          "name": "milestone",
+          "writable": true
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -618,6 +708,10 @@
         },
         {
           "name": "paymentRequest",
+          "writable": true
+        },
+        {
+          "name": "milestone",
           "writable": true
         },
         {
@@ -803,6 +897,10 @@
           }
         },
         {
+          "name": "milestone",
+          "writable": true
+        },
+        {
           "name": "vault"
         },
         {
@@ -822,6 +920,10 @@
         {
           "name": "documentRef",
           "type": "string"
+        },
+        {
+          "name": "hasMilestone",
+          "type": "bool"
         }
       ]
     }
@@ -838,6 +940,19 @@
         187,
         182,
         213
+      ]
+    },
+    {
+      "name": "MilestoneAccount",
+      "discriminator": [
+        21,
+        222,
+        32,
+        140,
+        43,
+        166,
+        109,
+        19
       ]
     },
     {
@@ -944,6 +1059,19 @@
         80,
         113,
         222
+      ]
+    },
+    {
+      "name": "MilestoneCreated",
+      "discriminator": [
+        151,
+        154,
+        159,
+        254,
+        50,
+        174,
+        22,
+        209
       ]
     },
     {
@@ -1348,6 +1476,118 @@
       }
     },
     {
+      "name": "MilestoneAccount",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "milestoneId",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "releasedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "startAt",
+            "type": "i64"
+          },
+          {
+            "name": "endAt",
+            "type": "i64"
+          },
+          {
+            "name": "status",
+            "type": {
+              "defined": {
+                "name": "MilestoneStatus"
+              }
+            }
+          },
+          {
+            "name": "metadataRef",
+            "type": "string"
+          },
+          {
+            "name": "hasActiveRequest",
+            "type": "bool"
+          },
+          {
+            "name": "activeRequest",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "docs": [
+              "Stored for account provenance and future PDA signer paths."
+            ],
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MilestoneCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "milestone",
+            "type": "pubkey"
+          },
+          {
+            "name": "milestoneId",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "startAt",
+            "type": "i64"
+          },
+          {
+            "name": "endAt",
+            "type": "i64"
+          },
+          {
+            "name": "allocatedMilestoneAmount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MilestoneStatus",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Active"
+          },
+          {
+            "name": "Completed"
+          },
+          {
+            "name": "Cancelled"
+          }
+        ]
+      }
+    },
+    {
       "name": "PaymentReleased",
       "type": {
         "kind": "struct",
@@ -1381,6 +1621,14 @@
             "type": "u64"
           },
           {
+            "name": "hasMilestone",
+            "type": "bool"
+          },
+          {
+            "name": "milestone",
+            "type": "pubkey"
+          },
+          {
             "name": "releasedAmount",
             "type": "u64"
           },
@@ -1411,6 +1659,14 @@
           {
             "name": "amount",
             "type": "u64"
+          },
+          {
+            "name": "hasMilestone",
+            "type": "bool"
+          },
+          {
+            "name": "milestone",
+            "type": "pubkey"
           },
           {
             "name": "documentRef",
@@ -1588,6 +1844,14 @@
           {
             "name": "amount",
             "type": "u64"
+          },
+          {
+            "name": "hasMilestone",
+            "type": "bool"
+          },
+          {
+            "name": "milestone",
+            "type": "pubkey"
           },
           {
             "name": "documentRef",
@@ -1864,6 +2128,18 @@
           },
           {
             "name": "releasedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "reservedRequestAmount",
+            "type": "u64"
+          },
+          {
+            "name": "allocatedMilestoneAmount",
+            "type": "u64"
+          },
+          {
+            "name": "milestoneCounter",
             "type": "u64"
           },
           {

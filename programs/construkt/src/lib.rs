@@ -2,7 +2,7 @@ use anchor_lang::prelude::*;
 use anchor_spl::associated_token::AssociatedToken;
 use anchor_spl::token::{self, Mint, Token, TokenAccount, Transfer};
 
-declare_id!("34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL");
+declare_id!("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 
 pub const MAX_NAME_LEN: usize = 64;
 pub const MAX_REF_LEN: usize = 128;
@@ -82,6 +82,9 @@ pub mod construkt {
         work_package.cap_amount = cap_amount;
         work_package.funded_amount = 0;
         work_package.released_amount = 0;
+        work_package.reserved_request_amount = 0;
+        work_package.allocated_milestone_amount = 0;
+        work_package.milestone_counter = 0;
         work_package.contractor = contractor;
         work_package.mint = ctx.accounts.mint.key();
         work_package.vault = ctx.accounts.vault.key();
@@ -111,6 +114,75 @@ pub mod construkt {
         Ok(())
     }
 
+    pub fn create_milestone(
+        ctx: Context<CreateMilestone>,
+        milestone_id: u64,
+        amount: u64,
+        start_at: i64,
+        end_at: i64,
+        metadata_ref: String,
+    ) -> Result<()> {
+        require!(amount > 0, ConstruktError::InvalidAmount);
+        require!(start_at < end_at, ConstruktError::InvalidStatus);
+        require!(
+            metadata_ref.len() <= MAX_REF_LEN,
+            ConstruktError::StringTooLong
+        );
+
+        let work_package_key = ctx.accounts.work_package.key();
+        let next_milestone_id = {
+            let work_package = &ctx.accounts.work_package;
+            require!(
+                work_package.status == WorkPackageStatus::Active,
+                ConstruktError::InvalidStatus
+            );
+            require!(
+                work_package.request_counter == 0,
+                ConstruktError::InvalidStatus
+            );
+            require!(
+                work_package.funded_amount == 0,
+                ConstruktError::InvalidStatus
+            );
+            let next_milestone_id = work_package.next_milestone_id()?;
+            require!(
+                milestone_id == next_milestone_id,
+                ConstruktError::InvalidRequestId
+            );
+            next_milestone_id
+        };
+        let next_allocated_amount = ctx.accounts.work_package.allocate_milestone_amount(amount)?;
+
+        let milestone = &mut ctx.accounts.milestone;
+        milestone.work_package = work_package_key;
+        milestone.milestone_id = next_milestone_id;
+        milestone.amount = amount;
+        milestone.released_amount = 0;
+        milestone.start_at = start_at;
+        milestone.end_at = end_at;
+        milestone.status = MilestoneStatus::Active;
+        milestone.metadata_ref = metadata_ref;
+        milestone.has_active_request = false;
+        milestone.active_request = Pubkey::default();
+        milestone.bump = ctx.bumps.milestone;
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.allocated_milestone_amount = next_allocated_amount;
+        work_package.milestone_counter = next_milestone_id;
+
+        emit!(MilestoneCreated {
+            work_package: work_package_key,
+            milestone: ctx.accounts.milestone.key(),
+            milestone_id: next_milestone_id,
+            amount,
+            start_at,
+            end_at,
+            allocated_milestone_amount: next_allocated_amount,
+        });
+
+        Ok(())
+    }
+
     pub fn fund_escrow(ctx: Context<FundEscrow>, amount: u64) -> Result<()> {
         require_keys_eq!(
             ctx.accounts.authority.key(),
@@ -133,6 +205,13 @@ pub mod construkt {
             ctx.accounts.authority.key(),
             ConstruktError::WrongTokenOwner
         );
+        if ctx.accounts.work_package.is_milestone_mode() {
+            require!(
+                ctx.accounts.work_package.allocated_milestone_amount
+                    == ctx.accounts.work_package.cap_amount,
+                ConstruktError::InvalidStatus
+            );
+        }
 
         let remaining_capacity = ctx.accounts.work_package.remaining_funding_capacity()?;
         require!(
@@ -270,6 +349,7 @@ pub mod construkt {
         request_id: u64,
         amount: u64,
         document_ref: String,
+        has_milestone: bool,
     ) -> Result<()> {
         require!(amount > 0, ConstruktError::InvalidAmount);
         require!(
@@ -283,6 +363,11 @@ pub mod construkt {
 
         let work_package_key = ctx.accounts.work_package.key();
         let contractor_key = ctx.accounts.contractor.key();
+        let milestone_key = if has_milestone {
+            ctx.accounts.milestone.key()
+        } else {
+            Pubkey::default()
+        };
 
         let expected_request_id = {
             let wp = &ctx.accounts.work_package;
@@ -290,7 +375,6 @@ pub mod construkt {
                 wp.status == WorkPackageStatus::Active,
                 ConstruktError::InvalidStatus
             );
-            require!(!wp.has_active_request, ConstruktError::ActiveRequestExists);
             require_keys_eq!(contractor_key, wp.contractor, ConstruktError::Unauthorized);
             let next_request_id = wp.next_request_id()?;
             require!(
@@ -298,23 +382,42 @@ pub mod construkt {
                 ConstruktError::InvalidRequestId
             );
 
-            let remaining_cap = wp
-                .cap_amount
-                .checked_sub(wp.released_amount)
-                .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
-            require!(
-                amount <= remaining_cap,
-                ConstruktError::InsufficientRemainingCap
-            );
-            // Program accounting is canonical; raw vault balance may include direct SPL transfers.
-            let funded_remaining = wp
-                .funded_amount
-                .checked_sub(wp.released_amount)
-                .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+            let funded_remaining = wp.available_funded_amount_for_new_request()?;
             require!(
                 amount <= funded_remaining,
                 ConstruktError::InsufficientVaultBalance
             );
+
+            if has_milestone {
+                require!(wp.is_milestone_mode(), ConstruktError::InvalidStatus);
+                let milestone =
+                    read_milestone_account(&ctx.accounts.milestone, ctx.program_id)?;
+                require_keys_eq!(
+                    milestone.work_package,
+                    work_package_key,
+                    ConstruktError::InvalidAccountRelationship
+                );
+                require!(
+                    milestone.status == MilestoneStatus::Active,
+                    ConstruktError::InvalidStatus
+                );
+                require!(
+                    !milestone.has_active_request,
+                    ConstruktError::ActiveRequestExists
+                );
+                require!(
+                    amount <= milestone.remaining_release_capacity()?,
+                    ConstruktError::InsufficientRemainingCap
+                );
+            } else {
+                require!(!wp.is_milestone_mode(), ConstruktError::InvalidStatus);
+                require!(!wp.has_active_request, ConstruktError::ActiveRequestExists);
+                let remaining_package_cap = wp.remaining_release_capacity()?;
+                require!(
+                    amount <= remaining_package_cap,
+                    ConstruktError::InsufficientRemainingCap
+                );
+            }
             next_request_id
         };
 
@@ -332,6 +435,8 @@ pub mod construkt {
         payment_request.request_id = expected_request_id;
         payment_request.contractor = contractor_key;
         payment_request.amount = amount;
+        payment_request.has_milestone = has_milestone;
+        payment_request.milestone = milestone_key;
         payment_request.document_ref = document_ref.clone();
         payment_request.status = PaymentRequestStatus::Submitted;
         payment_request.submitted_at = clock.unix_timestamp;
@@ -342,15 +447,28 @@ pub mod construkt {
         payment_request.hold_ref = String::new();
         payment_request.bump = ctx.bumps.payment_request;
 
-        let work_package = &mut ctx.accounts.work_package;
-        work_package.request_counter = expected_request_id;
-        work_package.mark_active_request(payment_request_key);
+        {
+            let work_package = &mut ctx.accounts.work_package;
+            work_package.request_counter = expected_request_id;
+            work_package.reserve_request_amount(amount)?;
+            if !has_milestone {
+                work_package.mark_active_request(payment_request_key);
+            }
+        }
+        if has_milestone {
+            let mut milestone =
+                read_milestone_account(&ctx.accounts.milestone, ctx.program_id)?;
+            milestone.mark_active_request(payment_request_key);
+            write_milestone_account(&ctx.accounts.milestone, &milestone)?;
+        }
 
         emit!(PaymentRequestSubmitted {
             work_package: work_package_key,
             payment_request: payment_request_key,
             contractor: contractor_key,
             amount,
+            has_milestone,
+            milestone: milestone_key,
             document_ref,
             submitted_at: clock.unix_timestamp,
         });
@@ -479,7 +597,11 @@ pub mod construkt {
         Ok(())
     }
 
-    pub fn reject_request(ctx: Context<RejectRequest>, role: Role, note_ref: String) -> Result<()> {
+    pub fn reject_request(
+        ctx: Context<RejectRequest>,
+        role: Role,
+        note_ref: String,
+    ) -> Result<()> {
         require!(
             note_ref.len() <= MAX_NOTE_REF_LEN,
             ConstruktError::StringTooLong
@@ -517,12 +639,37 @@ pub mod construkt {
         approval_record.created_at = clock.unix_timestamp;
         approval_record.bump = ctx.bumps.approval_record;
 
+        let request_amount = ctx.accounts.payment_request.amount;
+        let request_has_milestone = ctx.accounts.payment_request.has_milestone;
+        let request_milestone = ctx.accounts.payment_request.milestone;
+
         let payment_request = &mut ctx.accounts.payment_request;
         payment_request.status = PaymentRequestStatus::Rejected;
         payment_request.updated_at = clock.unix_timestamp;
 
-        let work_package = &mut ctx.accounts.work_package;
-        work_package.clear_active_request();
+        {
+            let work_package = &mut ctx.accounts.work_package;
+            work_package.release_reserved_request_amount(request_amount)?;
+            if !request_has_milestone {
+                work_package.clear_active_request();
+            }
+        }
+        if request_has_milestone {
+            let mut milestone =
+                read_milestone_account(&ctx.accounts.milestone, ctx.program_id)?;
+            require_keys_eq!(
+                ctx.accounts.milestone.key(),
+                request_milestone,
+                ConstruktError::InvalidAccountRelationship
+            );
+            require_keys_eq!(
+                milestone.work_package,
+                work_package_key,
+                ConstruktError::InvalidAccountRelationship
+            );
+            milestone.clear_active_request();
+            write_milestone_account(&ctx.accounts.milestone, &milestone)?;
+        }
 
         emit!(PaymentRequestRejected {
             payment_request: payment_request_key,
@@ -601,7 +748,9 @@ pub mod construkt {
         Ok(())
     }
 
-    pub fn release_payment(ctx: Context<ReleasePayment>) -> Result<()> {
+    pub fn release_payment(
+        ctx: Context<ReleasePayment>,
+    ) -> Result<()> {
         require!(
             ctx.accounts.payment_request.status != PaymentRequestStatus::Released,
             ConstruktError::RequestAlreadyReleased
@@ -698,17 +847,52 @@ pub mod construkt {
         let vault_key = ctx.accounts.vault.key();
         let contractor_token_account_key = ctx.accounts.contractor_token_account.key();
         let clock = Clock::get()?;
+        let request_has_milestone = ctx.accounts.payment_request.has_milestone;
+        let request_milestone = ctx.accounts.payment_request.milestone;
 
         let payment_request = &mut ctx.accounts.payment_request;
         payment_request.status = PaymentRequestStatus::Released;
         payment_request.released_amount = amount;
         payment_request.updated_at = clock.unix_timestamp;
 
-        let work_package = &mut ctx.accounts.work_package;
-        work_package.released_amount = next_released_amount;
-        work_package.clear_active_request();
-        if work_package.released_amount == work_package.cap_amount {
-            work_package.status = WorkPackageStatus::Completed;
+        {
+            let work_package = &mut ctx.accounts.work_package;
+            work_package.released_amount = next_released_amount;
+            work_package.release_reserved_request_amount(amount)?;
+            if !request_has_milestone {
+                work_package.clear_active_request();
+            }
+            if work_package.released_amount == work_package.cap_amount {
+                work_package.status = WorkPackageStatus::Completed;
+            }
+        }
+        if request_has_milestone {
+            let mut milestone =
+                read_milestone_account(&ctx.accounts.milestone, ctx.program_id)?;
+            require_keys_eq!(
+                ctx.accounts.milestone.key(),
+                request_milestone,
+                ConstruktError::InvalidAccountRelationship
+            );
+            require_keys_eq!(
+                milestone.work_package,
+                work_package_key,
+                ConstruktError::InvalidAccountRelationship
+            );
+            let next_milestone_released_amount = milestone
+                .released_amount
+                .checked_add(amount)
+                .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+            require!(
+                next_milestone_released_amount <= milestone.amount,
+                ConstruktError::InsufficientRemainingCap
+            );
+            milestone.released_amount = next_milestone_released_amount;
+            milestone.clear_active_request();
+            if milestone.released_amount == milestone.amount {
+                milestone.status = MilestoneStatus::Completed;
+            }
+            write_milestone_account(&ctx.accounts.milestone, &milestone)?;
         }
 
         emit!(PaymentReleased {
@@ -719,7 +903,9 @@ pub mod construkt {
             vault: vault_key,
             contractor_token_account: contractor_token_account_key,
             amount,
-            released_amount: work_package.released_amount,
+            has_milestone: request_has_milestone,
+            milestone: request_milestone,
+            released_amount: next_released_amount,
             created_at: clock.unix_timestamp,
         });
 
@@ -802,6 +988,29 @@ pub struct FundEscrow<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(milestone_id: u64)]
+pub struct CreateMilestone<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+    #[account(has_one = authority @ ConstruktError::Unauthorized)]
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+    #[account(
+        init,
+        payer = authority,
+        space = MilestoneAccount::SPACE,
+        seeds = [b"milestone", work_package.key().as_ref(), &milestone_id.to_le_bytes()],
+        bump
+    )]
+    pub milestone: Account<'info, MilestoneAccount>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 #[instruction(role: Role, wallet: Pubkey)]
 pub struct AssignRole<'info> {
     #[account(mut)]
@@ -868,6 +1077,9 @@ pub struct SubmitPaymentRequest<'info> {
         bump
     )]
     pub payment_request: Account<'info, PaymentRequestAccount>,
+    /// CHECK: When the request targets a milestone this must be the milestone account.
+    #[account(mut)]
+    pub milestone: UncheckedAccount<'info>,
     #[account(address = work_package.vault @ ConstruktError::InvalidAccountRelationship)]
     pub vault: Account<'info, TokenAccount>,
     pub system_program: Program<'info, System>,
@@ -959,6 +1171,9 @@ pub struct RejectRequest<'info> {
         bump
     )]
     pub approval_record: Account<'info, ApprovalRecord>,
+    /// CHECK: When the request targets a milestone this must be the milestone account.
+    #[account(mut)]
+    pub milestone: UncheckedAccount<'info>,
     pub system_program: Program<'info, System>,
 }
 
@@ -1012,6 +1227,9 @@ pub struct ReleasePayment<'info> {
         constraint = payment_request.work_package == work_package.key() @ ConstruktError::InvalidAccountRelationship
     )]
     pub payment_request: Account<'info, PaymentRequestAccount>,
+    /// CHECK: When the request targets a milestone this must be the milestone account.
+    #[account(mut)]
+    pub milestone: UncheckedAccount<'info>,
     /// CHECK: PDA authority for the work package vault. The seeds constraint verifies it.
     #[account(
         seeds = [b"vault_authority", work_package.key().as_ref()],
@@ -1080,6 +1298,9 @@ pub struct WorkPackageAccount {
     pub cap_amount: u64,
     pub funded_amount: u64,
     pub released_amount: u64,
+    pub reserved_request_amount: u64,
+    pub allocated_milestone_amount: u64,
+    pub milestone_counter: u64,
     pub contractor: Pubkey,
     pub mint: Pubkey,
     pub vault: Pubkey,
@@ -1094,8 +1315,25 @@ pub struct WorkPackageAccount {
 }
 
 impl WorkPackageAccount {
-    pub const SPACE: usize =
-        8 + 32 + 8 + 8 + 8 + 8 + 32 + 32 + 32 + 1 + 1 + string_space(MAX_REF_LEN) + 8 + 1 + 32 + 1;
+    pub const SPACE: usize = 8
+        + 32
+        + 8
+        + 8
+        + 8
+        + 8
+        + 8
+        + 8
+        + 8
+        + 32
+        + 32
+        + 32
+        + 1
+        + 1
+        + string_space(MAX_REF_LEN)
+        + 8
+        + 1
+        + 32
+        + 1;
 
     pub fn remaining_funding_capacity(&self) -> Result<u64> {
         self.cap_amount
@@ -1103,9 +1341,114 @@ impl WorkPackageAccount {
             .ok_or(error!(ConstruktError::ArithmeticOverflow))
     }
 
+    pub fn remaining_release_capacity(&self) -> Result<u64> {
+        self.cap_amount
+            .checked_sub(self.released_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
     pub fn next_request_id(&self) -> Result<u64> {
         self.request_counter
             .checked_add(1)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn next_milestone_id(&self) -> Result<u64> {
+        self.milestone_counter
+            .checked_add(1)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn is_milestone_mode(&self) -> bool {
+        self.milestone_counter > 0
+    }
+
+    pub fn remaining_milestone_allocation(&self) -> Result<u64> {
+        self.cap_amount
+            .checked_sub(self.allocated_milestone_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn allocate_milestone_amount(&self, amount: u64) -> Result<u64> {
+        let remaining = self.remaining_milestone_allocation()?;
+        require!(
+            amount <= remaining,
+            ConstruktError::InsufficientRemainingCap
+        );
+        self.allocated_milestone_amount
+            .checked_add(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn available_funded_amount_for_new_request(&self) -> Result<u64> {
+        let funded_remaining = self
+            .funded_amount
+            .checked_sub(self.released_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        funded_remaining
+            .checked_sub(self.reserved_request_amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))
+    }
+
+    pub fn reserve_request_amount(&mut self, amount: u64) -> Result<()> {
+        self.reserved_request_amount = self
+            .reserved_request_amount
+            .checked_add(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        Ok(())
+    }
+
+    pub fn release_reserved_request_amount(&mut self, amount: u64) -> Result<()> {
+        self.reserved_request_amount = self
+            .reserved_request_amount
+            .checked_sub(amount)
+            .ok_or(error!(ConstruktError::ArithmeticOverflow))?;
+        Ok(())
+    }
+
+    pub fn mark_active_request(&mut self, request: Pubkey) {
+        self.has_active_request = true;
+        self.active_request = request;
+    }
+
+    pub fn clear_active_request(&mut self) {
+        self.has_active_request = false;
+        self.active_request = Pubkey::default();
+    }
+}
+
+#[account]
+pub struct MilestoneAccount {
+    pub work_package: Pubkey,
+    pub milestone_id: u64,
+    pub amount: u64,
+    pub released_amount: u64,
+    pub start_at: i64,
+    pub end_at: i64,
+    pub status: MilestoneStatus,
+    pub metadata_ref: String,
+    pub has_active_request: bool,
+    pub active_request: Pubkey,
+    /// Stored for account provenance and future PDA signer paths.
+    pub bump: u8,
+}
+
+impl MilestoneAccount {
+    pub const SPACE: usize = 8
+        + 32
+        + 8
+        + 8
+        + 8
+        + 8
+        + 1
+        + string_space(MAX_REF_LEN)
+        + 1
+        + 32
+        + 1;
+
+    pub fn remaining_release_capacity(&self) -> Result<u64> {
+        self.amount
+            .checked_sub(self.released_amount)
             .ok_or(error!(ConstruktError::ArithmeticOverflow))
     }
 
@@ -1143,6 +1486,8 @@ pub struct PaymentRequestAccount {
     pub request_id: u64,
     pub contractor: Pubkey,
     pub amount: u64,
+    pub has_milestone: bool,
+    pub milestone: Pubkey,
     pub document_ref: String,
     pub status: PaymentRequestStatus,
     pub submitted_at: i64,
@@ -1162,6 +1507,8 @@ impl PaymentRequestAccount {
         + 8
         + 32
         + 8
+        + 1
+        + 32
         + string_space(MAX_REF_LEN)
         + 1
         + 8
@@ -1205,6 +1552,13 @@ pub enum ProjectStatus {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum WorkPackageStatus {
+    Active,
+    Completed,
+    Cancelled,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+pub enum MilestoneStatus {
     Active,
     Completed,
     Cancelled,
@@ -1288,6 +1642,17 @@ pub struct EscrowFunded {
 }
 
 #[event]
+pub struct MilestoneCreated {
+    pub work_package: Pubkey,
+    pub milestone: Pubkey,
+    pub milestone_id: u64,
+    pub amount: u64,
+    pub start_at: i64,
+    pub end_at: i64,
+    pub allocated_milestone_amount: u64,
+}
+
+#[event]
 pub struct RoleAssigned {
     pub work_package: Pubkey,
     pub wallet: Pubkey,
@@ -1312,6 +1677,8 @@ pub struct PaymentRequestSubmitted {
     pub payment_request: Pubkey,
     pub contractor: Pubkey,
     pub amount: u64,
+    pub has_milestone: bool,
+    pub milestone: Pubkey,
     pub document_ref: String,
     pub submitted_at: i64,
 }
@@ -1370,6 +1737,8 @@ pub struct PaymentReleased {
     pub vault: Pubkey,
     pub contractor_token_account: Pubkey,
     pub amount: u64,
+    pub has_milestone: bool,
+    pub milestone: Pubkey,
     pub released_amount: u64,
     pub created_at: i64,
 }
@@ -1430,4 +1799,30 @@ pub enum ConstruktError {
 
 const fn string_space(max_len: usize) -> usize {
     4 + max_len
+}
+
+fn read_milestone_account(
+    milestone: &UncheckedAccount,
+    program_id: &Pubkey,
+) -> Result<MilestoneAccount> {
+    require_keys_eq!(
+        *milestone.owner,
+        *program_id,
+        ConstruktError::InvalidAccountRelationship
+    );
+    let data = milestone.try_borrow_data()?;
+    let mut data_slice: &[u8] = &data;
+    MilestoneAccount::try_deserialize(&mut data_slice)
+        .map_err(|_| error!(ConstruktError::InvalidAccountRelationship))
+}
+
+fn write_milestone_account(
+    milestone: &UncheckedAccount,
+    account: &MilestoneAccount,
+) -> Result<()> {
+    let mut data = milestone.try_borrow_mut_data()?;
+    let mut data_slice: &mut [u8] = &mut data;
+    account
+        .try_serialize(&mut data_slice)
+        .map_err(|_| error!(ConstruktError::InvalidAccountRelationship))
 }

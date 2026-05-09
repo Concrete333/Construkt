@@ -7,7 +7,7 @@ export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROGRAM_SO="$REPO_ROOT/target/deploy/construkt.so"
-PROGRAM_ID="34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL"
+PROGRAM_ID="cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4"
 
 # Demo wallet keypairs (deterministic seeds from mockSeed.ts)
 FINANCE_KEY="AKnL4NNf3DGWZJS6cPknBuEGnVsV4A4m5tgebLHaRSZ9"    # fill(1)

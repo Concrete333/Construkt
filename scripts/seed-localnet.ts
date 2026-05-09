@@ -377,7 +377,8 @@ async function main() {
       .submitPaymentRequest(
         new anchor.BN(1),
         new anchor.BN(CAP_AMOUNT),
-        invoiceRefFor(packageName, 1)
+        invoiceRefFor(packageName, 1),
+        false
       )
       .accounts({
         contractor: contractor.publicKey,
@@ -385,6 +386,7 @@ async function main() {
         workPackage,
         contractorRoleAssignment,
         paymentRequest,
+        milestone: workPackage,
         vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -448,6 +450,7 @@ async function main() {
         paymentRequest,
         approverRoleAssignment,
         approvalRecord,
+        milestone: workPackage,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([pm])
@@ -477,6 +480,7 @@ async function main() {
       project,
       workPackage: foundation.workPackage,
       paymentRequest: foundationRequest,
+      milestone: foundation.workPackage,
       vaultAuthority: foundationVaultAuthority,
       vault: foundationVault,
       contractorTokenAccount,

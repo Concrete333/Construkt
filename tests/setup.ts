@@ -120,6 +120,15 @@ export const createFixture = () => {
       program.programId
     )[0];
 
+  const deriveMilestoneAddress = (
+    workPackage: anchor.web3.PublicKey,
+    milestoneId: number
+  ) =>
+    anchor.web3.PublicKey.findProgramAddressSync(
+      [Buffer.from("milestone"), workPackage.toBuffer(), u64Seed(milestoneId)],
+      program.programId
+    )[0];
+
   const deriveApprovalRecordAddress = (
     paymentRequest: anchor.web3.PublicKey,
     roleByte: number
@@ -247,6 +256,39 @@ export const createFixture = () => {
       .rpc();
   };
 
+  const createMilestoneForTest = async (
+    packageAddresses: { workPackage: anchor.web3.PublicKey },
+    milestoneId: number,
+    amount: anchor.BN,
+    startAt: anchor.BN,
+    endAt: anchor.BN,
+    metadataRef = "ipfs://milestone-ref"
+  ) => {
+    const milestone = deriveMilestoneAddress(
+      packageAddresses.workPackage,
+      milestoneId
+    );
+
+    await program.methods
+      .createMilestone(
+        new anchor.BN(milestoneId),
+        amount,
+        startAt,
+        endAt,
+        metadataRef
+      )
+      .accountsStrict({
+        authority: finance.publicKey,
+        project,
+        workPackage: packageAddresses.workPackage,
+        milestone,
+        systemProgram: anchor.web3.SystemProgram.programId,
+      })
+      .rpc();
+
+    return milestone;
+  };
+
   const assignRole = async (
     packageAddresses: { workPackage: anchor.web3.PublicKey },
     role: any,
@@ -336,8 +378,10 @@ export const createFixture = () => {
     deriveWorkPackageAddresses,
     roleAssignmentAddressForPackage,
     derivePaymentRequestAddress,
+    deriveMilestoneAddress,
     deriveApprovalRecordAddress,
     createWorkPackageForTest,
+    createMilestoneForTest,
     fundPackage,
     assignRole,
     assignDefaultRoles,

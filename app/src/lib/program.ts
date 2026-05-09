@@ -6,6 +6,7 @@ import { PublicKey } from "@solana/web3.js";
  */
 export type ProjectStatus = "active" | "completed" | "cancelled";
 export type WorkPackageStatus = "active" | "completed" | "cancelled";
+export type MilestoneStatus = "active" | "completed" | "cancelled";
 export type PaymentRequestStatus =
   | "submitted"
   | "lowApproved"
@@ -39,6 +40,9 @@ export interface WorkPackageAccount {
   capAmount: bigint;
   fundedAmount: bigint;
   releasedAmount: bigint;
+  reservedRequestAmount: bigint;
+  allocatedMilestoneAmount: bigint;
+  milestoneCounter: bigint;
   contractor: PublicKey;
   mint: PublicKey;
   vault: PublicKey;
@@ -46,6 +50,20 @@ export interface WorkPackageAccount {
   status: WorkPackageStatus;
   scopeRef: string;
   requestCounter: bigint;
+  hasActiveRequest: boolean;
+  activeRequest: PublicKey;
+  bump: number;
+}
+
+export interface MilestoneAccount {
+  workPackage: PublicKey;
+  milestoneId: bigint;
+  amount: bigint;
+  releasedAmount: bigint;
+  startAt: bigint;
+  endAt: bigint;
+  status: MilestoneStatus;
+  metadataRef: string;
   hasActiveRequest: boolean;
   activeRequest: PublicKey;
   bump: number;
@@ -68,6 +86,8 @@ export interface PaymentRequestAccount {
   requestId: bigint;
   contractor: PublicKey;
   amount: bigint;
+  hasMilestone: boolean;
+  milestone: PublicKey;
   documentRef: string;
   status: PaymentRequestStatus;
   submittedAt: bigint;
@@ -127,6 +147,17 @@ export interface CreateWorkPackageParams {
   scopeRef: string;
 }
 
+export interface CreateMilestoneParams {
+  authority: PublicKey;
+  project: PublicKey;
+  workPackage: PublicKey;
+  milestoneId: bigint;
+  amount: bigint;
+  startAt: bigint;
+  endAt: bigint;
+  metadataRef: string;
+}
+
 export interface FundEscrowParams {
   authority: PublicKey;
   project: PublicKey;
@@ -156,6 +187,7 @@ export interface SubmitPaymentRequestParams {
   workPackage: PublicKey;
   requestId: bigint;
   amount: bigint;
+  milestone?: PublicKey | null;
   documentRef: string;
 }
 
@@ -228,6 +260,12 @@ export interface ConstruktClient {
     project: PublicKey,
   ): Promise<Fetched<WorkPackageAccount>[]>;
 
+  fetchMilestone(address: PublicKey): Promise<MilestoneAccount | null>;
+
+  fetchMilestonesForPackage(
+    workPackage: PublicKey,
+  ): Promise<Fetched<MilestoneAccount>[]>;
+
   fetchRoleAssignment(
     address: PublicKey,
   ): Promise<RoleAssignmentAccount | null>;
@@ -254,6 +292,7 @@ export interface ConstruktClient {
 
   initializeProject(params: InitializeProjectParams): Promise<TxResult>;
   createWorkPackage(params: CreateWorkPackageParams): Promise<TxResult>;
+  createMilestone(params: CreateMilestoneParams): Promise<TxResult>;
   fundEscrow(params: FundEscrowParams): Promise<TxResult>;
   assignRole(params: AssignRoleParams): Promise<TxResult>;
   setRoleActive(params: SetRoleActiveParams): Promise<TxResult>;
@@ -329,7 +368,8 @@ const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
   HoldNotActive: "There is no active hold to remove.",
   HoldAlreadyActive: "A hold is already active on this request.",
   RequestAlreadyReleased: "This request has already been released.",
-  InsufficientRemainingCap: "Release amount would exceed the package cap.",
+  InsufficientRemainingCap:
+    "Amount would exceed the remaining project or package cap.",
   InsufficientVaultBalance: "Escrow vault doesn't hold enough tokens.",
   WrongMint: "Token account uses the wrong mint.",
   WrongTokenOwner: "Token account is owned by an unexpected wallet.",

@@ -15,6 +15,7 @@ import type { Transaction } from "@solana/web3.js";
 import IDL_JSON from "../idl/construkt.json";
 import {
   deriveApprovalRecordAddress,
+  deriveMilestoneAddress,
   derivePaymentRequestAddress,
   deriveProjectAddress,
   deriveRoleAssignmentAddress,
@@ -30,11 +31,14 @@ import type {
   AssignRoleParams,
   ConstruktClient,
   ConstruktErrorCode,
+  CreateMilestoneParams,
   CreateWorkPackageParams,
   Decision,
   Fetched,
   FundEscrowParams,
   InitializeProjectParams,
+  MilestoneAccount,
+  MilestoneStatus,
   PaymentRequestAccount,
   PaymentRequestStatus,
   PlaceHoldParams,
@@ -71,6 +75,9 @@ interface RawWorkPackageAccount {
   capAmount: BN;
   fundedAmount: BN;
   releasedAmount: BN;
+  reservedRequestAmount: BN;
+  allocatedMilestoneAmount: BN;
+  milestoneCounter: BN;
   contractor: PublicKey;
   mint: PublicKey;
   vault: PublicKey;
@@ -78,6 +85,20 @@ interface RawWorkPackageAccount {
   status: unknown;
   scopeRef: string;
   requestCounter: BN;
+  hasActiveRequest: boolean;
+  activeRequest: PublicKey;
+  bump: number;
+}
+
+interface RawMilestoneAccount {
+  workPackage: PublicKey;
+  milestoneId: BN;
+  amount: BN;
+  releasedAmount: BN;
+  startAt: BN;
+  endAt: BN;
+  status: unknown;
+  metadataRef: string;
   hasActiveRequest: boolean;
   activeRequest: PublicKey;
   bump: number;
@@ -100,6 +121,8 @@ interface RawPaymentRequestAccount {
   requestId: BN;
   contractor: PublicKey;
   amount: BN;
+  hasMilestone: boolean;
+  milestone: PublicKey;
   documentRef: string;
   status: unknown;
   submittedAt: BN;
@@ -251,6 +274,12 @@ const fromAnchorWpStatus = (raw: unknown): WorkPackageStatus => {
   return "active";
 };
 
+const fromAnchorMilestoneStatus = (raw: unknown): MilestoneStatus => {
+  if (hasVariant(raw, "completed")) return "completed";
+  if (hasVariant(raw, "cancelled")) return "cancelled";
+  return "active";
+};
+
 const fromAnchorPrStatus = (raw: unknown): PaymentRequestStatus => {
   if (hasVariant(raw, "submitted")) return "submitted";
   if (hasVariant(raw, "lowApproved")) return "lowApproved";
@@ -280,6 +309,9 @@ const fromRawWorkPackage = (
   capAmount: toBigInt(raw.capAmount),
   fundedAmount: toBigInt(raw.fundedAmount),
   releasedAmount: toBigInt(raw.releasedAmount),
+  reservedRequestAmount: toBigInt(raw.reservedRequestAmount),
+  allocatedMilestoneAmount: toBigInt(raw.allocatedMilestoneAmount),
+  milestoneCounter: toBigInt(raw.milestoneCounter),
   contractor: raw.contractor,
   mint: raw.mint,
   vault: raw.vault,
@@ -287,6 +319,20 @@ const fromRawWorkPackage = (
   status: fromAnchorWpStatus(raw.status),
   scopeRef: raw.scopeRef,
   requestCounter: toBigInt(raw.requestCounter),
+  hasActiveRequest: raw.hasActiveRequest,
+  activeRequest: raw.activeRequest,
+  bump: raw.bump,
+});
+
+const fromRawMilestone = (raw: RawMilestoneAccount): MilestoneAccount => ({
+  workPackage: raw.workPackage,
+  milestoneId: toBigInt(raw.milestoneId),
+  amount: toBigInt(raw.amount),
+  releasedAmount: toBigInt(raw.releasedAmount),
+  startAt: toBigInt(raw.startAt),
+  endAt: toBigInt(raw.endAt),
+  status: fromAnchorMilestoneStatus(raw.status),
+  metadataRef: raw.metadataRef,
   hasActiveRequest: raw.hasActiveRequest,
   activeRequest: raw.activeRequest,
   bump: raw.bump,
@@ -313,6 +359,8 @@ const fromRawPaymentRequest = (
   requestId: toBigInt(raw.requestId),
   contractor: raw.contractor,
   amount: toBigInt(raw.amount),
+  hasMilestone: raw.hasMilestone,
+  milestone: raw.milestone,
   documentRef: raw.documentRef,
   status: fromAnchorPrStatus(raw.status),
   submittedAt: toBigInt(raw.submittedAt),
@@ -452,6 +500,30 @@ class AnchorConstruktClient implements ConstruktClient {
     return rows.map(({ publicKey, account }) => ({
       address: publicKey,
       account: fromRawWorkPackage(account),
+    }));
+  }
+
+  async fetchMilestone(address: PublicKey): Promise<MilestoneAccount | null> {
+    try {
+      const raw =
+        await this.accountClient<RawMilestoneAccount>("milestoneAccount").fetch(
+          address,
+        );
+      return fromRawMilestone(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  async fetchMilestonesForPackage(
+    workPackage: PublicKey,
+  ): Promise<Fetched<MilestoneAccount>[]> {
+    const rows = await this.accountClient<RawMilestoneAccount>(
+      "milestoneAccount",
+    ).all([{ memcmp: { offset: 8, bytes: workPackage.toBase58() } }]);
+    return rows.map(({ publicKey, account }) => ({
+      address: publicKey,
+      account: fromRawMilestone(account),
     }));
   }
 
@@ -601,6 +673,36 @@ class AnchorConstruktClient implements ConstruktClient {
     }
   }
 
+  async createMilestone(params: CreateMilestoneParams): Promise<TxResult> {
+    try {
+      const milestone = deriveMilestoneAddress(
+        this.programId,
+        params.workPackage,
+        params.milestoneId,
+      );
+      const signature = await this.method(
+        "createMilestone",
+        toBn(params.milestoneId),
+        toBn(params.amount),
+        toBn(params.startAt),
+        toBn(params.endAt),
+        params.metadataRef,
+      )
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          workPackage: params.workPackage,
+          milestone,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.authority))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
   async fundEscrow(params: FundEscrowParams): Promise<TxResult> {
     try {
       const wp = await this.requireWorkPackage(params.workPackage);
@@ -704,12 +806,14 @@ class AnchorConstruktClient implements ConstruktClient {
         params.workPackage,
         params.requestId,
       );
+      const milestone = params.milestone ?? params.workPackage;
 
       const signature = await this.method(
         "submitPaymentRequest",
         toBn(params.requestId),
         toBn(params.amount),
         params.documentRef,
+        params.milestone !== undefined && params.milestone !== null,
       )
         .accounts({
           contractor: params.contractor,
@@ -717,6 +821,7 @@ class AnchorConstruktClient implements ConstruktClient {
           workPackage: params.workPackage,
           contractorRoleAssignment,
           paymentRequest,
+          milestone,
           vault: wp.vault,
           systemProgram: SystemProgram.programId,
         })
@@ -805,6 +910,14 @@ class AnchorConstruktClient implements ConstruktClient {
         params.paymentRequest,
         ROLE_BYTES[params.role],
       );
+      const paymentRequestAccount = await this.requirePaymentRequest(
+        params.paymentRequest,
+      );
+      const milestone =
+        paymentRequestAccount.hasMilestone &&
+        !paymentRequestAccount.milestone.equals(PublicKey.default)
+          ? paymentRequestAccount.milestone
+          : params.workPackage;
       const signature = await this.method(
         "rejectRequest",
         toAnchorRole(params.role),
@@ -817,6 +930,7 @@ class AnchorConstruktClient implements ConstruktClient {
           paymentRequest: params.paymentRequest,
           approverRoleAssignment,
           approvalRecord,
+          milestone,
           systemProgram: SystemProgram.programId,
         })
         .signers(this.extraSigners(params.approver))
@@ -864,6 +978,9 @@ class AnchorConstruktClient implements ConstruktClient {
   async releasePayment(params: ReleasePaymentParams): Promise<TxResult> {
     try {
       const wp = await this.requireWorkPackage(params.workPackage);
+      const paymentRequestAccount = await this.requirePaymentRequest(
+        params.paymentRequest,
+      );
       const vaultAuthority = deriveVaultAuthorityAddress(
         this.programId,
         params.workPackage,
@@ -877,6 +994,11 @@ class AnchorConstruktClient implements ConstruktClient {
         wp.mint,
         wp.contractor,
       );
+      const milestone =
+        paymentRequestAccount.hasMilestone &&
+        !paymentRequestAccount.milestone.equals(PublicKey.default)
+          ? paymentRequestAccount.milestone
+          : params.workPackage;
 
       const signature = await this.method("releasePayment")
         .accounts({
@@ -884,6 +1006,7 @@ class AnchorConstruktClient implements ConstruktClient {
           project: params.project,
           workPackage: params.workPackage,
           paymentRequest: params.paymentRequest,
+          milestone,
           vaultAuthority,
           vault,
           contractorTokenAccount,
@@ -944,6 +1067,16 @@ class AnchorConstruktClient implements ConstruktClient {
       throw new Error(`Work package not found: ${address.toBase58()}`);
     }
     return wp;
+  }
+
+  private async requirePaymentRequest(
+    address: PublicKey,
+  ): Promise<PaymentRequestAccount> {
+    const paymentRequest = await this.fetchPaymentRequest(address);
+    if (!paymentRequest) {
+      throw new Error(`Payment request not found: ${address.toBase58()}`);
+    }
+    return paymentRequest;
   }
 }
 

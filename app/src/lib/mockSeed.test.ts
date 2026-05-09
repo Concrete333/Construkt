@@ -4,7 +4,7 @@ import { MockConstruktClient } from "./mockClient";
 import { seedHospitalFitOut } from "./mockSeed";
 
 const PROGRAM_ID = new PublicKey(
-  "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
+  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
 );
 
 const newClient = (): MockConstruktClient =>

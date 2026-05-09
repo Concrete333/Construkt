@@ -84,6 +84,16 @@ export const derivePaymentRequestAddress = (
     programId,
   )[0];
 
+export const deriveMilestoneAddress = (
+  programId: PublicKey,
+  workPackage: PublicKey,
+  milestoneId: number | bigint,
+): PublicKey =>
+  PublicKey.findProgramAddressSync(
+    [stringSeed("milestone"), workPackage.toBuffer(), u64Seed(milestoneId)],
+    programId,
+  )[0];
+
 export const deriveApprovalRecordAddress = (
   programId: PublicKey,
   paymentRequest: PublicKey,

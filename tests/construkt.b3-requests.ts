@@ -26,6 +26,9 @@ describe("construkt b3 payment requests and approvals", () => {
     directorRoleAssignment = roles.directorRoleAssignment;
   });
 
+  // Package-level requests still provide the Phase 2 `milestone` account
+  // slot. The work package PDA is the sentinel when has_milestone is false.
+
   it("submit request with empty document reference fails", async () => {
     const targetRequest = fx.derivePaymentRequestAddress(
       packageAddresses.workPackage,
@@ -34,13 +37,19 @@ describe("construkt b3 payment requests and approvals", () => {
 
     await expectError(
       fx.program.methods
-        .submitPaymentRequest(new anchor.BN(1), new anchor.BN(100_000), "")
+        .submitPaymentRequest(
+          new anchor.BN(1),
+          new anchor.BN(100_000),
+          "",
+          false
+        )
         .accountsStrict({
           contractor: fx.contractor.publicKey,
           project: fx.project,
           workPackage: packageAddresses.workPackage,
           contractorRoleAssignment,
           paymentRequest: targetRequest,
+          milestone: packageAddresses.workPackage,
           vault: packageAddresses.vault,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
@@ -61,7 +70,8 @@ describe("construkt b3 payment requests and approvals", () => {
         .submitPaymentRequest(
           new anchor.BN(99),
           new anchor.BN(100_000),
-          "ipfs://wrong-id"
+          "ipfs://wrong-id",
+          false
         )
         .accountsStrict({
           contractor: fx.contractor.publicKey,
@@ -69,6 +79,7 @@ describe("construkt b3 payment requests and approvals", () => {
           workPackage: packageAddresses.workPackage,
           contractorRoleAssignment,
           paymentRequest: mismatchedRequest,
+          milestone: packageAddresses.workPackage,
           vault: packageAddresses.vault,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
@@ -88,7 +99,8 @@ describe("construkt b3 payment requests and approvals", () => {
       .submitPaymentRequest(
         new anchor.BN(1),
         new anchor.BN(100_000),
-        "ipfs://invoice-001"
+        "ipfs://invoice-001",
+        false
       )
       .accountsStrict({
         contractor: fx.contractor.publicKey,
@@ -96,6 +108,7 @@ describe("construkt b3 payment requests and approvals", () => {
         workPackage: packageAddresses.workPackage,
         contractorRoleAssignment,
         paymentRequest,
+        milestone: packageAddresses.workPackage,
         vault: packageAddresses.vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -137,7 +150,8 @@ describe("construkt b3 payment requests and approvals", () => {
         .submitPaymentRequest(
           new anchor.BN(2),
           new anchor.BN(100_000),
-          "ipfs://fake"
+          "ipfs://fake",
+          false
         )
         .accountsStrict({
           contractor: fx.unrelatedUser.publicKey,
@@ -145,6 +159,7 @@ describe("construkt b3 payment requests and approvals", () => {
           workPackage: packageAddresses.workPackage,
           contractorRoleAssignment: fakeContractorRole,
           paymentRequest: fakeRequest,
+          milestone: packageAddresses.workPackage,
           vault: packageAddresses.vault,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
@@ -165,7 +180,8 @@ describe("construkt b3 payment requests and approvals", () => {
         .submitPaymentRequest(
           new anchor.BN(2),
           new anchor.BN(50_000),
-          "ipfs://invoice-002"
+          "ipfs://invoice-002",
+          false
         )
         .accountsStrict({
           contractor: fx.contractor.publicKey,
@@ -173,6 +189,7 @@ describe("construkt b3 payment requests and approvals", () => {
           workPackage: packageAddresses.workPackage,
           contractorRoleAssignment,
           paymentRequest: secondRequest,
+          milestone: packageAddresses.workPackage,
           vault: packageAddresses.vault,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
@@ -240,7 +257,8 @@ describe("construkt b3 payment requests and approvals", () => {
       .submitPaymentRequest(
         new anchor.BN(1),
         new anchor.BN(50_000),
-        "ipfs://self-test"
+        "ipfs://self-test",
+        false
       )
       .accountsStrict({
         contractor: fx.contractor.publicKey,
@@ -248,6 +266,7 @@ describe("construkt b3 payment requests and approvals", () => {
         workPackage: selfApprovalPackage.workPackage,
         contractorRoleAssignment: contractorRole,
         paymentRequest: selfApprovalRequest,
+        milestone: selfApprovalPackage.workPackage,
         vault: selfApprovalPackage.vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -321,7 +340,8 @@ describe("construkt b3 payment requests and approvals", () => {
       .submitPaymentRequest(
         new anchor.BN(1),
         new anchor.BN(50_000),
-        "ipfs://inactive-test"
+        "ipfs://inactive-test",
+        false
       )
       .accountsStrict({
         contractor: fx.contractor.publicKey,
@@ -329,6 +349,7 @@ describe("construkt b3 payment requests and approvals", () => {
         workPackage: inactiveTestPackage.workPackage,
         contractorRoleAssignment: contractorRole,
         paymentRequest: inactiveTestRequest,
+        milestone: inactiveTestPackage.workPackage,
         vault: inactiveTestPackage.vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -478,7 +499,8 @@ describe("construkt b3 payment requests and approvals", () => {
       .submitPaymentRequest(
         new anchor.BN(1),
         new anchor.BN(50_000),
-        "ipfs://reject-test"
+        "ipfs://reject-test",
+        false
       )
       .accountsStrict({
         contractor: fx.contractor.publicKey,
@@ -486,6 +508,7 @@ describe("construkt b3 payment requests and approvals", () => {
         workPackage: rejectTestPackage.workPackage,
         contractorRoleAssignment: contractorRole,
         paymentRequest: rejectTestRequest,
+        milestone: rejectTestPackage.workPackage,
         vault: rejectTestPackage.vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -506,6 +529,7 @@ describe("construkt b3 payment requests and approvals", () => {
         paymentRequest: rejectTestRequest,
         approverRoleAssignment: pmRole,
         approvalRecord: rejectApprovalRecord,
+        milestone: rejectTestPackage.workPackage,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([fx.pm])

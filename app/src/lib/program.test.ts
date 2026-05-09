@@ -23,6 +23,14 @@ describe("friendlyClientError", () => {
     expect(friendlyClientError(new Error("network down"))).toBe("network down");
   });
 
+  it("uses budget-safe copy for shared cap errors", () => {
+    expect(
+      friendlyClientError(
+        new ConstruktClientError("InsufficientRemainingCap"),
+      ),
+    ).toBe("Amount would exceed the remaining project or package cap.");
+  });
+
   it("stringifies non-Error values", () => {
     expect(friendlyClientError("oops")).toBe("oops");
     expect(friendlyClientError(42)).toBe("42");

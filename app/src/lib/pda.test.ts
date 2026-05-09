@@ -12,7 +12,7 @@ import {
 } from "./pda";
 
 const PROGRAM_ID = new PublicKey(
-  "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
+  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
 );
 const AUTHORITY = new PublicKey("11111111111111111111111111111111");
 const WALLET = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -60,20 +60,20 @@ describe("u64Seed", () => {
 describe("PDA derivations — golden values", () => {
   it("project", () => {
     expect(project.toBase58()).toBe(
-      "EAJvFFKpPoVDWzRQEtDMRUNBhaPgE6F8jcUgCmhBCPdQ",
+      "5DTHLKAcw8KFveoyuJxggUwM2J5h765oiskQ8P5BVQYs",
     );
   });
 
   it("work package", () => {
     expect(workPackage.toBase58()).toBe(
-      "FyEcUPcEaxhP6qt16fZfF5bDtSJGyy8TG79wNvwCVWFb",
+      "J6ixGRET8NE53DSJtZpfFjnRTCDZwCP2Zs3Cb18ofZMM",
     );
   });
 
   it("vault authority", () => {
     expect(
       deriveVaultAuthorityAddress(PROGRAM_ID, workPackage).toBase58(),
-    ).toBe("Fq7ucQk4FTsf8ivohtvXVTwo8F4VSkgEptf7KJmyMdxB");
+    ).toBe("EZzvrSavFZznnJBZAJ7G6VyzctUbtgHsN8HUgfchXazt");
   });
 
   it("role assignment (LowApprover for WALLET)", () => {
@@ -84,12 +84,12 @@ describe("PDA derivations — golden values", () => {
         ROLE_BYTES.lowApprover,
         WALLET,
       ).toBase58(),
-    ).toBe("71CbffHjAu8cJixGFzcETiAwsW1h5ic1eMzVLC5w2fFw");
+    ).toBe("BK34C7fugmopZThaNYjka3wZ2aCKYQFCk7XkGh7Xin8t");
   });
 
   it("payment request", () => {
     expect(paymentRequest.toBase58()).toBe(
-      "DqqxRFCTjY4k8QZmgEuMSRZy49Yvbiihiv4xxusBUb5P",
+      "4HugacSWrveCukbczAAsfYX18Fq75BCEY9UEq6CWr2UR",
     );
   });
 
@@ -100,7 +100,7 @@ describe("PDA derivations — golden values", () => {
         paymentRequest,
         ROLE_BYTES.lowApprover,
       ).toBase58(),
-    ).toBe("14VAXGVwegwoJvjJGPBYNstPHgstbWbF6BZNwki5yrLM");
+    ).toBe("64U3DNNcqW7xsMMZrat9fvmjCtWEMFsixQNnEcBEzE3E");
   });
 });
 

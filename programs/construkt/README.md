@@ -2,7 +2,7 @@
 
 Single Anchor/Rust program that enforces the Construkt escrow and approval workflow on Solana.
 
-**Program ID:** `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`
+**Program ID:** `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4`
 **Target networks:** localnet and devnet only. Do not target mainnet.
 
 The program is deployed once. Projects, work packages, payment requests, approval records, role assignments, and vaults are PDA/accounts under this program; the backend does not deploy a new smart contract per project, work package, or milestone.

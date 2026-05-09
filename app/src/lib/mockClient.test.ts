@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { MockConstruktClient } from "./mockClient";
 import {
+  deriveMilestoneAddress,
   deriveProjectAddress,
   deriveRoleAssignmentAddress,
   deriveWorkPackageAddress,
@@ -9,9 +10,7 @@ import {
   ROLE_BYTES,
 } from "./pda";
 
-const PROGRAM_ID = new PublicKey(
-  "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
-);
+const PROGRAM_ID = new PublicKey("cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4");
 const PROJECT_BUDGET = 2_000_000n;
 
 const newClient = () =>
@@ -84,6 +83,91 @@ const seedFundedPackage = async () => {
   return { client, w, project, workPackage, projectId, packageId };
 };
 
+const seedMilestonePackage = async () => {
+  const client = newClient();
+  const w = wallets();
+  const projectId = 7n;
+  const packageId = 9n;
+  const project = deriveProjectAddress(PROGRAM_ID, w.finance, projectId);
+  const workPackage = deriveWorkPackageAddress(PROGRAM_ID, project, packageId);
+  const milestoneOne = deriveMilestoneAddress(PROGRAM_ID, workPackage, 1n);
+  const milestoneTwo = deriveMilestoneAddress(PROGRAM_ID, workPackage, 2n);
+
+  await client.initializeProject({
+    authority: w.finance,
+    projectId,
+    mint: w.mint,
+    budgetAmount: PROJECT_BUDGET,
+    name: "Milestone project",
+    metadataRef: "ipfs://project-metadata",
+  });
+  await client.createWorkPackage({
+    authority: w.finance,
+    project,
+    packageId,
+    capAmount: 300_000n,
+    contractor: w.contractor,
+    mint: w.mint,
+    scopeRef: "ipfs://milestone-scope",
+  });
+  await client.createMilestone({
+    authority: w.finance,
+    project,
+    workPackage,
+    milestoneId: 1n,
+    amount: 100_000n,
+    startAt: 1_700_000_000n,
+    endAt: 1_700_086_400n,
+    metadataRef: "ipfs://milestone-1",
+  });
+  await client.createMilestone({
+    authority: w.finance,
+    project,
+    workPackage,
+    milestoneId: 2n,
+    amount: 200_000n,
+    startAt: 1_700_086_401n,
+    endAt: 1_700_172_800n,
+    metadataRef: "ipfs://milestone-2",
+  });
+  await client.fundEscrow({
+    authority: w.finance,
+    project,
+    workPackage,
+    amount: 300_000n,
+  });
+  await client.assignRole({
+    authority: w.finance,
+    project,
+    workPackage,
+    role: "contractor",
+    wallet: w.contractor,
+  });
+  await client.assignRole({
+    authority: w.finance,
+    project,
+    workPackage,
+    role: "lowApprover",
+    wallet: w.pm,
+  });
+  await client.assignRole({
+    authority: w.finance,
+    project,
+    workPackage,
+    role: "highApprover",
+    wallet: w.director,
+  });
+
+  return {
+    client,
+    w,
+    project,
+    workPackage,
+    milestoneOne,
+    milestoneTwo,
+  };
+};
+
 describe("MockConstruktClient happy path", () => {
   it("walks submit → low approve → high approve → release", async () => {
     const { client, w, project, workPackage } = await seedFundedPackage();
@@ -91,7 +175,7 @@ describe("MockConstruktClient happy path", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      requestId,
+      requestId
     );
 
     await client.submitPaymentRequest({
@@ -146,7 +230,7 @@ describe("MockConstruktClient happy path", () => {
     const project = deriveProjectAddress(
       PROGRAM_ID,
       Keypair.generate().publicKey,
-      projectId,
+      projectId
     );
     expect(project).toBeInstanceOf(PublicKey);
     for (let i = 2; i <= 4; i++) {
@@ -186,7 +270,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x",
-      }),
+      })
     ).rejects.toMatchObject({ code: "Unauthorized" });
   });
 
@@ -211,7 +295,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x",
-      }),
+      })
     ).rejects.toMatchObject({ code: "WrongMint" });
   });
 
@@ -247,8 +331,25 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x",
-      }),
+      })
     ).rejects.toMatchObject({ code: "InsufficientRemainingCap" });
+  });
+
+  it("rejects milestone creation after escrow funding has started", async () => {
+    const { client, w, project, workPackage } = await seedFundedPackage();
+
+    await expect(
+      client.createMilestone({
+        authority: w.finance,
+        project,
+        workPackage,
+        milestoneId: 1n,
+        amount: 1_000_000n,
+        startAt: 1_700_000_000n,
+        endAt: 1_700_086_400n,
+        metadataRef: "ipfs://too-late",
+      })
+    ).rejects.toMatchObject({ code: "InvalidStatus" });
   });
 
   it("matches on-chain createWorkPackage error precedence for overlapping validation failures", async () => {
@@ -273,7 +374,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: PublicKey.default,
         mint: w.mint,
         scopeRef: "x",
-      }),
+      })
     ).rejects.toMatchObject({ code: "InvalidAccountRelationship" });
 
     await expect(
@@ -285,7 +386,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: w.mint,
         scopeRef: "x".repeat(129),
-      }),
+      })
     ).rejects.toMatchObject({ code: "StringTooLong" });
 
     await expect(
@@ -297,7 +398,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x".repeat(129),
-      }),
+      })
     ).rejects.toMatchObject({ code: "WrongMint" });
 
     // cap=0 + wrongMint: on chain, the mint constraint is at the account
@@ -312,7 +413,7 @@ describe("MockConstruktClient invariants", () => {
         contractor: w.contractor,
         mint: Keypair.generate().publicKey,
         scopeRef: "x",
-      }),
+      })
     ).rejects.toMatchObject({ code: "WrongMint" });
   });
 
@@ -334,8 +435,183 @@ describe("MockConstruktClient invariants", () => {
         requestId: 2n,
         amount: 100_000n,
         documentRef: "ipfs://invoice-2",
-      }),
+      })
     ).rejects.toMatchObject({ code: "ActiveRequestExists" });
+  });
+
+  it("switches milestone packages into milestone-only request mode and tracks parallel milestone requests", async () => {
+    const { client, w, project, workPackage, milestoneOne, milestoneTwo } =
+      await seedMilestonePackage();
+    const requestOne = derivePaymentRequestAddress(PROGRAM_ID, workPackage, 1n);
+    const requestTwo = derivePaymentRequestAddress(PROGRAM_ID, workPackage, 2n);
+
+    await expect(
+      client.submitPaymentRequest({
+        contractor: w.contractor,
+        project,
+        workPackage,
+        requestId: 1n,
+        amount: 50_000n,
+        documentRef: "ipfs://package-level-on-milestone-package",
+      })
+    ).rejects.toMatchObject({ code: "InvalidStatus" });
+
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId: 1n,
+      milestone: milestoneOne,
+      amount: 100_000n,
+      documentRef: "ipfs://milestone-request-1",
+    });
+
+    await expect(
+      client.submitPaymentRequest({
+        contractor: w.contractor,
+        project,
+        workPackage,
+        requestId: 2n,
+        milestone: milestoneOne,
+        amount: 10_000n,
+        documentRef: "ipfs://duplicate-milestone-request",
+      })
+    ).rejects.toMatchObject({ code: "ActiveRequestExists" });
+
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId: 2n,
+      milestone: milestoneTwo,
+      amount: 50_000n,
+      documentRef: "ipfs://milestone-request-2",
+    });
+
+    const wp = await client.fetchWorkPackage(workPackage);
+    const firstMilestone = await client.fetchMilestone(milestoneOne);
+    const secondMilestone = await client.fetchMilestone(milestoneTwo);
+    const pr1 = await client.fetchPaymentRequest(requestOne);
+    const pr2 = await client.fetchPaymentRequest(requestTwo);
+
+    expect(wp?.requestCounter).toBe(2n);
+    expect(wp?.reservedRequestAmount).toBe(150_000n);
+    expect(wp?.hasActiveRequest).toBe(false);
+    expect(firstMilestone?.activeRequest.equals(requestOne)).toBe(true);
+    expect(secondMilestone?.activeRequest.equals(requestTwo)).toBe(true);
+    expect(pr1?.hasMilestone).toBe(true);
+    expect(pr2?.hasMilestone).toBe(true);
+  });
+
+  it("releases milestone requests and updates milestone/package totals", async () => {
+    const { client, w, project, workPackage, milestoneOne } =
+      await seedMilestonePackage();
+    const paymentRequest = derivePaymentRequestAddress(
+      PROGRAM_ID,
+      workPackage,
+      1n
+    );
+
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId: 1n,
+      milestone: milestoneOne,
+      amount: 100_000n,
+      documentRef: "ipfs://milestone-release",
+    });
+    await client.approveRequest({
+      approver: w.pm,
+      project,
+      workPackage,
+      paymentRequest,
+      role: "lowApprover",
+      noteRef: "ready",
+    });
+    await client.releasePayment({
+      authority: w.finance,
+      project,
+      workPackage,
+      paymentRequest,
+      contractorTokenAccount: Keypair.generate().publicKey,
+    });
+
+    const wp = await client.fetchWorkPackage(workPackage);
+    const milestone = await client.fetchMilestone(milestoneOne);
+    const pr = await client.fetchPaymentRequest(paymentRequest);
+    expect(pr?.status).toBe("released");
+    expect(pr?.releasedAmount).toBe(100_000n);
+    expect(milestone?.releasedAmount).toBe(100_000n);
+    expect(milestone?.status).toBe("completed");
+    expect(wp?.releasedAmount).toBe(100_000n);
+    expect(wp?.reservedRequestAmount).toBe(0n);
+    expect(wp?.status).toBe("active");
+  });
+
+  it("marks the package complete when the final milestone is released", async () => {
+    const { client, w, project, workPackage, milestoneOne, milestoneTwo } =
+      await seedMilestonePackage();
+    const requestOne = derivePaymentRequestAddress(PROGRAM_ID, workPackage, 1n);
+    const requestTwo = derivePaymentRequestAddress(PROGRAM_ID, workPackage, 2n);
+
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId: 1n,
+      milestone: milestoneOne,
+      amount: 100_000n,
+      documentRef: "ipfs://milestone-release-1",
+    });
+    await client.approveRequest({
+      approver: w.pm,
+      project,
+      workPackage,
+      paymentRequest: requestOne,
+      role: "lowApprover",
+      noteRef: "ready-1",
+    });
+    await client.releasePayment({
+      authority: w.finance,
+      project,
+      workPackage,
+      paymentRequest: requestOne,
+      contractorTokenAccount: Keypair.generate().publicKey,
+    });
+
+    await client.submitPaymentRequest({
+      contractor: w.contractor,
+      project,
+      workPackage,
+      requestId: 2n,
+      milestone: milestoneTwo,
+      amount: 200_000n,
+      documentRef: "ipfs://milestone-release-2",
+    });
+    await client.approveRequest({
+      approver: w.pm,
+      project,
+      workPackage,
+      paymentRequest: requestTwo,
+      role: "lowApprover",
+      noteRef: "ready-2",
+    });
+    await client.releasePayment({
+      authority: w.finance,
+      project,
+      workPackage,
+      paymentRequest: requestTwo,
+      contractorTokenAccount: Keypair.generate().publicKey,
+    });
+
+    const wp = await client.fetchWorkPackage(workPackage);
+    const finalMilestone = await client.fetchMilestone(milestoneTwo);
+    expect(wp?.releasedAmount).toBe(300_000n);
+    expect(wp?.reservedRequestAmount).toBe(0n);
+    expect(wp?.status).toBe("completed");
+    expect(finalMilestone?.releasedAmount).toBe(200_000n);
+    expect(finalMilestone?.status).toBe("completed");
   });
 
   it("blocks high approval before low approval", async () => {
@@ -351,7 +627,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n,
+      1n
     );
     await expect(
       client.approveRequest({
@@ -361,7 +637,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "highApprover",
         noteRef: "",
-      }),
+      })
     ).rejects.toMatchObject({ code: "InvalidApprovalOrder" });
   });
 
@@ -390,7 +666,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n,
+      1n
     );
     await expect(
       client.approveRequest({
@@ -400,7 +676,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      }),
+      })
     ).rejects.toMatchObject({ code: "ContractorCannotApprove" });
   });
 
@@ -417,7 +693,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n,
+      1n
     );
     await client.placeHold({
       authority: w.finance,
@@ -434,7 +710,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      }),
+      })
     ).rejects.toMatchObject({ code: "RequestOnHold" });
     await client.removeHold({
       authority: w.finance,
@@ -451,7 +727,7 @@ describe("MockConstruktClient invariants", () => {
         paymentRequest,
         role: "lowApprover",
         noteRef: "",
-      }),
+      })
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -468,7 +744,7 @@ describe("MockConstruktClient invariants", () => {
     const paymentRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n,
+      1n
     );
     await client.approveRequest({
       approver: w.pm,
@@ -485,7 +761,7 @@ describe("MockConstruktClient invariants", () => {
         workPackage,
         paymentRequest,
         contractorTokenAccount: Keypair.generate().publicKey,
-      }),
+      })
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -502,7 +778,7 @@ describe("MockConstruktClient invariants", () => {
     const firstRequest = derivePaymentRequestAddress(
       PROGRAM_ID,
       workPackage,
-      1n,
+      1n
     );
     await client.rejectRequest({
       approver: w.pm,
@@ -524,7 +800,7 @@ describe("MockConstruktClient invariants", () => {
         requestId: 2n,
         amount: 100_000n,
         documentRef: "ipfs://invoice-2",
-      }),
+      })
     ).resolves.toMatchObject({ signature: expect.any(String) });
   });
 
@@ -537,7 +813,7 @@ describe("MockConstruktClient invariants", () => {
         workPackage,
         role: "highApprover",
         wallet: w.pm, // already lowApprover
-      }),
+      })
     ).rejects.toMatchObject({ code: "ApproverRoleConflict" });
   });
 });
@@ -605,7 +881,7 @@ describe("MockConstruktClient — pda derivation matches submitPaymentRequest ou
       PROGRAM_ID,
       workPackage,
       ROLE_BYTES.contractor,
-      w.contractor,
+      w.contractor
     );
     const role = await client.fetchRoleAssignment(roleAddress);
     expect(role?.role).toBe("contractor");

@@ -50,7 +50,7 @@ npm run lint:fix
 
 ### On-chain Program (`programs/construkt/src/lib.rs`)
 
-Single Anchor program at `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL`. All business logic for V0 lives here - no off-chain backend for the current release path.
+Single Anchor program at `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4`. All business logic for V0 lives here - no off-chain backend for the current release path.
 
 The program is deployed once. Projects, work packages, payment requests, role assignments, approval records, and vaults are PDA/accounts under that program. The backend does not deploy a new smart contract per project or work package.
 

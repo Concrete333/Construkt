@@ -14,7 +14,7 @@ import {
 import type { PaymentRequestAccount, WorkPackageAccount } from "../lib/program";
 
 const PROGRAM_ID = new PublicKey(
-  "34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL",
+  "cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4",
 );
 
 const seed = async () => {
@@ -203,6 +203,9 @@ describe("selectReleaseReadiness", () => {
       capAmount: 100n,
       fundedAmount: 50n,
       releasedAmount: 20n,
+      reservedRequestAmount: 0n,
+      allocatedMilestoneAmount: 0n,
+      milestoneCounter: 0n,
       contractor: PublicKey.default,
       mint: PublicKey.default,
       vault: PublicKey.default,
@@ -219,6 +222,8 @@ describe("selectReleaseReadiness", () => {
       requestId: 1n,
       contractor: PublicKey.default,
       amount: 1_000n,
+      hasMilestone: false,
+      milestone: PublicKey.default,
       documentRef: "x",
       status: "highApproved",
       submittedAt: 0n,

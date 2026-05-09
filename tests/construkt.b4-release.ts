@@ -45,14 +45,22 @@ describe("construkt b4 holds and release", () => {
       1
     );
 
+    // Package-level requests still provide the Phase 2 `milestone` account
+    // slot. The work package PDA is the sentinel when has_milestone is false.
     await fx.program.methods
-      .submitPaymentRequest(new anchor.BN(1), amount, "ipfs://invoice-b4")
+      .submitPaymentRequest(
+        new anchor.BN(1),
+        amount,
+        "ipfs://invoice-b4",
+        false
+      )
       .accountsStrict({
         contractor: fx.contractor.publicKey,
         project: fx.project,
         workPackage: packageAddresses.workPackage,
         contractorRoleAssignment,
         paymentRequest,
+        milestone: packageAddresses.workPackage,
         vault: packageAddresses.vault,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
@@ -166,6 +174,7 @@ describe("construkt b4 holds and release", () => {
         project: fx.project,
         workPackage: prepared.packageAddresses.workPackage,
         paymentRequest: prepared.paymentRequest,
+        milestone: prepared.packageAddresses.workPackage,
         vaultAuthority: prepared.packageAddresses.vaultAuthority,
         vault: prepared.packageAddresses.vault,
         contractorTokenAccount,
@@ -259,6 +268,7 @@ describe("construkt b4 holds and release", () => {
             prepared.paymentRequest,
             roleSeed.lowApprover
           ),
+          milestone: prepared.packageAddresses.workPackage,
           systemProgram: anchor.web3.SystemProgram.programId,
         })
         .signers([fx.pm])
@@ -301,6 +311,7 @@ describe("construkt b4 holds and release", () => {
           prepared.paymentRequest,
           roleSeed.lowApprover
         ),
+        milestone: prepared.packageAddresses.workPackage,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .signers([fx.pm])
@@ -571,7 +582,8 @@ describe("construkt b4 holds and release", () => {
         .submitPaymentRequest(
           new anchor.BN(1),
           new anchor.BN(150_000),
-          "ipfs://over-funded-by-direct-transfer"
+          "ipfs://over-funded-by-direct-transfer",
+          false
         )
         .accountsStrict({
           contractor: fx.contractor.publicKey,
@@ -579,6 +591,7 @@ describe("construkt b4 holds and release", () => {
           workPackage: packageAddresses.workPackage,
           contractorRoleAssignment: roles.contractorRoleAssignment,
           paymentRequest,
+          milestone: packageAddresses.workPackage,
           vault: packageAddresses.vault,
           systemProgram: anchor.web3.SystemProgram.programId,
         })

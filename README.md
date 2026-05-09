@@ -99,7 +99,7 @@ The prototype also includes lightweight variation requests, document references,
 
 ### On-chain program today
 
-A single Anchor program at `34V8k3GGFE1wZS3bghFvazcVyyDBErFPs5xRFqTpnZCL` holds the business logic. The program is deployed once; projects, work packages, payment requests, approval records, and vaults are PDA/accounts under it rather than separate deployed smart contracts.
+A single Anchor program at `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4` holds the business logic. The program is deployed once; projects, work packages, payment requests, approval records, and vaults are PDA/accounts under it rather than separate deployed smart contracts.
 
 Finance wallets own `ProjectAccount`. Escrow funds live in SPL Token ATAs controlled by PDA vault authorities.
 
