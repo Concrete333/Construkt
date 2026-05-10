@@ -2023,19 +2023,18 @@ const store = {
       if (chartTitle) chartTitle.textContent = store.currentRole === 'contractor' ? 'Assigned Work Packages' : 'Project Funding Overview';
       chartContent.classList.toggle('is-contractor-scroll', store.currentRole === 'contractor');
       if (chartLegend) {
-        chartLegend.innerHTML = store.currentRole === 'contractor'
-          ? `
+        if (store.currentRole === 'contractor') {
+          chartLegend.hidden = false;
+          chartLegend.innerHTML = `
             <span><i class="funding-legend-dot completed"></i>Released</span>
             <span><i class="funding-legend-dot in-progress"></i>Invoice Requested</span>
             <span><i class="funding-legend-dot estimated"></i>Not Invoiced</span>
             <span><i class="funding-legend-dot contested"></i>Contested / Held</span>
-          `
-          : `
-            <span><i class="funding-legend-dot completed"></i>Completed</span>
-            <span><i class="funding-legend-dot in-progress"></i>In Progress</span>
-            <span><i class="funding-legend-dot estimated"></i>Estimated</span>
-            <span><i class="funding-legend-dot unallocated"></i>Unallocated</span>
           `;
+        } else {
+          chartLegend.hidden = true;
+          chartLegend.innerHTML = '';
+        }
       }
 
       // Check if contractor role - render circular dial instead of bar chart
@@ -2337,7 +2336,120 @@ const store = {
           };
         }
       }
+
+      setupDashboard2Carousel();
     }
+
+    function setupDashboard2Carousel() {
+      const MOBILE_MAX = 768;
+      const main = document.querySelector('#dashboard2-page .dashboard2-main-section');
+      const sidebar = document.querySelector('#dashboard2-page .dashboard2-sidebar');
+      const chartCard = document.getElementById('dashboard2-chart-card');
+      if (!main || !sidebar || !chartCard) return;
+
+      const isMobile = window.matchMedia(`(max-width: ${MOBILE_MAX}px)`).matches;
+
+      // Move chart card between main (desktop) and sidebar (mobile)
+      const chartIsInSidebar = chartCard.parentElement === sidebar;
+      if (isMobile && !chartIsInSidebar) {
+        sidebar.insertBefore(chartCard, sidebar.firstElementChild);
+      } else if (!isMobile && chartIsInSidebar) {
+        main.appendChild(chartCard);
+      }
+
+      // Pager: only build/use on mobile
+      let pager = document.getElementById('dashboard2-pager');
+      if (!isMobile) {
+        if (pager) pager.remove();
+        return;
+      }
+
+      const slides = Array.from(sidebar.children).filter(
+        (el) => !el.classList.contains('dashboard2-pager'),
+      );
+      if (slides.length === 0) return;
+
+      if (!pager) {
+        pager = document.createElement('div');
+        pager.id = 'dashboard2-pager';
+        pager.className = 'dashboard2-pager';
+        pager.innerHTML = `
+          <button class="dashboard2-pager-arrow" data-pager="prev" type="button" aria-label="Previous card">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <div class="dashboard2-pager-dots" role="tablist"></div>
+          <button class="dashboard2-pager-arrow" data-pager="next" type="button" aria-label="Next card">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        `;
+        sidebar.parentElement.insertBefore(pager, sidebar.nextSibling);
+      }
+
+      const dotsHost = pager.querySelector('.dashboard2-pager-dots');
+      dotsHost.innerHTML = slides
+        .map(
+          (_, i) =>
+            `<button class="dashboard2-pager-dot" type="button" role="tab" aria-label="Go to card ${i + 1}" data-pager-dot="${i}"></button>`,
+        )
+        .join('');
+
+      const prevBtn = pager.querySelector('[data-pager="prev"]');
+      const nextBtn = pager.querySelector('[data-pager="next"]');
+      const dots = Array.from(pager.querySelectorAll('[data-pager-dot]'));
+
+      const indexOfClosestSlide = () => {
+        const center = sidebar.scrollLeft + sidebar.clientWidth / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        slides.forEach((slide, i) => {
+          const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+          const dist = Math.abs(slideCenter - center);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
+          }
+        });
+        return bestIdx;
+      };
+
+      const updateUi = () => {
+        const idx = indexOfClosestSlide();
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === idx));
+        prevBtn.disabled = idx === 0;
+        nextBtn.disabled = idx === slides.length - 1;
+      };
+
+      const goTo = (i) => {
+        const target = slides[Math.max(0, Math.min(slides.length - 1, i))];
+        if (!target) return;
+        sidebar.scrollTo({ left: target.offsetLeft, behavior: 'smooth' });
+      };
+
+      prevBtn.onclick = () => goTo(indexOfClosestSlide() - 1);
+      nextBtn.onclick = () => goTo(indexOfClosestSlide() + 1);
+      dots.forEach((dot, i) => {
+        dot.onclick = () => goTo(i);
+      });
+
+      // Avoid stacking listeners across re-renders
+      sidebar.onscroll = null;
+      let scrollRaf = null;
+      sidebar.addEventListener('scroll', () => {
+        if (scrollRaf) return;
+        scrollRaf = requestAnimationFrame(() => {
+          scrollRaf = null;
+          updateUi();
+        });
+      });
+
+      updateUi();
+    }
+
+    window.addEventListener('resize', () => {
+      if (document.getElementById('dashboard2-page') && !document.getElementById('dashboard2-page').hidden) {
+        setupDashboard2Carousel();
+      }
+    });
 
     function renderChartFullscreen() {
       const chartContent = document.getElementById('chart-fullscreen-content');
@@ -4444,6 +4556,8 @@ const store = {
       const settingsRole = document.getElementById('settings-role');
       const roleShortLabel = role.label === 'Finance Director' ? 'Finance' : role.label === 'Project Manager' ? 'PM' : 'Contractor';
       document.getElementById('role-toggle').textContent = role.label;
+      const mobileRoleBtn = document.getElementById('mobile-role-toggle');
+      if (mobileRoleBtn) mobileRoleBtn.textContent = role.label;
       if (settingsName) settingsName.value = role.label === 'Contractor' ? 'Daniel Okafor' : `${role.name} ${role.label === 'Finance Director' ? 'Shah' : 'Lane'}`;
       if (settingsRole) settingsRole.textContent = roleShortLabel;
       document.getElementById('dashboard-role-label').textContent = `${role.label} · ${role.org}`.toUpperCase();
@@ -5719,6 +5833,97 @@ const store = {
       renderRole();
       maybeAnimateDashboardKpis();
     });
+
+    const mobileRoleBtn = document.getElementById('mobile-role-toggle');
+    if (mobileRoleBtn) {
+      mobileRoleBtn.addEventListener('click', () => {
+        roleIndex = (roleIndex + 1) % roles.length;
+        renderRole();
+        maybeAnimateDashboardKpis();
+      });
+    }
+
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const mobileMenuPanel = document.getElementById('mobile-menu-panel');
+    if (mobileMenuToggle && mobileMenuPanel) {
+      const setMenuOpen = (open) => {
+        mobileMenuPanel.hidden = !open;
+        mobileMenuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      mobileMenuToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        setMenuOpen(mobileMenuPanel.hidden);
+      });
+      document.addEventListener('click', (e) => {
+        if (mobileMenuPanel.hidden) return;
+        if (!mobileMenuPanel.contains(e.target) && e.target !== mobileMenuToggle) {
+          setMenuOpen(false);
+        }
+      });
+      mobileMenuPanel.querySelectorAll('[data-mobile-nav]').forEach((link) => {
+        link.addEventListener('click', () => setMenuOpen(false));
+      });
+
+      const syncMobileMenuActive = () => {
+        const route = (window.location.hash || '#home').replace(/^#/, '').split('/')[0] || 'home';
+        mobileMenuPanel.querySelectorAll('[data-mobile-nav]').forEach((link) => {
+          link.classList.toggle('is-active', link.dataset.mobileNav === route);
+        });
+      };
+      window.addEventListener('hashchange', syncMobileMenuActive);
+      syncMobileMenuActive();
+    }
+
+    const wireLandingPager = (trackId, pagerId) => {
+      const track = document.getElementById(trackId);
+      const pager = document.getElementById(pagerId);
+      if (!track || !pager) return;
+      const dots = Array.from(pager.querySelectorAll('.landing-flow-pager-dot'));
+      const update = () => {
+        const slides = Array.from(track.children);
+        if (slides.length === 0) return;
+        const center = track.scrollLeft + track.clientWidth / 2;
+        let bestIdx = 0;
+        let bestDist = Infinity;
+        slides.forEach((slide, i) => {
+          const slideCenter = slide.offsetLeft + slide.offsetWidth / 2;
+          const dist = Math.abs(slideCenter - center);
+          if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
+          }
+        });
+        dots.forEach((dot, i) => dot.classList.toggle('is-active', i === bestIdx));
+      };
+      let raf = null;
+      track.addEventListener('scroll', () => {
+        if (raf) return;
+        raf = requestAnimationFrame(() => {
+          raf = null;
+          update();
+        });
+      });
+      window.addEventListener('resize', update);
+      update();
+    };
+    wireLandingPager('landing-flow-steps', 'landing-flow-pager');
+    wireLandingPager('landing-showcase-grid', 'landing-showcase-pager');
+
+    const mobileThemeSwitch = document.getElementById('mobile-theme-switch');
+    if (mobileThemeSwitch) {
+      const syncSwitch = () => {
+        mobileThemeSwitch.checked = document.documentElement.dataset.theme === 'dark';
+      };
+      syncSwitch();
+      mobileThemeSwitch.addEventListener('change', () => {
+        const nextTheme = mobileThemeSwitch.checked ? 'dark' : 'light';
+        document.documentElement.dataset.theme = nextTheme;
+        localStorage.setItem('construkt-theme', nextTheme);
+      });
+      // Keep in sync if theme changed via desktop button
+      const themeObserver = new MutationObserver(syncSwitch);
+      themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    }
 
     document.querySelectorAll('[data-theme-toggle]').forEach((toggle) => {
       toggle.addEventListener('click', () => {

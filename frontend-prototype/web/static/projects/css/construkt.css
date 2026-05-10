@@ -1382,6 +1382,10 @@
       border-radius: var(--radius-sm);
     }
 
+    .landing-origin img[alt="Superteam Exeter"] {
+      width: min(170px, 36vw);
+    }
+
     .landing-final-cta {
       display: grid;
       justify-items: center;
@@ -4545,6 +4549,10 @@
       box-shadow: var(--shadow-sm);
     }
 
+    .contractor-withdrawal-summary[hidden] {
+      display: none;
+    }
+
     .contractor-withdrawal-label,
     .contractor-withdrawal-note {
       display: block;
@@ -6940,4 +6948,807 @@
       border-radius: var(--radius-lg);
       border: 1px solid var(--color-border);
       min-height: 80vh;
+    }
+
+    /* ─── Dashboard V2 mobile carousel (must come after desktop rules) ─── */
+    @media (max-width: 768px) {
+      /* Release fixed-position viewport so page can scroll naturally */
+      .dashboard2-viewport {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        bottom: auto;
+        overflow: visible;
+      }
+
+      /* Stack title, carousel, recent activity vertically */
+      .dashboard2-content {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        gap: var(--space-4);
+        padding: var(--space-4);
+        padding-top: calc(64px + var(--space-4));
+        padding-bottom: var(--space-6);
+        overflow: visible;
+      }
+
+      .dashboard2-main-section {
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+      }
+
+      /* Carousel track: snap horizontally, one card per view */
+      .dashboard2-sidebar {
+        display: flex !important;
+        flex-direction: row;
+        grid-template-rows: none;
+        grid-template-columns: none;
+        gap: 0;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 calc(var(--space-4) * -1);
+        padding: var(--space-2) var(--space-4);
+        min-height: 0;
+      }
+
+      .dashboard2-sidebar::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* Make chart card the first slide; sidebar cards follow */
+      .dashboard2-main-section > .dashboard2-chart-card {
+        display: none;
+      }
+
+      .dashboard2-sidebar > .dashboard2-chart-card,
+      .dashboard2-sidebar > .outstanding-tasks-card,
+      .dashboard2-sidebar > .on-chain-feedback-card {
+        flex: 0 0 100%;
+        width: 100%;
+        height: 60vh;
+        min-height: 0;
+        max-height: 60vh;
+        padding: var(--space-4);
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        background: transparent;
+        border: 0;
+        box-shadow: none;
+      }
+
+      /* Lists inside cards scroll internally so the card stays compact */
+      .dashboard2-sidebar > .outstanding-tasks-card .outstanding-tasks-list,
+      .dashboard2-sidebar > .on-chain-feedback-card .on-chain-feedback-list {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+      }
+
+      .dashboard2-sidebar > .dashboard2-chart-card .dashboard2-chart-content {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      .dashboard2-chart-content,
+      .dashboard2-chart-content.is-contractor-scroll {
+        overflow: hidden;
+        max-height: none;
+      }
+
+      .outstanding-tasks-list {
+        overflow: visible;
+        max-height: none;
+      }
+
+      .on-chain-feedback-list {
+        overflow: visible;
+        max-height: none;
+      }
+
+      /* Pager controls (dots + arrows) */
+      .dashboard2-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-3);
+        margin-top: var(--space-3);
+      }
+
+      .dashboard2-pager-arrow {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        background: var(--color-surface-2);
+        color: var(--color-text);
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      .dashboard2-pager-arrow:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .dashboard2-pager-dots {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+      }
+
+      .dashboard2-pager-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--color-border);
+        border: 0;
+        padding: 0;
+        cursor: pointer;
+        transition: background 0.15s ease, transform 0.15s ease;
+      }
+
+      .dashboard2-pager-dot.is-active {
+        background: var(--color-primary);
+        transform: scale(1.25);
+      }
+
+      /* Recent activity: simple section below carousel */
+      .dashboard2-recent-activity {
+        position: relative;
+        margin-top: 0;
+        left: auto;
+        transform: none;
+        width: 100%;
+        min-height: auto;
+        padding: var(--space-4);
+      }
+    }
+
+    /* Hide pager on desktop */
+    @media (min-width: 769px) {
+      .dashboard2-pager {
+        display: none;
+      }
+    }
+
+    /* ─── Landing flow steps: flashy mobile carousel ─── */
+    @media (max-width: 768px) {
+      .landing-flow-steps {
+        display: flex;
+        flex-direction: row;
+        grid-template-columns: none;
+        gap: var(--space-3);
+        margin-top: var(--space-6);
+        padding: var(--space-2) var(--space-4) var(--space-3);
+        margin-left: calc(var(--space-4) * -1);
+        margin-right: calc(var(--space-4) * -1);
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .landing-flow-steps::-webkit-scrollbar {
+        display: none;
+      }
+
+      .landing-flow-steps article {
+        position: relative;
+        flex: 0 0 78%;
+        min-height: 0;
+        padding: var(--space-5);
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        overflow: hidden;
+        background: linear-gradient(
+          155deg,
+          color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-2)) 0%,
+          var(--color-surface-2) 70%
+        );
+        border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
+        box-shadow:
+          0 1px 0 0 color-mix(in srgb, var(--color-primary) 18%, transparent) inset,
+          var(--shadow-md, 0 12px 30px rgba(0, 0, 0, 0.18));
+      }
+
+      /* Big translucent step number floating in the corner */
+      .landing-flow-steps article::before {
+        content: attr(data-step);
+        position: absolute;
+        top: -28px;
+        right: -10px;
+        font-family: var(--font-display);
+        font-size: 8.5rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: transparent;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-primary) 28%, transparent),
+          color-mix(in srgb, var(--color-primary) 6%, transparent)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        pointer-events: none;
+      }
+
+      /* Replace the original underline with a vertical accent on the left */
+      .landing-flow-steps article::after {
+        left: 0;
+        right: auto;
+        top: var(--space-5);
+        bottom: var(--space-5);
+        width: 4px;
+        height: auto;
+        border-radius: 0 var(--radius-full) var(--radius-full) 0;
+        background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light, var(--color-primary)));
+        opacity: 1;
+      }
+
+      .landing-flow-steps article > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .landing-flow-steps span {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+        color: var(--color-primary);
+        font-size: 0.7rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        align-self: flex-start;
+        width: max-content;
+      }
+
+      .landing-flow-steps strong {
+        font-size: 1.2rem;
+        line-height: 1.2;
+      }
+
+      .landing-flow-steps p {
+        font-size: var(--text-sm);
+        line-height: 1.5;
+      }
+
+      /* Progress dots below the carousel */
+      .landing-flow-pager {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin: var(--space-3) 0 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .landing-flow-pager-dot {
+        width: 22px;
+        height: 4px;
+        border-radius: 999px;
+        background: var(--color-border);
+        transition: background 0.2s ease, width 0.2s ease;
+      }
+
+      .landing-flow-pager-dot.is-active {
+        background: var(--color-primary);
+        width: 36px;
+      }
+    }
+
+    @media (min-width: 769px) {
+      .landing-flow-pager {
+        display: none;
+      }
+    }
+
+    /* ─── Landing showcase ("Start from the dashboard"): mobile carousel ─── */
+    @media (max-width: 768px) {
+      .landing-showcase-grid {
+        display: flex;
+        flex-direction: row;
+        grid-template-columns: none;
+        gap: var(--space-3);
+        margin-top: var(--space-6);
+        padding: var(--space-2) var(--space-4) var(--space-3);
+        margin-left: calc(var(--space-4) * -1);
+        margin-right: calc(var(--space-4) * -1);
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        scroll-behavior: smooth;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .landing-showcase-grid::-webkit-scrollbar {
+        display: none;
+      }
+
+      .landing-showcase-grid .landing-screen-card {
+        position: relative;
+        flex: 0 0 78%;
+        min-height: 0;
+        padding: var(--space-5);
+        scroll-snap-align: center;
+        scroll-snap-stop: always;
+        overflow: hidden;
+        background: linear-gradient(
+          155deg,
+          color-mix(in srgb, var(--color-primary) 12%, var(--color-surface-2)) 0%,
+          var(--color-surface-2) 70%
+        );
+        border: 1px solid color-mix(in srgb, var(--color-primary) 25%, var(--color-border));
+        box-shadow:
+          0 1px 0 0 color-mix(in srgb, var(--color-primary) 18%, transparent) inset,
+          var(--shadow-md, 0 12px 30px rgba(0, 0, 0, 0.18));
+      }
+
+      .landing-showcase-grid .landing-screen-card::before {
+        content: attr(data-step);
+        position: absolute;
+        top: -28px;
+        right: -10px;
+        font-family: var(--font-display);
+        font-size: 8.5rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.04em;
+        color: transparent;
+        background: linear-gradient(
+          180deg,
+          color-mix(in srgb, var(--color-primary) 28%, transparent),
+          color-mix(in srgb, var(--color-primary) 6%, transparent)
+        );
+        -webkit-background-clip: text;
+        background-clip: text;
+        pointer-events: none;
+      }
+
+      .landing-showcase-grid .landing-screen-card::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: var(--space-5);
+        bottom: var(--space-5);
+        width: 4px;
+        border-radius: 0 var(--radius-full) var(--radius-full) 0;
+        background: linear-gradient(180deg, var(--color-primary), var(--color-primary-light, var(--color-primary)));
+      }
+
+      .landing-showcase-grid .landing-screen-card > * {
+        position: relative;
+        z-index: 1;
+      }
+
+      .landing-showcase-grid .landing-screen-card span {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--color-primary) 18%, transparent);
+        color: var(--color-primary);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        align-self: flex-start;
+        width: max-content;
+      }
+
+      .landing-showcase-grid .landing-screen-card strong {
+        font-size: 1.2rem;
+        line-height: 1.2;
+      }
+
+      .landing-showcase-grid .landing-screen-card p {
+        font-size: var(--text-sm);
+        line-height: 1.5;
+      }
+    }
+
+    /* ─── Milestone Payment Schedule: vertical timeline on mobile ─── */
+    @media (max-width: 768px) {
+      #work-package-view-page .milestone-payment-bar {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        min-height: 0;
+        padding: 0;
+        gap: 0;
+      }
+
+      #work-package-view-page .milestone-payment-segment {
+        position: relative;
+        width: 100% !important;
+        flex: 0 0 auto;
+        min-height: 88px;
+        align-items: center;
+        justify-content: flex-start;
+        padding: var(--space-3) var(--space-3) var(--space-3) 44px;
+        text-align: left;
+        background: transparent !important;
+        border: 0 !important;
+      }
+
+      #work-package-view-page .milestone-payment-segment + .milestone-payment-segment {
+        border-left: 0 !important;
+        border-top: 0 !important;
+      }
+
+      /* Per-segment vertical connector line (was horizontal on desktop) */
+      #work-package-view-page .milestone-payment-segment::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 16px;
+        width: 3px;
+        height: auto;
+        right: auto;
+        background: var(--color-divider);
+        z-index: 0;
+        transform: translateX(-50%);
+      }
+
+      /* Status-coloured line per segment, matching desktop logic */
+      #work-package-view-page .milestone-payment-segment.is-paid::before {
+        background: var(--color-primary);
+      }
+
+      #work-package-view-page .milestone-payment-segment.is-invoiced::before {
+        background: linear-gradient(180deg, var(--color-primary) 0 50%, var(--color-warning) 50% 100%);
+      }
+
+      #work-package-view-page .milestone-payment-segment.is-contested::before {
+        background: linear-gradient(180deg, var(--color-divider), var(--color-error));
+      }
+
+      /* Hide the line above the first segment and below the last */
+      #work-package-view-page .milestone-payment-segment:first-child::before {
+        top: 50%;
+      }
+
+      #work-package-view-page .milestone-payment-segment:last-child::before {
+        bottom: 50%;
+      }
+
+      /* Dot sits on the line, vertically centred per row */
+      #work-package-view-page .milestone-payment-segment::after {
+        top: 50%;
+        left: 16px;
+        width: 20px;
+        height: 20px;
+        transform: translate(-50%, -50%);
+        box-shadow: 0 0 0 4px var(--color-surface-2);
+        z-index: 1;
+      }
+
+      #work-package-view-page .milestone-payment-segment-name {
+        max-width: 100%;
+        text-align: left;
+        font-size: var(--text-sm);
+        line-height: 1.35;
+        margin: 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+    }
+
+    /* ─── Work package timeline: redesigned vertical timeline for mobile ─── */
+    @media (max-width: 768px) {
+      .work-package-timeline-card {
+        padding: var(--space-4);
+      }
+
+      .work-package-timeline-heading {
+        font-size: var(--text-base);
+        margin: 0 0 var(--space-4) 0;
+      }
+
+      .work-package-timeline-list {
+        list-style: none;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0 0 0 28px;
+        margin: 0;
+      }
+
+      /* Thick vertical line going down the left side */
+      .work-package-timeline-list::before {
+        content: "";
+        position: absolute;
+        top: 12px;
+        bottom: 12px;
+        left: 9px;
+        width: 3px;
+        background: linear-gradient(
+          to bottom,
+          var(--color-primary, #4f46e5) 0%,
+          var(--color-primary, #4f46e5) var(--timeline-progress, 60%),
+          var(--color-divider) var(--timeline-progress, 60%),
+          var(--color-divider) 100%
+        );
+        border-radius: 2px;
+      }
+
+      .wp-timeline-item {
+        display: block;
+        position: relative;
+        padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+        margin-bottom: var(--space-3);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+      }
+
+      .wp-timeline-item:last-child {
+        margin-bottom: 0;
+      }
+
+      /* Dot sits on the line, to the left of each card */
+      .wp-timeline-dot {
+        position: absolute;
+        top: 50%;
+        left: -23px;
+        transform: translateY(-50%);
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--color-border);
+        box-shadow: 0 0 0 4px var(--color-surface-2);
+        z-index: 1;
+        margin: 0;
+      }
+
+      .wp-timeline-dot.completed {
+        background: #48a868;
+      }
+
+      .wp-timeline-dot.pending {
+        background: #f59e0b;
+      }
+
+      /* Small connector arrow from line to card */
+      .wp-timeline-item::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -8px;
+        transform: translateY(-50%) rotate(45deg);
+        width: 10px;
+        height: 10px;
+        background: var(--color-surface);
+        border-left: 1px solid var(--color-border);
+        border-bottom: 1px solid var(--color-border);
+        z-index: 0;
+      }
+
+      .wp-timeline-content {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+
+      .wp-timeline-title {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--color-text);
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
+      .wp-timeline-meta {
+        font-size: 0.72rem;
+        line-height: 1.35;
+        color: var(--color-text-muted);
+        overflow-wrap: anywhere;
+      }
+    }
+
+    /* ─── Mobile nav (role toggle + hamburger menu) ─── */
+    .mobile-nav,
+    .mobile-menu {
+      display: none;
+    }
+
+    @media (max-width: 768px) {
+      .app-nav {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: var(--space-2);
+      }
+
+      .tab-list {
+        display: none !important;
+      }
+
+      .nav-right #role-toggle,
+      .nav-right [data-theme-toggle],
+      .nav-right .theme-toggle,
+      .nav-right .network {
+        display: none !important;
+      }
+
+      .mobile-nav {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
+      }
+
+      .mobile-role-toggle {
+        background: var(--color-primary);
+        color: var(--color-on-primary, #fff);
+        border: 0;
+        border-radius: var(--radius-md);
+        padding: 8px 14px;
+        font-size: var(--text-sm);
+        font-weight: 600;
+        line-height: 1.2;
+        cursor: pointer;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mobile-menu {
+        display: flex;
+        position: relative;
+        align-items: center;
+      }
+
+      .mobile-menu-toggle {
+        display: inline-flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background: var(--color-surface-2);
+        cursor: pointer;
+      }
+
+      .mobile-menu-bar {
+        display: block;
+        width: 18px;
+        height: 2px;
+        background: var(--color-text);
+        border-radius: 2px;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .mobile-menu-toggle[aria-expanded="true"] .mobile-menu-bar:nth-child(1) {
+        transform: translateY(7px) rotate(45deg);
+      }
+
+      .mobile-menu-toggle[aria-expanded="true"] .mobile-menu-bar:nth-child(2) {
+        opacity: 0;
+      }
+
+      .mobile-menu-toggle[aria-expanded="true"] .mobile-menu-bar:nth-child(3) {
+        transform: translateY(-7px) rotate(-45deg);
+      }
+
+      .mobile-menu-panel {
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        min-width: 200px;
+        padding: var(--space-2);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-lg);
+        background: var(--color-surface-2);
+        box-shadow: var(--shadow-md, 0 8px 24px rgba(0,0,0,0.18));
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .mobile-menu-panel[hidden] {
+        display: none;
+      }
+
+      .mobile-menu-item {
+        display: block;
+        padding: 10px 12px;
+        border-radius: var(--radius-md);
+        color: var(--color-text);
+        text-decoration: none;
+        font-size: var(--text-sm);
+        font-weight: 500;
+      }
+
+      .mobile-menu-item:hover,
+      .mobile-menu-item.is-active {
+        background: var(--color-surface);
+        color: var(--color-primary);
+      }
+
+      .mobile-menu-separator {
+        height: 1px;
+        background: var(--color-divider);
+        margin: 6px 0;
+      }
+
+      .mobile-menu-theme {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-3);
+        padding: 8px 12px;
+        font-size: var(--text-sm);
+        font-weight: 500;
+        color: var(--color-text);
+        cursor: pointer;
+      }
+
+      .mobile-theme-switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .mobile-theme-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .mobile-theme-slider {
+        position: absolute;
+        inset: 0;
+        background: var(--color-border);
+        border-radius: 999px;
+        transition: background 0.2s ease;
+      }
+
+      .mobile-theme-slider::before {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 999px;
+        background: #fff;
+        transition: transform 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+      }
+
+      .mobile-theme-switch input:checked + .mobile-theme-slider {
+        background: var(--color-primary);
+      }
+
+      .mobile-theme-switch input:checked + .mobile-theme-slider::before {
+        transform: translateX(16px);
+      }
     }
