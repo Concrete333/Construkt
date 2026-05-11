@@ -89,33 +89,40 @@
           <h2 id="landing-how-title">From package setup to payment release.</h2>
           <p>Construkt is not a full construction ERP. It is the payment-control layer that sits around work-package requests, approvals, holds, and release decisions.</p>
         </div>
-        <div class="landing-flow-steps">
-          <article>
+        <div class="landing-flow-steps" id="landing-flow-steps">
+          <article data-step="1">
             <span>01</span>
             <strong>Set up project packages</strong>
             <p>Create the project, split it into work packages, set caps, and lock funding.</p>
           </article>
-          <article>
+          <article data-step="2">
             <span>02</span>
             <strong>Submit request</strong>
             <p>Submit the invoice against the right work package.</p>
           </article>
-          <article>
+          <article data-step="3">
             <span>03</span>
             <strong>Attach evidence</strong>
             <p>Keep certificates, photos, QA packs, and document references with the request.</p>
           </article>
-          <article>
+          <article data-step="4">
             <span>04</span>
             <strong>Approve or reject</strong>
             <p>Review the evidence and record the decision with a note.</p>
           </article>
-          <article>
+          <article data-step="5">
             <span>05</span>
             <strong>Release from escrow</strong>
             <p>Release stays blocked until approvals and hold checks are clear.</p>
           </article>
         </div>
+        <ol class="landing-flow-pager" id="landing-flow-pager" aria-hidden="true">
+          <li class="landing-flow-pager-dot is-active"></li>
+          <li class="landing-flow-pager-dot"></li>
+          <li class="landing-flow-pager-dot"></li>
+          <li class="landing-flow-pager-dot"></li>
+          <li class="landing-flow-pager-dot"></li>
+        </ol>
         <p class="landing-chain-note">Current V0 records payment-control state, approvals, holds, release decisions, and compact document references through the Anchor-backed app. This static walkthrough is fully mocked; document requests and withdrawal clearing are app/metadata state, while raw files stay off-chain.</p>
       </section>
 
@@ -240,23 +247,28 @@
           <h2>Start from the dashboard.</h2>
           <p>The dashboard is the starting point. Open a project, check work package progress, review supporting records, and follow the audit trail.</p>
         </div>
-        <div class="landing-showcase-grid">
-          <article class="landing-screen-card">
+        <div class="landing-showcase-grid" id="landing-showcase-grid">
+          <article class="landing-screen-card" data-step="1">
             <span>01</span>
             <strong>Projects</strong>
             <p>See the projects you are responsible for and where attention is needed.</p>
           </article>
-          <article class="landing-screen-card">
+          <article class="landing-screen-card" data-step="2">
             <span>02</span>
             <strong>Work packages</strong>
             <p>Track package caps, funding, requests, evidence, approvals, and release status.</p>
           </article>
-          <article class="landing-screen-card">
+          <article class="landing-screen-card" data-step="3">
             <span>03</span>
             <strong>Audit trail</strong>
             <p>Keep approvals, holds, document references, release actions, and transaction records attached to the right package.</p>
           </article>
         </div>
+        <ol class="landing-flow-pager" id="landing-showcase-pager" aria-hidden="true">
+          <li class="landing-flow-pager-dot is-active"></li>
+          <li class="landing-flow-pager-dot"></li>
+          <li class="landing-flow-pager-dot"></li>
+        </ol>
       </section>
 
       <section class="landing-final-cta landing-reveal">
@@ -324,6 +336,11 @@
         <span>Created at the</span>
         <img src="static/projects/img/university-of-exeter-logo.jpg" alt="University of Exeter">
       </section>
+
+      <section class="landing-origin" aria-label="Superteam Exeter">
+        <span>Superteam Exeter</span>
+        <img src="static/projects/img/superteam-exeter-logo.jpg" alt="Superteam Exeter">
+      </section>
     </main>
 
     <footer class="public-footer">Local demo shell for Construkt</footer>
@@ -338,6 +355,9 @@
         </span>
         <span class="wordmark">Construkt</span>
       </a>
+      <div class="mobile-nav" aria-label="Mobile navigation">
+        <button id="mobile-role-toggle" class="mobile-role-toggle" type="button" aria-label="Switch role">Finance Director</button>
+      </div>
       <div class="tab-list" role="tablist">
         <a class="tab-link" data-route-link="home" href="#home" aria-label="Home">
           <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -371,7 +391,6 @@
         </a>
       </div>
       <div class="nav-right">
-        <span class="network"><span class="network-dot"></span>SOLANA DEVNET DEMO</span>
         <button id="role-toggle" class="btn role-badge" type="button">Finance Director</button>
         <button id="theme-toggle" class="theme-toggle" data-theme-toggle type="button" aria-label="Toggle theme">
           <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -386,6 +405,27 @@
             <circle cx="12" cy="12" r="4"></circle>
           </svg>
         </button>
+        <div class="mobile-menu" id="mobile-menu">
+          <button id="mobile-menu-toggle" class="mobile-menu-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu-panel">
+            <span class="mobile-menu-bar" aria-hidden="true"></span>
+            <span class="mobile-menu-bar" aria-hidden="true"></span>
+            <span class="mobile-menu-bar" aria-hidden="true"></span>
+          </button>
+          <div id="mobile-menu-panel" class="mobile-menu-panel" role="menu" hidden>
+            <a class="mobile-menu-item" role="menuitem" href="#home" data-mobile-nav="home">Home</a>
+            <a class="mobile-menu-item" role="menuitem" href="#dashboard2" data-mobile-nav="dashboard2">Dashboard</a>
+            <a class="mobile-menu-item" role="menuitem" href="#projects" data-mobile-nav="projects">Projects</a>
+            <a class="mobile-menu-item" role="menuitem" href="#settings" data-mobile-nav="settings">Settings</a>
+            <div class="mobile-menu-separator" role="separator"></div>
+            <label class="mobile-menu-theme">
+              <span>Dark mode</span>
+              <span class="mobile-theme-switch">
+                <input type="checkbox" id="mobile-theme-switch" aria-label="Toggle dark mode">
+                <span class="mobile-theme-slider" aria-hidden="true"></span>
+              </span>
+            </label>
+          </div>
+        </div>
       </div>
     </nav>
 
