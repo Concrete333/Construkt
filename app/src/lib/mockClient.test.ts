@@ -1056,6 +1056,8 @@ describe("MockConstruktClient — high approval policy parity", () => {
       project,
       workPackage,
       amount: capAmount,
+      lowApprover: w.pm,
+      highApprover: w.director,
     });
 
     const active = await client.fetchWorkPackage(workPackage);
@@ -1063,6 +1065,9 @@ describe("MockConstruktClient — high approval policy parity", () => {
     expect(active?.fundedAmount).toBe(capAmount);
     const updatedProject = await client.fetchProject(project);
     expect(updatedProject?.allocatedAmount).toBe(capAmount);
+    const roles = await client.fetchRoleAssignmentsForPackage(workPackage);
+    const roleNames = roles.map((row) => row.account.role).sort();
+    expect(roleNames).toEqual(["contractor", "highApprover", "lowApprover"]);
   });
 
   it("allows PM draft estimates to be assigned to a contractor before activation", async () => {

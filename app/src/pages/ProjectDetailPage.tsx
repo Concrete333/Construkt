@@ -90,6 +90,7 @@ interface FundCtx {
     packageAddress: PublicKey,
     projectAddress: PublicKey,
     escrowAmount: bigint,
+    highApprovalRequired: boolean,
   ) => void;
   onOpenAssignContractor: (packageAddress: string) => void;
   onChangeAssignContractorText: (v: string) => void;
@@ -548,6 +549,7 @@ export const ProjectDetailPage = ({
     packageAddress: PublicKey,
     projectAddress: PublicKey,
     escrowAmount: bigint,
+    highApprovalRequired: boolean,
   ) => {
     void onAct(async () => {
       return client.activateAndFundWorkPackage({
@@ -555,6 +557,10 @@ export const ProjectDetailPage = ({
         project: projectAddress,
         workPackage: packageAddress,
         amount: escrowAmount,
+        lowApprover: world.pm.publicKey,
+        highApprover: highApprovalRequired
+          ? world.director.publicKey
+          : undefined,
       });
     });
   };
@@ -1517,6 +1523,7 @@ const PackageTableRow = ({
                 row.rollup.address,
                 projectAddress,
                 row.rollup.package.capAmount,
+                row.rollup.package.highApprovalRequired,
               )
             }
             disabled={fundCtx.pending}
@@ -1676,6 +1683,7 @@ const PackageCard = ({
                 row.rollup.address,
                 projectAddress,
                 row.rollup.package.capAmount,
+                row.rollup.package.highApprovalRequired,
               );
             }}
             disabled={fundCtx.pending}

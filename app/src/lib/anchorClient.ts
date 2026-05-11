@@ -987,6 +987,46 @@ class AnchorConstruktClient implements ConstruktClient {
         wp.mint,
         params.authority,
       );
+      const approverRoleInstructions: TransactionInstruction[] = [];
+
+      const addApproverRoleInstruction = async (
+        role: "lowApprover" | "highApprover",
+        wallet: PublicKey,
+      ) => {
+        const roleAssignment = deriveRoleAssignmentAddress(
+          this.programId,
+          params.workPackage,
+          ROLE_BYTES[role],
+          wallet,
+        );
+        const opposingRole =
+          role === "lowApprover" ? "highApprover" : "lowApprover";
+        const opposingApproverRoleAssignment = deriveRoleAssignmentAddress(
+          this.programId,
+          params.workPackage,
+          ROLE_BYTES[opposingRole],
+          wallet,
+        );
+        approverRoleInstructions.push(
+          await this.method("assignRole", toAnchorRole(role), wallet)
+            .accounts({
+              authority: params.authority,
+              project: params.project,
+              workPackage: params.workPackage,
+              roleAssignment,
+              opposingApproverRoleAssignment,
+              systemProgram: SystemProgram.programId,
+            })
+            .instruction(),
+        );
+      };
+
+      if (params.lowApprover) {
+        await addApproverRoleInstruction("lowApprover", params.lowApprover);
+      }
+      if (params.highApprover) {
+        await addApproverRoleInstruction("highApprover", params.highApprover);
+      }
 
       const activateIx = await this.method("activateWorkPackage")
         .accounts({
@@ -1018,7 +1058,7 @@ class AnchorConstruktClient implements ConstruktClient {
       const signature = await (
         this.program.provider as AnchorProvider
       ).sendAndConfirm(
-        new Transaction().add(activateIx, fundIx),
+        new Transaction().add(activateIx, fundIx, ...approverRoleInstructions),
         this.extraSigners(params.authority),
       );
       return { signature };

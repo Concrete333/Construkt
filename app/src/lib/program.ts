@@ -220,6 +220,8 @@ export interface ActivateWorkPackageParams {
 
 export interface ActivateAndFundWorkPackageParams extends ActivateWorkPackageParams {
   amount: bigint;
+  lowApprover?: PublicKey;
+  highApprover?: PublicKey;
 }
 
 export interface FundEscrowParams {

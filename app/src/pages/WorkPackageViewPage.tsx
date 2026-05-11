@@ -22,7 +22,7 @@ import {
   variationRequestMetadataRef,
   withdrawalClearanceMetadataRef,
 } from "../lib/ids";
-import { friendlyClientError } from "../lib/program";
+import { ConstruktClientError, friendlyClientError } from "../lib/program";
 import { teamRoleLabel } from "../lib/metadataClient";
 import {
   paymentRequestChipTone,
@@ -512,6 +512,7 @@ export const WorkPackageViewPage = ({
             onAct={onAct}
             client={client}
             metadataWriter={metadataWriter}
+            world={world}
           />
           <ApprovalTrackerPanel
             row={activeRequestRow}
@@ -2454,6 +2455,7 @@ interface ActionPanelProps {
   onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
   client: ReturnType<typeof useClients>["client"];
   metadataWriter: MetadataWriter | null;
+  world: ReturnType<typeof useClients>["world"];
 }
 
 const ActionPanel = ({
@@ -2474,6 +2476,7 @@ const ActionPanel = ({
   onAct,
   client,
   metadataWriter,
+  world,
 }: ActionPanelProps) => {
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectText, setRejectText] = useState("");
@@ -2641,14 +2644,32 @@ const ActionPanel = ({
     const authoredAt = new Date().toISOString();
     const noteRef = composeNoteRef("approve", authoredAt);
     void onAct(async () => {
-      const result = await client.approveRequest({
-        approver: wallet,
-        project,
-        workPackage,
-        paymentRequest: requestAddr,
-        role: role === "projectManager" ? "lowApprover" : "highApprover",
-        noteRef,
-      });
+      const approvalRole =
+        role === "projectManager" ? "lowApprover" : "highApprover";
+      const approve = () =>
+        client.approveRequest({
+          approver: wallet,
+          project,
+          workPackage,
+          paymentRequest: requestAddr,
+          role: approvalRole,
+          noteRef,
+        });
+      let result: { signature: string };
+      try {
+        result = await approve();
+      } catch (err) {
+        if (!(err instanceof ConstruktClientError)) throw err;
+        if (err.code !== "AccountNotInitialized") throw err;
+        await client.assignRole({
+          authority: world.finance.publicKey,
+          project,
+          workPackage,
+          role: approvalRole,
+          wallet,
+        });
+        result = await approve();
+      }
       writeNote(noteRef, "", authoredAt);
       return result;
     });
@@ -2661,14 +2682,32 @@ const ActionPanel = ({
     const authoredAt = new Date().toISOString();
     const noteRef = composeNoteRef("reject", authoredAt);
     void onAct(async () => {
-      const result = await client.rejectRequest({
-        approver: wallet,
-        project,
-        workPackage,
-        paymentRequest: requestAddr,
-        role: role === "projectManager" ? "lowApprover" : "highApprover",
-        noteRef,
-      });
+      const approvalRole =
+        role === "projectManager" ? "lowApprover" : "highApprover";
+      const reject = () =>
+        client.rejectRequest({
+          approver: wallet,
+          project,
+          workPackage,
+          paymentRequest: requestAddr,
+          role: approvalRole,
+          noteRef,
+        });
+      let result: { signature: string };
+      try {
+        result = await reject();
+      } catch (err) {
+        if (!(err instanceof ConstruktClientError)) throw err;
+        if (err.code !== "AccountNotInitialized") throw err;
+        await client.assignRole({
+          authority: world.finance.publicKey,
+          project,
+          workPackage,
+          role: approvalRole,
+          wallet,
+        });
+        result = await reject();
+      }
       writeNote(noteRef, text, authoredAt);
       return result;
     }).then(() => {

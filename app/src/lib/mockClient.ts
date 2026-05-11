@@ -558,6 +558,8 @@ export class MockConstruktClient implements ConstruktClient {
     const remainingAllocatable = project.budgetAmount - project.allocatedAmount;
     if (wp.capAmount > remainingAllocatable) fail("InsufficientRemainingCap");
     if (p.amount > wp.capAmount) fail("InsufficientRemainingCap");
+    if (p.lowApprover && p.highApprover && p.lowApprover.equals(p.highApprover))
+      fail("ApproverRoleConflict");
 
     const vaultAuthority = deriveVaultAuthorityAddress(
       this.programId,
@@ -587,6 +589,33 @@ export class MockConstruktClient implements ConstruktClient {
       updatedAt: now,
       bump: 255,
     });
+
+    const assignApprover = (
+      role: "lowApprover" | "highApprover",
+      wallet: PublicKey | undefined,
+    ) => {
+      if (!wallet) return;
+      const approverRoleAssignment = deriveRoleAssignmentAddress(
+        this.programId,
+        p.workPackage,
+        ROLE_BYTES[role],
+        wallet,
+      );
+      this.roleAssignments.set(approverRoleAssignment.toBase58(), {
+        workPackage: p.workPackage,
+        wallet,
+        role,
+        active: true,
+        assignedBy: p.authority,
+        assignedAt: now,
+        updatedBy: p.authority,
+        updatedAt: now,
+        bump: 255,
+      });
+    };
+
+    assignApprover("lowApprover", p.lowApprover);
+    assignApprover("highApprover", p.highApprover);
     return this.tx();
   }
 
