@@ -34,6 +34,7 @@ import type {
   ProjectDrafterAccount,
   RejectRequestParams,
   ReleasePaymentParams,
+  SetDraftContractorParams,
   UpdateHighApprovalPolicyParams,
   RemoveHoldParams,
   Role,
@@ -385,8 +386,6 @@ export class MockConstruktClient implements ConstruktClient {
     if (!drafter.wallet.equals(p.drafter)) fail("Unauthorized");
     if (!drafter.active) fail("InactiveRoleAssignment");
     if (p.capAmount <= 0n) fail("InvalidAmount");
-    if (p.contractor.equals(PublicKey.default))
-      fail("InvalidAccountRelationship");
     if (p.scopeRef.length > MAX_REF_LEN) fail("StringTooLong");
 
     const wpAddress = deriveWorkPackageAddress(
@@ -417,6 +416,27 @@ export class MockConstruktClient implements ConstruktClient {
       highApprovalRequired: p.highApprovalRequired ?? false,
       bump: 255,
     });
+    return this.tx();
+  }
+
+  async setDraftContractor(p: SetDraftContractorParams): Promise<TxResult> {
+    const drafter =
+      this.projectDrafters.get(
+        deriveProjectDrafterAddress(
+          this.programId,
+          p.project,
+          p.drafter,
+        ).toBase58(),
+      ) ?? fail("AccountNotInitialized");
+    if (!drafter.wallet.equals(p.drafter)) fail("Unauthorized");
+    if (!drafter.active) fail("InactiveRoleAssignment");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "draft") fail("InvalidStatus");
+    if (p.contractor.equals(PublicKey.default))
+      fail("InvalidAccountRelationship");
+    if (wp.contractor.equals(p.contractor)) fail("RoleAlreadyInRequestedState");
+    wp.contractor = p.contractor;
     return this.tx();
   }
 

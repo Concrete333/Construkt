@@ -24,7 +24,7 @@ export interface ParsedRoute {
 
 const PATH_TO_KEY: Record<string, RouteKey> = {
   home: "home",
-  "": "home",
+  "": "dashboard2",
   signin: "signin",
   dashboard: "dashboard2",
   dashboard2: "dashboard2",
@@ -79,7 +79,7 @@ const PATH_TO_PATH: Record<Exclude<RouteKey, "home">, string> = {
 /**
  * React hook subscribing to the browser hash. Returns the parsed route
  * so consumers can switch on `key` without re-running `parseHash`.
- * SSR-safe: when `window` is unavailable the hook returns `home`.
+ * SSR-safe: when `window` is unavailable the hook returns the dashboard.
  */
 export const useHashRoute = (): ParsedRoute => {
   const [route, setRoute] = useState<ParsedRoute>(() =>

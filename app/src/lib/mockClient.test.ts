@@ -1016,6 +1016,68 @@ describe("MockConstruktClient — high approval policy parity", () => {
     expect(active?.highApprovalRequired).toBe(true);
   });
 
+  it("allows PM draft estimates to be assigned to a contractor before activation", async () => {
+    const client = newClient();
+    const w = wallets();
+    const projectId = 12n;
+    const packageId = 12n;
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, projectId);
+    const workPackage = deriveWorkPackageAddress(
+      PROGRAM_ID,
+      project,
+      packageId,
+    );
+
+    await client.initializeProject({
+      authority: w.finance,
+      projectId,
+      mint: w.mint,
+      budgetAmount: PROJECT_BUDGET,
+      name: "Unassigned draft project",
+      metadataRef: "ipfs://unassigned-draft",
+    });
+    await client.assignProjectDrafter({
+      authority: w.finance,
+      project,
+      wallet: w.pm,
+    });
+    await client.createPackageDraft({
+      drafter: w.pm,
+      project,
+      packageId,
+      capAmount: 500_000n,
+      contractor: PublicKey.default,
+      scopeRef: "ipfs://unassigned-draft-scope",
+    });
+
+    let draft = await client.fetchWorkPackage(workPackage);
+    expect(draft?.contractor.equals(PublicKey.default)).toBe(true);
+    await expect(
+      client.activateWorkPackage({
+        authority: w.finance,
+        project,
+        workPackage,
+      }),
+    ).rejects.toMatchObject({ code: "InvalidAccountRelationship" });
+
+    await client.setDraftContractor({
+      drafter: w.pm,
+      project,
+      workPackage,
+      contractor: w.contractor,
+    });
+    draft = await client.fetchWorkPackage(workPackage);
+    expect(draft?.contractor.equals(w.contractor)).toBe(true);
+
+    await client.activateWorkPackage({
+      authority: w.finance,
+      project,
+      workPackage,
+    });
+    const active = await client.fetchWorkPackage(workPackage);
+    expect(active?.status).toBe("active");
+  });
+
   it("default policy releases on low-only approval", async () => {
     const seeded = await seedFundedPackage();
     const paymentRequest = await submitAndApprove(seeded, {

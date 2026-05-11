@@ -1,7 +1,9 @@
+import { useState } from "react";
+import type { ReactNode } from "react";
 import { CONSTRUKT_PROGRAM_ID } from "../lib/config";
 import { shortAddress } from "../lib/format";
 import { DEMO_ROLE_LABEL, networkBadgeContent } from "../lib/theme";
-import type { DemoRole, DemoNetwork, ThemeMode } from "../lib/theme";
+import type { DemoNetwork, DemoRole, ThemeMode } from "../lib/theme";
 import "./SettingsPage.css";
 
 interface SettingsPageProps {
@@ -10,105 +12,210 @@ interface SettingsPageProps {
   network: DemoNetwork;
 }
 
+type SettingsTab = "profile" | "roles" | "network" | "notifications";
+
+const SETTINGS_TABS: Array<{ id: SettingsTab; label: string }> = [
+  { id: "profile", label: "Profile" },
+  { id: "roles", label: "Roles & Access" },
+  { id: "network", label: "Network" },
+  { id: "notifications", label: "Notifications" },
+];
+
+const PROFILE_NAME: Record<DemoRole, string> = {
+  financeDirector: "Maya Shah",
+  projectManager: "Eleanor Lane",
+  contractor: "Daniel Okafor",
+  director: "Amelia Hughes",
+};
+
+const ROLE_ORG: Record<DemoRole, string> = {
+  financeDirector: "Northstar Health Trust",
+  projectManager: "Northstar Projects",
+  contractor: "Okafor Builders Ltd.",
+  director: "Northstar Capital Board",
+};
+
 export const SettingsPage = ({ role, theme, network }: SettingsPageProps) => {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const badge = networkBadgeContent(network);
+
   return (
     <section className="settings">
       <header className="settings__head">
-        <h1>Settings</h1>
+        <p className="settings__breadcrumb">Settings</p>
+        <h1>Account settings</h1>
         <p className="settings__lead">
-          V0 demo settings are read-only here. Use the header controls to switch
-          role or theme.
+          Demo profile, role access, and localnet connection state.
         </p>
       </header>
 
-      <div className="settings__groups">
-        <SettingsGroup title="Demo session">
-          <SettingsRow
-            label="Active role"
-            value={DEMO_ROLE_LABEL[role]}
-            hint="Change via the role switcher in the header."
-          />
-          <SettingsRow
-            label="Theme"
-            value={theme === "light" ? "Light" : "Dark"}
-            hint="Toggle via the sun/moon button in the header."
-          />
-        </SettingsGroup>
+      <div className="settings__layout">
+        <nav className="settings__tabs" aria-label="Settings sections">
+          {SETTINGS_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`settings__tab ${
+                activeTab === tab.id ? "is-active" : ""
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        <SettingsGroup title="Network">
-          <SettingsRow label="Network" value={badge.label} />
-          <SettingsRow
-            label="Program ID"
-            value={shortAddress(CONSTRUKT_PROGRAM_ID.toBase58(), {
-              head: 8,
-              tail: 8,
-            })}
-            mono
-            copyValue={CONSTRUKT_PROGRAM_ID.toBase58()}
-          />
-        </SettingsGroup>
+        <div className="settings__content">
+          {activeTab === "profile" && (
+            <SettingsCard title="Profile">
+              <div className="settings__profile-grid">
+                <ReadonlyField label="Name" value={PROFILE_NAME[role]} />
+                <ReadonlyField label="Role" value={DEMO_ROLE_LABEL[role]} />
+                <ReadonlyField label="Organisation" value={ROLE_ORG[role]} />
+                <ReadonlyField
+                  label="Theme"
+                  value={theme === "light" ? "Light" : "Dark"}
+                />
+              </div>
+              <p className="settings__note">
+                Role and organisation details are managed by the client
+                workspace in production.
+              </p>
+            </SettingsCard>
+          )}
 
-        <SettingsGroup title="Deferred (post-V0)">
-          <DeferredItem label="Wallet connection" />
-          <DeferredItem label="RPC endpoint override" />
-          <DeferredItem label="Notification preferences" />
-          <DeferredItem label="Document storage backend" />
-        </SettingsGroup>
+          {activeTab === "roles" && (
+            <SettingsCard title="Roles & Access">
+              <ul className="settings__list">
+                <AccessRow
+                  label="Finance Director"
+                  active={role === "financeDirector"}
+                  detail="Create projects, approve escrow, release funds, assign package roles."
+                />
+                <AccessRow
+                  label="Project Manager"
+                  active={role === "projectManager"}
+                  detail="Create estimated packages, submit drafts, review contractor evidence."
+                />
+                <AccessRow
+                  label="Contractor"
+                  active={role === "contractor"}
+                  detail="View assigned packages, submit milestone invoices, clear withdrawals."
+                />
+                <AccessRow
+                  label="Director"
+                  active={role === "director"}
+                  detail="Optional high approval step for clients that require extra release control."
+                />
+              </ul>
+            </SettingsCard>
+          )}
+
+          {activeTab === "network" && (
+            <SettingsCard title="Network">
+              <SettingsRow label="Network" value={badge.label} />
+              <SettingsRow
+                label="Program ID"
+                value={shortAddress(CONSTRUKT_PROGRAM_ID.toBase58(), {
+                  head: 8,
+                  tail: 8,
+                })}
+                mono
+                copyValue={CONSTRUKT_PROGRAM_ID.toBase58()}
+              />
+              <SettingsRow
+                label="Mode"
+                value={network === "localnet" ? "Anchor localnet" : "Demo mode"}
+              />
+            </SettingsCard>
+          )}
+
+          {activeTab === "notifications" && (
+            <SettingsCard title="Notifications">
+              <ul className="settings__list">
+                <DeferredItem label="Email approvals and release alerts" />
+                <DeferredItem label="Contractor document request reminders" />
+                <DeferredItem label="Escrow funding status changes" />
+              </ul>
+            </SettingsCard>
+          )}
+        </div>
       </div>
     </section>
   );
 };
 
-const SettingsGroup = ({
+const SettingsCard = ({
   title,
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => (
-  <div className="settings__group">
-    <h2 className="settings__group-title">{title}</h2>
-    <ul className="settings__rows">{children}</ul>
-  </div>
+  <section className="settings__card">
+    <h2>{title}</h2>
+    {children}
+  </section>
+);
+
+const ReadonlyField = ({ label, value }: { label: string; value: string }) => (
+  <label className="settings__field">
+    <span>{label}</span>
+    <input value={value} readOnly />
+  </label>
 );
 
 const SettingsRow = ({
   label,
   value,
-  hint,
   mono = false,
   copyValue,
 }: {
   label: string;
   value: string;
-  hint?: string;
   mono?: boolean;
   copyValue?: string;
 }) => (
-  <li className="settings__row">
+  <div className="settings__row">
     <span className="settings__row-label">{label}</span>
-    <span className="settings__row-value-wrap">
-      <span
-        className={
-          mono
-            ? "settings__row-value settings__row-value--mono"
-            : "settings__row-value"
-        }
-        title={copyValue}
-      >
-        {value}
-      </span>
-      {hint && <span className="settings__row-hint">{hint}</span>}
+    <span
+      className={
+        mono
+          ? "settings__row-value settings__row-value--mono"
+          : "settings__row-value"
+      }
+      title={copyValue}
+    >
+      {value}
+    </span>
+  </div>
+);
+
+const AccessRow = ({
+  label,
+  detail,
+  active,
+}: {
+  label: string;
+  detail: string;
+  active: boolean;
+}) => (
+  <li className="settings__access-row">
+    <div>
+      <strong>{label}</strong>
+      <span>{detail}</span>
+    </div>
+    <span className={`settings__access-pill ${active ? "is-active" : ""}`}>
+      {active ? "Current" : "Available"}
     </span>
   </li>
 );
 
 const DeferredItem = ({ label }: { label: string }) => (
-  <li className="settings__row settings__row--deferred">
-    <span className="settings__row-label">{label}</span>
-    <span className="settings__row-value settings__row-value--muted">
-      Coming in a later phase
-    </span>
+  <li className="settings__access-row settings__access-row--muted">
+    <div>
+      <strong>{label}</strong>
+      <span>Coming in a later phase.</span>
+    </div>
   </li>
 );

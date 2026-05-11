@@ -185,16 +185,12 @@ pub mod construkt {
     ) -> Result<()> {
         require!(cap_amount > 0, ConstruktError::InvalidAmount);
         require!(
-            contractor != Pubkey::default(),
-            ConstruktError::InvalidAccountRelationship
-        );
-        require!(
             scope_ref.len() <= MAX_REF_LEN,
             ConstruktError::StringTooLong
         );
 
-        // V0 fixes the proposed contractor at draft creation. To change it,
-        // abandon this draft and create a new package draft before activation.
+        // Drafts may start as unassigned estimates. A project drafter can set
+        // or change the proposed contractor before Finance activation.
         let work_package = &mut ctx.accounts.work_package;
         work_package.project = ctx.accounts.project.key();
         work_package.package_id = package_id;
@@ -225,6 +221,33 @@ pub mod construkt {
             mint: work_package.mint,
             cap_amount,
             high_approval_required,
+        });
+
+        Ok(())
+    }
+
+    pub fn set_draft_contractor(
+        ctx: Context<SetDraftContractor>,
+        contractor: Pubkey,
+    ) -> Result<()> {
+        require!(
+            contractor != Pubkey::default(),
+            ConstruktError::InvalidAccountRelationship
+        );
+        require!(
+            ctx.accounts.work_package.contractor != contractor,
+            ConstruktError::RoleAlreadyInRequestedState
+        );
+
+        let work_package = &mut ctx.accounts.work_package;
+        work_package.contractor = contractor;
+
+        emit!(WorkPackageDraftContractorSet {
+            project: ctx.accounts.project.key(),
+            work_package: work_package.key(),
+            drafter: ctx.accounts.drafter.key(),
+            contractor,
+            updated_at: Clock::get()?.unix_timestamp,
         });
 
         Ok(())
@@ -1328,6 +1351,26 @@ pub struct CreatePackageDraft<'info> {
 }
 
 #[derive(Accounts)]
+pub struct SetDraftContractor<'info> {
+    #[account(mut)]
+    pub drafter: Signer<'info>,
+    pub project: Account<'info, ProjectAccount>,
+    #[account(
+        seeds = [b"project_drafter", project.key().as_ref(), drafter.key().as_ref()],
+        bump = project_drafter.bump,
+        constraint = project_drafter.active @ ConstruktError::InactiveRoleAssignment,
+        constraint = project_drafter.project == project.key() @ ConstruktError::InvalidAccountRelationship
+    )]
+    pub project_drafter: Account<'info, ProjectDrafterAccount>,
+    #[account(
+        mut,
+        constraint = work_package.project == project.key() @ ConstruktError::InvalidAccountRelationship,
+        constraint = work_package.status == WorkPackageStatus::Draft @ ConstruktError::InvalidStatus
+    )]
+    pub work_package: Account<'info, WorkPackageAccount>,
+}
+
+#[derive(Accounts)]
 #[instruction(milestone_id: u64)]
 pub struct CreateDraftMilestone<'info> {
     #[account(mut)]
@@ -2122,6 +2165,15 @@ pub struct WorkPackageDraftCreated {
     pub mint: Pubkey,
     pub cap_amount: u64,
     pub high_approval_required: bool,
+}
+
+#[event]
+pub struct WorkPackageDraftContractorSet {
+    pub project: Pubkey,
+    pub work_package: Pubkey,
+    pub drafter: Pubkey,
+    pub contractor: Pubkey,
+    pub updated_at: i64,
 }
 
 #[event]

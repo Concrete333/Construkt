@@ -33,10 +33,10 @@ export const WalletDisplay = ({ wallet }: WalletDisplayProps) => {
       type="button"
       className="wallet-display"
       onClick={onClick}
-      aria-label={`Copy demo wallet address ${base58}`}
+      aria-label={`Copy demo account address ${base58}`}
       title={base58}
     >
-      <span className="wallet-display__caption">Demo wallet</span>
+      <span className="wallet-display__caption">Demo account</span>
       <span className="wallet-display__value">
         {shortAddress(base58, { head: 4, tail: 4 })}
       </span>

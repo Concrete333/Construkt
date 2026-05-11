@@ -14,19 +14,26 @@ describe("nextTheme", () => {
 });
 
 describe("networkBadgeContent", () => {
-  it("formats localnet as LOCALNET · MOCK USDC", () => {
-    expect(networkBadgeContent("localnet")).toEqual({
-      network: "localnet",
-      label: "LOCALNET · MOCK USDC",
+  it("formats mock mode clearly for hosted or no-RPC demos", () => {
+    expect(networkBadgeContent("mock")).toEqual({
+      network: "mock",
+      label: "MOCK DEMO",
     });
   });
 
-  it("formats devnet as DEVNET · MOCK USDC", () => {
-    expect(networkBadgeContent("devnet").label).toBe("DEVNET · MOCK USDC");
+  it("formats localnet like the prototype app badge", () => {
+    expect(networkBadgeContent("localnet")).toEqual({
+      network: "localnet",
+      label: "SOLANA LOCALNET DEMO",
+    });
+  });
+
+  it("formats devnet like the prototype app badge", () => {
+    expect(networkBadgeContent("devnet").label).toBe("SOLANA DEVNET DEMO");
   });
 
   it("never claims mainnet", () => {
-    for (const net of ["localnet", "devnet"] as const) {
+    for (const net of ["mock", "localnet", "devnet"] as const) {
       expect(networkBadgeContent(net).label).not.toMatch(/mainnet/i);
     }
   });

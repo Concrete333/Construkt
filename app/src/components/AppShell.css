@@ -7,7 +7,14 @@
 .app-shell__main {
   flex: 1 1 auto;
   width: 100%;
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: var(--space-8) var(--space-6);
+  padding: calc(64px + var(--space-8)) var(--space-8) var(--space-10);
+}
+
+@media (max-width: 768px) {
+  .app-shell__main {
+    padding-right: var(--space-4);
+    padding-left: var(--space-4);
+  }
 }

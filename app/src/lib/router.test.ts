@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { buildHash, parseHash } from "./router";
 
 describe("parseHash", () => {
-  it("defaults to home for empty input", () => {
-    expect(parseHash("").key).toBe("home");
-    expect(parseHash("#").key).toBe("home");
+  it("defaults to dashboard for empty input", () => {
+    expect(parseHash("").key).toBe("dashboard2");
+    expect(parseHash("#").key).toBe("dashboard2");
   });
 
   it("maps known paths", () => {

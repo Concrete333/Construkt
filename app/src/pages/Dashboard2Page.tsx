@@ -7,14 +7,10 @@ import { formatTimestamp, shortAddress } from "../lib/format";
 import { DEMO_ROLE_LABEL } from "../lib/theme";
 import {
   filterProjectsByContractor,
-  projectStatusLabel,
   selectPackageRollup,
   selectProjectRollup,
 } from "../selectors/projectSelectors";
-import {
-  isWithdrawalCleared,
-  selectDashboardSummary,
-} from "../selectors/dashboardSelectors";
+import { isWithdrawalCleared } from "../selectors/dashboardSelectors";
 import { selectAuditTimeline } from "../selectors/auditSelectors";
 import {
   isPaymentRequestActive,
@@ -26,10 +22,7 @@ import type {
   PackageRollup,
   ProjectRollup,
 } from "../selectors/projectSelectors";
-import type {
-  DashboardPackageSource,
-  DashboardSummary,
-} from "../selectors/dashboardSelectors";
+import type { DashboardPackageSource } from "../selectors/dashboardSelectors";
 import type { AuditEvent, AuditEventKind } from "../selectors/auditSelectors";
 import type { PaymentRequestDisplayStatus } from "../selectors/paymentSelectors";
 import type {
@@ -39,16 +32,14 @@ import type {
   RoleAssignmentAccount,
   WorkPackageAccount,
 } from "../lib/program";
-import type { ProjectMetadata } from "../lib/metadataClient";
 import type { DemoRole } from "../lib/theme";
 import "./Dashboard2Page.css";
 
 interface ProjectBundle {
   rollup: ProjectRollup;
-  metadata: ProjectMetadata | null;
   packages: PackageRollup[];
   packageSources: DashboardPackageSource[];
-  /** Active payment requests for the project's packages (one per package max). */
+  packageNames: Map<PublicKeyB58, string>;
   activeRequests: Array<{
     workPackage: PublicKeyB58;
     workPackageName: string;
@@ -70,7 +61,6 @@ interface OutstandingTask {
 
 interface LoadedDashboard {
   bundles: ProjectBundle[];
-  kpis: DashboardSummary;
   recentActivity: EnrichedAuditEvent[];
   outstanding: OutstandingTask[];
 }
@@ -93,11 +83,11 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
     let cancelled = false;
     void (async () => {
       const allProjects = await client.fetchProjects();
-
       const packagesByProject = new Map<
         string,
         Fetched<WorkPackageAccount>[]
       >();
+
       for (const project of allProjects) {
         const packages = await client.fetchWorkPackagesForProject(
           project.address,
@@ -118,37 +108,49 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
       const allEvents: EnrichedAuditEvent[] = [];
 
       for (const project of visibleProjects) {
-        const projectMeta = await metadata.resolveProject(
-          project.account.metadataRef,
-        );
         const packages =
           packagesByProject.get(project.address.toBase58()) ?? [];
 
         const rollups: PackageRollup[] = [];
         const packageSources: DashboardPackageSource[] = [];
+        const packageNames = new Map<PublicKeyB58, string>();
         const activeRequests: ProjectBundle["activeRequests"] = [];
         const allRoleAssignments: Fetched<RoleAssignmentAccount>[] = [];
         const allRequests: Fetched<PaymentRequestAccount>[] = [];
         const allApprovals: Fetched<ApprovalRecord>[] = [];
 
         for (const pkg of packages) {
-          const ras = await client.fetchRoleAssignmentsForPackage(pkg.address);
-          allRoleAssignments.push(...ras);
+          const roleAssignments = await client.fetchRoleAssignmentsForPackage(
+            pkg.address,
+          );
+          allRoleAssignments.push(...roleAssignments);
 
-          const reqs = await client.fetchPaymentRequestsForPackage(pkg.address);
-          allRequests.push(...reqs);
+          const requests = await client.fetchPaymentRequestsForPackage(
+            pkg.address,
+          );
+          allRequests.push(...requests);
+
           const [documentRequests, withdrawalClearances] = await Promise.all([
             metadata.listDocumentRequestsForPackage(pkg.address.toBase58()),
             metadata.listWithdrawalClearancesForPackage(pkg.address.toBase58()),
           ]);
+          const scope = await metadata.resolvePackageScope(
+            pkg.account.scopeRef,
+          );
+          const packageName =
+            scope?.description?.split(".")[0] ??
+            `Package #${pkg.account.packageId.toString()}`;
+          packageNames.set(pkg.address.toBase58(), packageName);
 
-          for (const r of reqs) {
-            const approvals = await client.fetchApprovalsForRequest(r.address);
+          for (const request of requests) {
+            const approvals = await client.fetchApprovalsForRequest(
+              request.address,
+            );
             allApprovals.push(...approvals);
           }
 
-          const activeFetchedRequests = [...reqs]
-            .filter((r) => isPaymentRequestActive(r.account))
+          const activeFetchedRequests = [...requests]
+            .filter((request) => isPaymentRequestActive(request.account))
             .sort((a, b) =>
               a.account.requestId < b.account.requestId ? 1 : -1,
             );
@@ -157,33 +159,29 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
               (request) => request.account.holdActive,
             ) ??
             (pkg.account.hasActiveRequest
-              ? (reqs.find((request) =>
+              ? (requests.find((request) =>
                   request.address.equals(pkg.account.activeRequest),
                 ) ?? null)
               : (activeFetchedRequests[0] ?? null));
-          const activeRequest = activeFetchedRequest?.account ?? null;
+
           const packageRollup = selectPackageRollup(
             pkg,
-            activeRequest,
+            activeFetchedRequest?.account ?? null,
             activeFetchedRequest?.address ?? null,
           );
           rollups.push(packageRollup);
           packageSources.push({
             rollup: packageRollup,
-            requests: reqs,
+            requests,
             documentRequests: documentRequests.map(([, data]) => data),
             withdrawalClearances: withdrawalClearances.map(([, data]) => data),
           });
+
           if (activeFetchedRequests.length > 0) {
-            const scope = await metadata.resolvePackageScope(
-              pkg.account.scopeRef,
-            );
             for (const request of activeFetchedRequests) {
               activeRequests.push({
                 workPackage: pkg.address.toBase58(),
-                workPackageName:
-                  scope?.description?.split(".")[0] ??
-                  `Package #${pkg.account.packageId.toString()}`,
+                workPackageName: packageName,
                 request: request.account,
                 address: request.address.toBase58(),
               });
@@ -194,9 +192,9 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
         const rollup = selectProjectRollup(project, rollups);
         bundles.push({
           rollup,
-          metadata: projectMeta,
           packages: rollups,
           packageSources,
+          packageNames,
           activeRequests,
         });
 
@@ -211,19 +209,18 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
         }
       }
 
-      // Recent activity: newest first, capped.
       allEvents.sort((a, b) => {
         if (a.at < b.at) return 1;
         if (a.at > b.at) return -1;
         return 0;
       });
-      const recentActivity = allEvents.slice(0, RECENT_ACTIVITY_LIMIT);
-
-      const kpis = aggregateKpis(bundles);
-      const outstanding = buildOutstandingTasks(role, bundles);
 
       if (!cancelled) {
-        setLoaded({ bundles, kpis, recentActivity, outstanding });
+        setLoaded({
+          bundles,
+          recentActivity: allEvents.slice(0, RECENT_ACTIVITY_LIMIT),
+          outstanding: buildOutstandingTasks(role, bundles),
+        });
       }
     })();
     return () => {
@@ -232,254 +229,375 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
   }, [client, metadata, world, role]);
 
   if (loaded === null) {
-    return <div className="dashboard2__loading">Loading dashboard…</div>;
+    return <div className="dashboard2__loading">Loading dashboard...</div>;
   }
-
-  const { bundles, kpis, recentActivity, outstanding } = loaded;
 
   return (
     <section className="dashboard2">
-      <header className="dashboard2__head">
-        <p className="dashboard2__eyebrow">Welcome back</p>
-        <h1>{DEMO_ROLE_LABEL[role]}</h1>
-        <p className="dashboard2__lead">{roleLead(role)}</p>
-      </header>
-
-      <KpiStrip kpis={kpis} />
-
-      <div className="dashboard2__columns">
-        <main className="dashboard2__main">
-          <section className="dashboard2__panel">
-            <div className="dashboard2__panel-head">
-              <h2>Outstanding tasks</h2>
-              <span className="dashboard2__panel-eyebrow">
-                {outstanding.length}{" "}
-                {outstanding.length === 1 ? "task" : "tasks"}
-              </span>
-            </div>
-            {outstanding.length === 0 ? (
-              <p className="dashboard2__empty">
-                Nothing waiting on you right now.
-              </p>
-            ) : (
-              <ul className="dashboard2__tasks">
-                {outstanding.map((task) => (
-                  <li key={task.key} className="dashboard2__task">
-                    <a className="dashboard2__task-link" href={task.href}>
-                      <div className="dashboard2__task-body">
-                        <p className="dashboard2__task-title">{task.title}</p>
-                        <p className="dashboard2__task-meta">{task.meta}</p>
-                      </div>
-                      <div className="dashboard2__task-side">
-                        <StatusPill tone={task.tone}>Open</StatusPill>
-                        {task.amount !== null && (
-                          <span className="dashboard2__task-amount">
-                            <Money amount={task.amount} withSymbol />
-                          </span>
-                        )}
-                      </div>
-                    </a>
-                  </li>
-                ))}
-              </ul>
+      <div className="dashboard2__viewport">
+        <div className="dashboard2__content">
+          <main className="dashboard2__main-section">
+            <h1 className="dashboard2__title">{DEMO_ROLE_LABEL[role]}</h1>
+            {role === "contractor" && (
+              <ContractorWithdrawalSummary bundles={loaded.bundles} />
             )}
-          </section>
+            <ProjectFundingOverview bundles={loaded.bundles} role={role} />
+          </main>
+          <aside className="dashboard2__sidebar">
+            <OutstandingTasks tasks={loaded.outstanding} />
+          </aside>
+        </div>
+      </div>
 
-          <section className="dashboard2__panel">
-            <div className="dashboard2__panel-head">
-              <h2>Projects</h2>
-              <span className="dashboard2__panel-eyebrow">
-                {bundles.length} {bundles.length === 1 ? "project" : "projects"}
-              </span>
-            </div>
-            {bundles.length === 0 ? (
-              <p className="dashboard2__empty">
-                {role === "contractor"
-                  ? "No projects with assigned packages yet."
-                  : "No projects yet."}
-              </p>
-            ) : (
-              <ul className="dashboard2__projects">
-                {bundles.map((bundle) => (
-                  <ProjectQuickCard
-                    key={bundle.rollup.address.toBase58()}
-                    bundle={bundle}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
-        </main>
+      <RecentActivity events={loaded.recentActivity} />
+    </section>
+  );
+};
 
-        <aside className="dashboard2__aside">
-          <section className="dashboard2__panel">
-            <div className="dashboard2__panel-head">
-              <h2>Recent activity</h2>
-              <span className="dashboard2__panel-eyebrow">
-                Newest first · top {RECENT_ACTIVITY_LIMIT}
-              </span>
-            </div>
-            {recentActivity.length === 0 ? (
-              <p className="dashboard2__empty">No activity yet.</p>
-            ) : (
-              <ol className="dashboard2__activity">
-                {recentActivity.map((event, idx) => (
-                  <li
-                    key={`${event.kind}-${event.at}-${idx}`}
-                    className="dashboard2__event"
-                  >
-                    <span
-                      className={`dashboard2__dot dashboard2__dot--${dotTone(
-                        event.kind,
-                      )}`}
-                      aria-hidden="true"
-                    />
-                    <div className="dashboard2__event-body">
-                      <p className="dashboard2__event-title">{event.label}</p>
-                      <p className="dashboard2__event-meta">
-                        {event.projectName} · {formatTimestamp(event.at)}
-                        {event.actor && (
-                          <>
-                            {" "}
-                            ·{" "}
-                            <span className="dashboard2__event-wallet">
-                              {shortAddress(event.actor.toBase58())}
-                            </span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </section>
-        </aside>
+interface ContractorWithdrawalRow {
+  key: string;
+  projectName: string;
+  packageName: string;
+  href: string;
+  amount: bigint;
+}
+
+const ContractorWithdrawalSummary = ({
+  bundles,
+}: {
+  bundles: ProjectBundle[];
+}) => {
+  const rows: ContractorWithdrawalRow[] = [];
+  for (const bundle of bundles) {
+    for (const source of bundle.packageSources) {
+      const amount = source.requests
+        .filter(
+          (request) =>
+            request.account.status === "released" &&
+            request.account.releasedAmount > 0n &&
+            !isWithdrawalCleared(request, source.withdrawalClearances),
+        )
+        .reduce((sum, request) => sum + request.account.releasedAmount, 0n);
+      if (amount <= 0n) continue;
+      rows.push({
+        key: source.rollup.address.toBase58(),
+        projectName: bundle.rollup.project.name,
+        packageName: packageLabel(source.rollup, bundle.packageNames),
+        href: buildHash("workPackageView", {
+          address: source.rollup.address.toBase58(),
+        }),
+        amount,
+      });
+    }
+  }
+
+  const total = rows.reduce((sum, row) => sum + row.amount, 0n);
+
+  return (
+    <section className="dashboard2__withdrawal-summary">
+      <div>
+        <span className="dashboard2__withdrawal-label">
+          Available for withdrawal
+        </span>
+        <strong className="dashboard2__withdrawal-total">
+          <Money amount={total} withSymbol />
+        </strong>
+        <p className="dashboard2__withdrawal-note">
+          Released funds not yet marked as withdrawn.
+        </p>
+      </div>
+      {rows.length === 0 ? (
+        <p className="dashboard2__withdrawal-empty">
+          No released package funds are waiting to be withdrawn.
+        </p>
+      ) : (
+        <ul className="dashboard2__withdrawal-list">
+          {rows.slice(0, 4).map((row) => (
+            <li key={row.key}>
+              <a className="dashboard2__withdrawal-row" href={row.href}>
+                <span>
+                  {row.projectName} - {row.packageName}
+                </span>
+                <strong>
+                  <Money amount={row.amount} withSymbol />
+                </strong>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+};
+
+const ProjectFundingOverview = ({
+  bundles,
+  role,
+}: {
+  bundles: ProjectBundle[];
+  role: DemoRole;
+}) => {
+  const title =
+    role === "contractor"
+      ? "Assigned Work Packages"
+      : "Project Funding Overview";
+  const empty =
+    role === "contractor"
+      ? "No assigned packages yet."
+      : "No active projects yet.";
+
+  return (
+    <section className="dashboard2__chart-card">
+      <div className="dashboard2__chart-header">
+        <h2>{title}</h2>
+      </div>
+      <div
+        className="dashboard2__legend"
+        aria-label="Project funding status legend"
+      >
+        <LegendItem tone="completed" label="Completed" />
+        <LegendItem tone="progress" label="In Progress" />
+        <LegendItem tone="estimated" label="Estimated" />
+        <LegendItem tone="unallocated" label="Unallocated" />
+      </div>
+      <div className="dashboard2__chart-content">
+        {bundles.length === 0 ? (
+          <div className="dashboard2__chart-empty">{empty}</div>
+        ) : (
+          bundles
+            .slice(0, 7)
+            .map((bundle) => (
+              <FundingRow
+                key={bundle.rollup.address.toBase58()}
+                bundle={bundle}
+              />
+            ))
+        )}
       </div>
     </section>
   );
 };
 
-const aggregateKpis = (bundles: ProjectBundle[]): DashboardSummary =>
-  selectDashboardSummary(
-    bundles.map((bundle) => ({
-      rollup: bundle.rollup,
-      packages: bundle.packageSources,
-    })),
-  );
-
-const KpiStrip = ({ kpis }: { kpis: DashboardSummary }) => (
-  <dl className="dashboard2__kpis">
-    <KpiTile label="Projects" value={kpis.projectCount.toString()} />
-    <KpiTile label="Packages" value={kpis.packageCount.toString()} />
-    <KpiTile label="Budget">
-      <Money amount={kpis.totalProjectBudget} withSymbol />
-    </KpiTile>
-    <KpiTile label="Allocated">
-      <Money amount={kpis.totalAllocatedPackageBudget} withSymbol />
-    </KpiTile>
-    <KpiTile label="Remaining">
-      <Money amount={kpis.totalRemainingAllocatableBudget} withSymbol />
-    </KpiTile>
-    <KpiTile label="Funded">
-      <Money amount={kpis.totalFunded} withSymbol />
-    </KpiTile>
-    <KpiTile label="Requested">
-      <Money amount={kpis.totalRequested} withSymbol />
-    </KpiTile>
-    <KpiTile label="Approved">
-      <Money amount={kpis.totalApproved} withSymbol />
-    </KpiTile>
-    <KpiTile label="Released">
-      <Money amount={kpis.totalReleased} withSymbol />
-    </KpiTile>
-    <KpiTile label="Available">
-      <Money amount={kpis.contractorWithdrawalBalance} withSymbol />
-    </KpiTile>
-    <KpiTile label="Outstanding">
-      <Money amount={kpis.totalOutstandingFunded} withSymbol />
-    </KpiTile>
-    <KpiTile label="Held">
-      <Money amount={kpis.heldAmount} withSymbol />
-    </KpiTile>
-    <KpiTile
-      label="Active requests"
-      value={kpis.activeRequestCount.toString()}
-    />
-    <KpiTile label="Holds" value={kpis.heldRequestCount.toString()} />
-    <KpiTile
-      label="Evidence review"
-      value={kpis.evidenceAwaitingReviewCount.toString()}
-    />
-    <KpiTile
-      label="Doc requests"
-      value={kpis.documentRequestsOutstandingCount.toString()}
-    />
-  </dl>
-);
-
-const KpiTile = ({
+const LegendItem = ({
+  tone,
   label,
-  value,
-  children,
 }: {
+  tone: "completed" | "progress" | "estimated" | "unallocated";
   label: string;
-  value?: string;
-  children?: React.ReactNode;
 }) => (
-  <div className="dashboard2__kpi">
-    <dt>{label}</dt>
-    <dd>{children ?? value}</dd>
-  </div>
+  <span>
+    <i className={`dashboard2__legend-dot dashboard2__legend-dot--${tone}`} />
+    {label}
+  </span>
 );
 
-const ProjectQuickCard = ({ bundle }: { bundle: ProjectBundle }) => {
-  const detailHref = buildHash("projectDetail", {
-    address: bundle.rollup.address.toBase58(),
+const FundingRow = ({ bundle }: { bundle: ProjectBundle }) => {
+  const rollup = bundle.rollup;
+  const href = buildHash("projectDetail", {
+    address: rollup.address.toBase58(),
   });
-  const { rollup, metadata } = bundle;
+  const total = rollup.projectBudget > 0n ? rollup.projectBudget : 1n;
+  const segments = buildFundingSegments(bundle);
+
   return (
-    <li className="dashboard2__project">
-      <a className="dashboard2__project-link" href={detailHref}>
-        <div className="dashboard2__project-head">
-          <h3>{rollup.project.name}</h3>
-          <StatusPill
-            tone={rollup.project.status === "completed" ? "success" : "info"}
-          >
-            {projectStatusLabel(rollup.project.status)}
-          </StatusPill>
-        </div>
-        {metadata && (
-          <p className="dashboard2__project-client">
-            Client · <strong>{metadata.client}</strong>
-          </p>
-        )}
-        <dl className="dashboard2__project-metrics">
-          <KpiTile label="Packages" value={rollup.packageCount.toString()} />
-          <KpiTile label="Budget">
-            <Money amount={rollup.projectBudget} withSymbol />
-          </KpiTile>
-          <KpiTile label="Remaining">
-            <Money amount={rollup.remainingAllocatableBudget} withSymbol />
-          </KpiTile>
-          <KpiTile label="Released">
-            <Money amount={rollup.totalReleased} withSymbol />
-          </KpiTile>
-          <KpiTile label="Outstanding">
-            <Money amount={rollup.totalOutstandingFunded} withSymbol />
-          </KpiTile>
-        </dl>
-        {rollup.heldPackageCount > 0 && (
-          <p className="dashboard2__project-flags">
-            <StatusPill tone="warning">
-              {rollup.heldPackageCount} on hold
-            </StatusPill>
-          </p>
-        )}
+    <div className="dashboard2__chart-row">
+      <a className="dashboard2__chart-label" href={href}>
+        {rollup.project.name}
       </a>
-    </li>
+      <div className="dashboard2__chart-bar">
+        {segments.map((segment) => (
+          <a
+            key={segment.key}
+            className={`dashboard2__chart-segment dashboard2__chart-segment--${segment.tone}`}
+            href={segment.href ?? href}
+            title={segment.tooltip}
+            aria-label={segment.tooltip}
+            style={{
+              width: `${Math.max(Number((segment.amount * 10000n) / total) / 100, 2)}%`,
+            }}
+          />
+        ))}
+      </div>
+      <div className="dashboard2__chart-value">{projectDueLabel(bundle)}</div>
+    </div>
   );
 };
+
+interface FundingSegment {
+  key: string;
+  amount: bigint;
+  tone: "completed" | "progress" | "estimated" | "unallocated";
+  tooltip: string;
+  href?: string;
+}
+
+const buildFundingSegments = (bundle: ProjectBundle): FundingSegment[] => {
+  const segments: FundingSegment[] = [];
+  for (const pkg of bundle.packages) {
+    const packageHref = buildHash("workPackageView", {
+      address: pkg.address.toBase58(),
+    });
+
+    if (pkg.package.releasedAmount > 0n) {
+      segments.push({
+        key: `${pkg.address.toBase58()}-released`,
+        amount: pkg.package.releasedAmount,
+        tone: "completed",
+        tooltip: `${packageLabel(pkg, bundle.packageNames)} - released`,
+        href: packageHref,
+      });
+    }
+
+    const inProgress = pkg.package.fundedAmount - pkg.package.releasedAmount;
+    if (inProgress > 0n) {
+      segments.push({
+        key: `${pkg.address.toBase58()}-progress`,
+        amount: inProgress,
+        tone: "progress",
+        tooltip: `${packageLabel(pkg, bundle.packageNames)} - in progress`,
+        href: packageHref,
+      });
+    }
+
+    const estimated =
+      pkg.package.capAmount > pkg.package.fundedAmount
+        ? pkg.package.capAmount - pkg.package.fundedAmount
+        : 0n;
+    if (estimated > 0n) {
+      segments.push({
+        key: `${pkg.address.toBase58()}-estimated`,
+        amount: estimated,
+        tone: "estimated",
+        tooltip: `${packageLabel(pkg, bundle.packageNames)} - estimated`,
+        href: packageHref,
+      });
+    }
+  }
+
+  if (bundle.rollup.remainingAllocatableBudget > 0n) {
+    segments.push({
+      key: `${bundle.rollup.address.toBase58()}-unallocated`,
+      amount: bundle.rollup.remainingAllocatableBudget,
+      tone: "unallocated",
+      tooltip: "Unallocated budget",
+    });
+  }
+
+  return segments.length > 0
+    ? segments
+    : [
+        {
+          key: `${bundle.rollup.address.toBase58()}-empty`,
+          amount: 1n,
+          tone: "unallocated",
+          tooltip: "No allocated package budget yet",
+        },
+      ];
+};
+
+const packageLabel = (
+  pkg: PackageRollup,
+  names: Map<PublicKeyB58, string>,
+): string =>
+  names.get(pkg.address.toBase58()) ??
+  `Package #${pkg.package.packageId.toString()}`;
+
+const projectDueLabel = (bundle: ProjectBundle): string => {
+  if (bundle.rollup.project.status === "completed") return "Completed";
+  if (bundle.rollup.heldPackageCount > 0) return "Held";
+  if (bundle.rollup.packagesWithActiveRequest > 0) return "In review";
+  if (bundle.rollup.draftPackageCount > 0) return "Estimated";
+  return bundle.rollup.activePackageCount > 0 ? "In Progress" : "No packages";
+};
+
+const OutstandingTasks = ({ tasks }: { tasks: OutstandingTask[] }) => (
+  <section className="dashboard2__tasks-card">
+    <div className="dashboard2__panel-head">
+      <h2>Outstanding Tasks</h2>
+      <span className="dashboard2__panel-eyebrow">
+        {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
+      </span>
+    </div>
+    {tasks.length === 0 ? (
+      <p className="dashboard2__empty">Nothing waiting on you right now.</p>
+    ) : (
+      <ul className="dashboard2__tasks">
+        {tasks.map((task) => (
+          <li key={task.key} className="dashboard2__task">
+            <a className="dashboard2__task-link" href={task.href}>
+              <div className="dashboard2__task-body">
+                <p className="dashboard2__task-title">{task.title}</p>
+                <p className="dashboard2__task-meta">{task.meta}</p>
+              </div>
+              <div className="dashboard2__task-side">
+                <StatusPill tone={task.tone}>Open</StatusPill>
+                {task.amount !== null && (
+                  <span className="dashboard2__task-amount">
+                    <Money amount={task.amount} withSymbol />
+                  </span>
+                )}
+              </div>
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </section>
+);
+
+const RecentActivity = ({ events }: { events: EnrichedAuditEvent[] }) => (
+  <section className="dashboard2__recent-activity">
+    <div className="dashboard2__recent-head">
+      <svg
+        className="dashboard2__recent-arrow"
+        width="24"
+        height="24"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        aria-hidden="true"
+      >
+        <path d="M19 9l-7 7-7-7" />
+      </svg>
+      <h2>Recent Activity</h2>
+    </div>
+    {events.length === 0 ? (
+      <p className="dashboard2__empty">No activity yet.</p>
+    ) : (
+      <ol className="dashboard2__activity">
+        {events.map((event, idx) => (
+          <li
+            key={`${event.kind}-${event.at}-${idx}`}
+            className="dashboard2__event"
+          >
+            <span
+              className={`dashboard2__dot dashboard2__dot--${dotTone(
+                event.kind,
+              )}`}
+              aria-hidden="true"
+            />
+            <div className="dashboard2__event-body">
+              <p className="dashboard2__event-title">{event.label}</p>
+              <p className="dashboard2__event-meta">
+                {event.projectName} - {formatTimestamp(event.at)}
+                {event.actor && (
+                  <>
+                    {" "}
+                    -{" "}
+                    <span className="dashboard2__event-wallet">
+                      {shortAddress(event.actor.toBase58())}
+                    </span>
+                  </>
+                )}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    )}
+  </section>
+);
 
 const dotTone = (
   kind: AuditEventKind,
@@ -502,19 +620,6 @@ const dotTone = (
   }
 };
 
-const roleLead = (role: DemoRole): string => {
-  switch (role) {
-    case "financeDirector":
-      return "Cross-project funding, holds, and release readiness for every active package.";
-    case "projectManager":
-      return "Packages on your projects waiting for PM approval, plus team and document activity.";
-    case "director":
-      return "Payment requests waiting on an optional high-approval step.";
-    case "contractor":
-      return "Your assigned projects and packages, with submission and release status.";
-  }
-};
-
 const buildOutstandingTasks = (
   role: DemoRole,
   bundles: ProjectBundle[],
@@ -530,7 +635,7 @@ const buildOutstandingTasks = (
       tasks.push({
         key: `${entry.address}-${role}`,
         title: `${matches.action}: ${entry.workPackageName}`,
-        meta: `${bundle.rollup.project.name} · ${paymentRequestStatusLabel(
+        meta: `${bundle.rollup.project.name} - ${paymentRequestStatusLabel(
           status,
         )}`,
         href: buildHash("workPackageView", {
@@ -540,6 +645,7 @@ const buildOutstandingTasks = (
         tone: paymentRequestChipTone(status),
       });
     }
+
     if (role === "contractor") {
       for (const source of bundle.packageSources) {
         const available = source.requests
@@ -553,7 +659,10 @@ const buildOutstandingTasks = (
         if (available > 0n) {
           tasks.push({
             key: `withdraw-${source.rollup.address.toBase58()}`,
-            title: `Withdraw funds: package #${source.rollup.package.packageId.toString()}`,
+            title: `Withdraw funds: ${packageLabel(
+              source.rollup,
+              bundle.packageNames,
+            )}`,
             meta: `${bundle.rollup.project.name} - released, not yet cleared`,
             href: buildHash("workPackageView", {
               address: source.rollup.address.toBase58(),
@@ -563,19 +672,19 @@ const buildOutstandingTasks = (
           });
         }
       }
-      // Surface packages with no active request as a prompt to submit one.
+
       for (const pkg of bundle.packages) {
         if (
           pkg.hasActiveRequest ||
           pkg.package.status !== "active" ||
           pkg.package.fundedAmount === pkg.package.releasedAmount
-        )
+        ) {
           continue;
-        if (!pkg.package.contractor) continue;
+        }
         tasks.push({
           key: `submit-${pkg.address.toBase58()}`,
-          title: `Submit invoice: package #${pkg.package.packageId.toString()}`,
-          meta: `${bundle.rollup.project.name} · funded, no active request`,
+          title: `Submit invoice: ${packageLabel(pkg, bundle.packageNames)}`,
+          meta: `${bundle.rollup.project.name} - funded, no active request`,
           href: buildHash("workPackageView", {
             address: pkg.address.toBase58(),
           }),
@@ -594,17 +703,16 @@ const roleMatchesActiveRequest = (
 ): { action: string } | null => {
   switch (role) {
     case "financeDirector":
-      // Finance acts on requests ready for release, requests on hold, and
-      // requests stuck in any pre-release state (so they can place / remove
-      // a hold or escalate).
-      if (status === "lowApproved" || status === "highApproved")
+      if (status === "lowApproved" || status === "highApproved") {
         return { action: "Release" };
+      }
       if (
         status === "submittedOnHold" ||
         status === "lowApprovedOnHold" ||
         status === "highApprovedOnHold"
-      )
+      ) {
         return { action: "Review hold" };
+      }
       return null;
     case "projectManager":
       if (status === "submitted") return { action: "Approve as PM" };
@@ -616,8 +724,6 @@ const roleMatchesActiveRequest = (
       return null;
     case "contractor":
       if (status === "rejected") return { action: "Resubmit" };
-      // The contractor's own submitted invoices stay in the list as a
-      // status reminder until released.
       if (status === "submitted") return { action: "Awaiting PM" };
       if (status === "lowApproved") return { action: "Awaiting Finance" };
       if (status === "highApproved") return { action: "Awaiting Finance" };

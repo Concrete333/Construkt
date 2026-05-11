@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useClients } from "../components/clientsContext";
 import { Money } from "../components/Money";
@@ -32,7 +33,10 @@ import {
   selectReleaseReadiness,
 } from "../selectors/paymentSelectors";
 import { selectAuditTimeline } from "../selectors/auditSelectors";
-import { selectPackageRollup } from "../selectors/projectSelectors";
+import {
+  selectPackageRollup,
+  workPackageStatusLabel,
+} from "../selectors/projectSelectors";
 import type {
   ApprovalTracker,
   PaymentRequestDisplayStatus,
@@ -75,6 +79,8 @@ interface RequestRow {
   milestone: Fetched<MilestoneAccount> | null;
   isActive: boolean;
 }
+
+type WorkPackageRecordsTab = "audit" | "documents" | "payments";
 
 interface EnrichedAuditEvent extends AuditEvent {
   actorDisplayName: string | null;
@@ -238,10 +244,15 @@ export const WorkPackageViewPage = ({
       }
       enriched.reverse();
 
+      const assignedContractorName = pkg.contractor.equals(PublicKey.default)
+        ? null
+        : (teamByWallet.get(pkg.contractor.toBase58()) ?? null);
       const contractorDisplayName =
+        assignedContractorName ??
         scope?.contractorDisplayName ??
-        teamByWallet.get(pkg.contractor.toBase58()) ??
-        shortAddress(pkg.contractor.toBase58());
+        (pkg.contractor.equals(PublicKey.default)
+          ? "Unassigned estimate"
+          : shortAddress(pkg.contractor.toBase58()));
 
       const rollup = selectPackageRollup(
         wrappedPackage,
@@ -364,37 +375,41 @@ export const WorkPackageViewPage = ({
 
   return (
     <section className="work-package-view">
-      <a className="work-package-view__back" href={projectHref}>
-        ← Back to {project.account.name}
-      </a>
-
-      <header className="work-package-view__head">
-        <div className="work-package-view__title">
+      <header className="work-package-view__header">
+        <div className="work-package-view__heading">
+          <a className="work-package-view__back" href={projectHref}>
+            <span aria-hidden="true">←</span>
+            Back to project
+          </a>
           <p className="work-package-view__breadcrumb">
-            {projectMetadata?.client ?? "—"}
-            <span aria-hidden="true">·</span>
-            {project.account.name}
+            Projects -&gt; {project.account.name} -&gt; Work Package
           </p>
-          <h1>{heading}</h1>
-          <p className="work-package-view__contractor">
-            Contractor · <strong>{contractorDisplayName}</strong>
-            {scope?.contractorOrg && (
-              <>
-                <span aria-hidden="true">·</span>
-                {scope.contractorOrg}
-              </>
-            )}
+          <h1 className="work-package-view__page-title">{heading}</h1>
+          <p className="work-package-view__meta">
+            <span>{projectMetadata?.client ?? "Client pending"}</span>
+            <span>{contractorDisplayName}</span>
+            {scope?.contractorOrg && <span>{scope.contractorOrg}</span>}
           </p>
           {scope?.description && (
             <p className="work-package-view__scope">{scope.description}</p>
           )}
         </div>
-        <div className="work-package-view__addresses">
-          <Address label="Package" value={rollup.address} />
-          <Address label="Vault" value={rollup.package.vault} />
-          <Address label="Mint" value={rollup.package.mint} />
-        </div>
+        <CurrentActionCard
+          role={role}
+          rollup={rollup}
+          activeRequestRow={activeRequestRow}
+          releaseReadiness={releaseReadiness}
+          milestoneCount={milestones.length}
+        />
       </header>
+
+      <PackageInformationCard
+        projectName={project.account.name}
+        contractorName={contractorDisplayName}
+        contractorOrg={scope?.contractorOrg ?? null}
+        rollup={rollup}
+        milestoneCount={milestones.length}
+      />
 
       <div className="work-package-view__columns">
         <main className="work-package-view__main">
@@ -406,29 +421,26 @@ export const WorkPackageViewPage = ({
             requests={requests}
           />
 
-          <section className="work-package-view__panel">
-            <div className="work-package-view__panel-head">
-              <h2>Payment requests</h2>
-              <span className="work-package-view__panel-eyebrow">
-                {requests.length} total
-              </span>
-            </div>
-            {requests.length === 0 ? (
-              <p className="work-package-view__empty">
-                No payment requests submitted yet.
-              </p>
-            ) : (
-              <ul className="work-package-view__requests">
-                {requests.map((row) => (
-                  <RequestCard
-                    key={row.request.address.toBase58()}
-                    row={row}
-                    highApprovalRequired={rollup.package.highApprovalRequired}
-                  />
-                ))}
-              </ul>
-            )}
-          </section>
+          <WorkPackageRecordsPanel
+            requests={requests}
+            highApprovalRequired={rollup.package.highApprovalRequired}
+            timeline={timeline}
+            role={role}
+            wallet={wallet}
+            walletDisplayName={walletDisplayName}
+            contractor={rollup.package.contractor}
+            activeRequest={activeRequest}
+            activeRequestRow={activeRequestRow}
+            activeRequestAddress={activeRequestAddress}
+            documentRequests={documentRequests}
+            project={loaded.project.address}
+            workPackage={loaded.packageAddress}
+            pending={pending}
+            onAct={onAct}
+            onMetadataChange={onMetadataChange}
+            client={client}
+            metadataWriter={metadataWriter}
+          />
 
           <section className="work-package-view__panel">
             <div className="work-package-view__panel-head">
@@ -449,82 +461,6 @@ export const WorkPackageViewPage = ({
               pending={pending}
               onMetadataChange={onMetadataChange}
             />
-          </section>
-
-          <section className="work-package-view__panel">
-            <div className="work-package-view__panel-head">
-              <h2>Documents</h2>
-              <span className="work-package-view__panel-eyebrow">
-                Linked to active or past requests
-              </span>
-            </div>
-            <DocumentPanel
-              rows={requests}
-              role={role}
-              wallet={wallet}
-              walletDisplayName={walletDisplayName}
-              contractor={rollup.package.contractor}
-              activeRequest={activeRequest}
-              activeRequestRow={activeRequestRow}
-              activeRequestAddress={activeRequestAddress}
-              documentRequests={documentRequests}
-              project={loaded.project.address}
-              workPackage={loaded.packageAddress}
-              pending={pending}
-              onAct={onAct}
-              onMetadataChange={onMetadataChange}
-              client={client}
-              metadataWriter={metadataWriter}
-            />
-          </section>
-
-          <section className="work-package-view__panel">
-            <div className="work-package-view__panel-head">
-              <h2>Audit log</h2>
-              <span className="work-package-view__panel-eyebrow">
-                Package events only
-              </span>
-            </div>
-            {timeline.length === 0 ? (
-              <p className="work-package-view__empty">
-                No package activity yet.
-              </p>
-            ) : (
-              <ol className="work-package-view__timeline">
-                {timeline.map((event, idx) => (
-                  <li
-                    key={`${event.kind}-${event.at}-${idx}`}
-                    className="work-package-view__event"
-                  >
-                    <time className="work-package-view__event-time">
-                      {formatTimestamp(event.at)}
-                    </time>
-                    <div className="work-package-view__event-body">
-                      <p className="work-package-view__event-label">
-                        {event.actorDisplayName ? (
-                          <>
-                            <strong>{event.actorDisplayName}</strong> ·{" "}
-                          </>
-                        ) : event.actor ? (
-                          <>
-                            <span className="work-package-view__event-wallet">
-                              {shortAddress(event.actor.toBase58())}
-                            </span>{" "}
-                            ·{" "}
-                          </>
-                        ) : null}
-                        {event.label}
-                      </p>
-                      {event.detail && (
-                        <p className="work-package-view__event-detail">
-                          {event.detail}
-                        </p>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            )}
           </section>
         </main>
 
@@ -628,12 +564,157 @@ const BackLink = () => (
   </a>
 );
 
-const Address = ({ label, value }: { label: string; value: PublicKey }) => (
-  <div className="work-package-view__address">
-    <span className="work-package-view__address-label">{label}</span>
-    <code className="work-package-view__address-value">
-      {shortAddress(value.toBase58(), { head: 6, tail: 6 })}
-    </code>
+const CurrentActionCard = ({
+  role,
+  rollup,
+  activeRequestRow,
+  releaseReadiness,
+  milestoneCount,
+}: {
+  role: DemoRole;
+  rollup: PackageRollup;
+  activeRequestRow: RequestRow | null;
+  releaseReadiness: ReleaseReadiness | null;
+  milestoneCount: number;
+}) => {
+  const status = activeRequestRow?.displayStatus ?? null;
+  const request = activeRequestRow?.request.account ?? null;
+  const milestoneLabel = activeRequestRow?.milestone
+    ? `Milestone ${activeRequestRow.milestone.account.milestoneId.toString()}`
+    : milestoneCount > 0
+      ? `${milestoneCount} milestone rules`
+      : "Package-level request";
+
+  let title = "Package status";
+  let detail = workPackageStatusLabel(rollup.package.status);
+  let tone: "neutral" | "info" | "warning" | "success" | "error" = "neutral";
+
+  if (request && activeRequestRow) {
+    title =
+      role === "projectManager" && status === "submitted"
+        ? "Review submitted evidence"
+        : role === "financeDirector" && releaseReadiness?.ready
+          ? "Release-ready payment"
+          : role === "director" && status === "lowApproved"
+            ? "Director approval required"
+            : role === "contractor"
+              ? "Invoice in review"
+              : "Active payment request";
+    detail = `${paymentRequestStatusLabel(
+      activeRequestRow.displayStatus,
+    )} - ${milestoneLabel}`;
+    tone = paymentRequestChipTone(activeRequestRow.displayStatus);
+  } else if (
+    role === "contractor" &&
+    rollup.package.status === "active" &&
+    rollup.package.releasedAmount < rollup.package.capAmount
+  ) {
+    title = "Submit invoice";
+    detail =
+      milestoneCount > 0
+        ? "Choose an available milestone before submitting."
+        : "Submit against the package balance.";
+    tone = "info";
+  } else if (
+    role === "financeDirector" &&
+    rollup.package.status === "active" &&
+    rollup.remainingCapacity > 0n
+  ) {
+    title = "Fund remaining escrow";
+    detail = `${formatMockUsdc(rollup.remainingCapacity, {
+      withSymbol: true,
+    })} remains unfunded.`;
+    tone = "warning";
+  } else if (rollup.package.status === "completed") {
+    title = "Package complete";
+    detail = "All package funds have been released.";
+    tone = "success";
+  }
+
+  return (
+    <aside className="work-package-view__current-action">
+      <span className="work-package-view__current-eyebrow">
+        {DEMO_ROLE_LABEL[role]}
+      </span>
+      <h2>{title}</h2>
+      <p>{detail}</p>
+      <StatusPill tone={tone}>
+        {request && activeRequestRow
+          ? paymentRequestStatusLabel(activeRequestRow.displayStatus)
+          : workPackageStatusLabel(rollup.package.status)}
+      </StatusPill>
+    </aside>
+  );
+};
+
+const PackageInformationCard = ({
+  projectName,
+  contractorName,
+  contractorOrg,
+  rollup,
+  milestoneCount,
+}: {
+  projectName: string;
+  contractorName: string;
+  contractorOrg: string | null;
+  rollup: PackageRollup;
+  milestoneCount: number;
+}) => (
+  <section className="work-package-view__info-card">
+    <h2 className="work-package-view__info-heading">Package Information</h2>
+    <div className="work-package-view__info-grid">
+      <InfoItem label="Project">{projectName}</InfoItem>
+      <InfoItem label="Amount">
+        <Money amount={rollup.package.capAmount} withSymbol />
+      </InfoItem>
+      <InfoItem label="Status">
+        <StatusPill
+          tone={
+            rollup.package.status === "completed"
+              ? "success"
+              : rollup.package.status === "cancelled"
+                ? "error"
+                : rollup.package.status === "draft"
+                  ? "warning"
+                  : "info"
+          }
+        >
+          {workPackageStatusLabel(rollup.package.status)}
+        </StatusPill>
+      </InfoItem>
+      <InfoItem label="Funded">
+        <Money amount={rollup.package.fundedAmount} withSymbol />
+      </InfoItem>
+      <InfoItem label="Released">
+        <Money amount={rollup.package.releasedAmount} withSymbol />
+      </InfoItem>
+      <InfoItem label="Contractor">
+        {contractorOrg
+          ? `${contractorName} - ${contractorOrg}`
+          : contractorName}
+      </InfoItem>
+      <InfoItem label="Package Type">
+        {milestoneCount > 0 ? "Milestone package" : "Package payment"}
+      </InfoItem>
+      <InfoItem label="Approval Policy">
+        {rollup.package.highApprovalRequired
+          ? "PM + Director approval"
+          : "PM approval"}
+      </InfoItem>
+    </div>
+  </section>
+);
+
+const InfoItem = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) => (
+  <div className="work-package-view__info-item">
+    <span className="work-package-view__info-label">{label}</span>
+    <span className="work-package-view__info-value">{children}</span>
   </div>
 );
 
@@ -789,6 +870,165 @@ const MilestoneSchedulePanel = ({
             );
           })}
       </ol>
+    </section>
+  );
+};
+
+const RECORD_TABS: Array<{ id: WorkPackageRecordsTab; label: string }> = [
+  { id: "audit", label: "Audit Trail" },
+  { id: "documents", label: "Documents" },
+  { id: "payments", label: "Payments" },
+];
+
+const WorkPackageRecordsPanel = ({
+  requests,
+  highApprovalRequired,
+  timeline,
+  role,
+  wallet,
+  walletDisplayName,
+  contractor,
+  activeRequest,
+  activeRequestRow,
+  activeRequestAddress,
+  documentRequests,
+  project,
+  workPackage,
+  pending,
+  onAct,
+  onMetadataChange,
+  client,
+  metadataWriter,
+}: {
+  requests: RequestRow[];
+  highApprovalRequired: boolean;
+  timeline: EnrichedAuditEvent[];
+  role: DemoRole;
+  wallet: PublicKey;
+  walletDisplayName: string | null;
+  contractor: PublicKey;
+  activeRequest: PaymentRequestAccount | null;
+  activeRequestRow: RequestRow | null;
+  activeRequestAddress: PublicKey | null;
+  documentRequests: Array<[string, DocumentRequestMetadata]>;
+  project: PublicKey;
+  workPackage: PublicKey;
+  pending: boolean;
+  onAct: (op: () => Promise<{ signature: string }>) => Promise<void>;
+  onMetadataChange: (message: string) => void;
+  client: ReturnType<typeof useClients>["client"];
+  metadataWriter: MetadataWriter | null;
+}) => {
+  const [activeTab, setActiveTab] = useState<WorkPackageRecordsTab>("audit");
+
+  return (
+    <section className="work-package-view__panel work-package-view__records">
+      <div className="work-package-view__tabs">
+        <div
+          className="work-package-view__tab-buttons"
+          role="tablist"
+          aria-label="Work package records"
+        >
+          {RECORD_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`work-package-view__tab ${
+                activeTab === tab.id ? "is-active" : ""
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <span className="work-package-view__panel-eyebrow">
+          Work package records
+        </span>
+      </div>
+
+      {activeTab === "payments" && (
+        <>
+          {requests.length === 0 ? (
+            <p className="work-package-view__empty">
+              No payment requests submitted yet.
+            </p>
+          ) : (
+            <ul className="work-package-view__requests">
+              {requests.map((row) => (
+                <RequestCard
+                  key={row.request.address.toBase58()}
+                  row={row}
+                  highApprovalRequired={highApprovalRequired}
+                />
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {activeTab === "documents" && (
+        <DocumentPanel
+          rows={requests}
+          role={role}
+          wallet={wallet}
+          walletDisplayName={walletDisplayName}
+          contractor={contractor}
+          activeRequest={activeRequest}
+          activeRequestRow={activeRequestRow}
+          activeRequestAddress={activeRequestAddress}
+          documentRequests={documentRequests}
+          project={project}
+          workPackage={workPackage}
+          pending={pending}
+          onAct={onAct}
+          onMetadataChange={onMetadataChange}
+          client={client}
+          metadataWriter={metadataWriter}
+        />
+      )}
+
+      {activeTab === "audit" &&
+        (timeline.length === 0 ? (
+          <p className="work-package-view__empty">No package activity yet.</p>
+        ) : (
+          <ol className="work-package-view__timeline">
+            {timeline.map((event, idx) => (
+              <li
+                key={`${event.kind}-${event.at}-${idx}`}
+                className="work-package-view__event"
+              >
+                <time className="work-package-view__event-time">
+                  {formatTimestamp(event.at)}
+                </time>
+                <div className="work-package-view__event-body">
+                  <p className="work-package-view__event-label">
+                    {event.actorDisplayName ? (
+                      <>
+                        <strong>{event.actorDisplayName}</strong> ·{" "}
+                      </>
+                    ) : event.actor ? (
+                      <>
+                        <span className="work-package-view__event-wallet">
+                          {shortAddress(event.actor.toBase58())}
+                        </span>{" "}
+                        ·{" "}
+                      </>
+                    ) : null}
+                    {event.label}
+                  </p>
+                  {event.detail && (
+                    <p className="work-package-view__event-detail">
+                      {event.detail}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
+        ))}
     </section>
   );
 };
@@ -1038,8 +1278,8 @@ const ReleaseReadinessPanel = ({
         <>
           <StatusPill tone="success">Ready to release</StatusPill>
           <p className="work-package-view__aside-note">
-            All on-chain guards pass for this request. Finance can release the
-            funded amount to the contractor token account.
+            All approval and funding checks pass for this request. Finance can
+            release the payment to the contractor.
           </p>
         </>
       ) : (
@@ -1164,7 +1404,7 @@ const RolesPanel = ({
     try {
       assignedWallet = new PublicKey(assignWalletText.trim());
     } catch {
-      setAssignWalletError("Invalid wallet address");
+      setAssignWalletError("Invalid team member address");
       return;
     }
     setAssignWalletError(null);
@@ -1200,7 +1440,7 @@ const RolesPanel = ({
           ) : (
             <div className="work-package-view__reject-form">
               <label className="work-package-view__reject-label">
-                Wallet address
+                Team member address
               </label>
               <input
                 className="work-package-view__reject-input"
@@ -1211,7 +1451,7 @@ const RolesPanel = ({
                   setAssignWalletError(null);
                 }}
                 disabled={pending}
-                placeholder="base58 public key"
+                placeholder="Team member account address"
               />
               {assignWalletError && (
                 <p className="work-package-view__form-error">
@@ -1765,6 +2005,7 @@ const ActionPanel = ({
   const [rejectText, setRejectText] = useState("");
   const [holdOpen, setHoldOpen] = useState(false);
   const [holdText, setHoldText] = useState("");
+  const [releaseOpen, setReleaseOpen] = useState(false);
 
   const [invoiceOpen, setInvoiceOpen] = useState(false);
   const [invoiceAmount, setInvoiceAmount] = useState("");
@@ -1808,6 +2049,73 @@ const ActionPanel = ({
     contractorIsSelf &&
     packageStatus === "active" &&
     (!activeRequest || (isMilestonePackage && hasInvoiceableMilestone));
+  const requestLabel = activeRequest
+    ? `Request #${activeRequest.request.account.requestId.toString()}`
+    : null;
+  const targetLabel = activeRequest?.milestone
+    ? `Milestone ${activeRequest.milestone.account.milestoneId.toString()}`
+    : isMilestonePackage
+      ? "milestone payment"
+      : "package payment";
+  const actionCopy = (() => {
+    if (canPmApprove && requestLabel) {
+      return {
+        title: "Review submitted evidence",
+        body: `${requestLabel} is waiting for PM approval against ${targetLabel}.`,
+      };
+    }
+    if (canHighApprove && requestLabel) {
+      return {
+        title: "Director approval required",
+        body: `${requestLabel} has PM approval and needs the Director approval step before release.`,
+      };
+    }
+    if (canRelease && requestLabel) {
+      return {
+        title: "Release-ready payment",
+        body: `${requestLabel} has approval and can be checked for release.`,
+      };
+    }
+    if (canRemoveHold && requestLabel) {
+      return {
+        title: "Payment on hold",
+        body: `${requestLabel} is held. Remove the hold when the issue is resolved.`,
+      };
+    }
+    if (canPlaceHold && requestLabel) {
+      return {
+        title: "Review chain state",
+        body: `${requestLabel} is in progress. Finance can place a hold if release should pause.`,
+      };
+    }
+    if (canSubmitInvoice) {
+      return {
+        title: "Prepare payment request",
+        body: isMilestonePackage
+          ? "Select an available milestone, add evidence, and submit the invoice for PM review."
+          : "Add evidence and submit an invoice against this package for PM review.",
+      };
+    }
+    if (activeRequest && requestLabel) {
+      return {
+        title: "Track payment request",
+        body: `${requestLabel} is currently ${paymentRequestStatusLabel(
+          status ?? "submitted",
+        ).toLowerCase()}.`,
+      };
+    }
+    return {
+      title: "No blocking action",
+      body:
+        role === "financeDirector"
+          ? "This package is up to date for Finance."
+          : role === "projectManager"
+            ? "This package is up to date for the Project Manager."
+            : role === "contractor" && !contractorIsSelf
+              ? "Read-only: this package is assigned to another contractor."
+              : "This package is up to date for your current role.",
+    };
+  })();
 
   const composeNoteRef = (
     kind: "approve" | "reject",
@@ -1889,7 +2197,7 @@ const ActionPanel = ({
         paymentRequest: requestAddr,
         contractorTokenAccount: contractor,
       }),
-    );
+    ).then(() => setReleaseOpen(false));
   };
 
   const onPlaceHold = () => {
@@ -1990,8 +2298,12 @@ const ActionPanel = ({
 
   return (
     <section className="work-package-view__aside-panel work-package-view__action-panel">
-      <h2>Actions</h2>
+      <h2>Package Actions</h2>
       <p className="work-package-view__aside-eyebrow">{eyebrow}</p>
+      <div className="work-package-view__action-summary">
+        <h3>{actionCopy.title}</h3>
+        <p>{actionCopy.body}</p>
+      </div>
 
       {!activeRequest && !isContractorAction && (
         <p className="work-package-view__empty">
@@ -2014,106 +2326,122 @@ const ActionPanel = ({
               onClick={() => setInvoiceOpen(true)}
               disabled={pending}
             >
-              Submit invoice…
+              Submit invoice
             </button>
           ) : (
-            <div className="work-package-view__reject-form">
-              {isMilestonePackage && (
-                <>
-                  <label className="work-package-view__reject-label">
-                    Milestone
-                  </label>
-                  <select
-                    className="work-package-view__reject-input"
-                    value={invoiceMilestone}
-                    onChange={(e) => {
-                      setInvoiceMilestone(e.target.value);
+            <div className="work-package-view__action-modal-overlay">
+              <div
+                className="work-package-view__reject-form work-package-view__action-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Submit invoice"
+              >
+                <div className="work-package-view__action-modal-head">
+                  <h3>Submit invoice</h3>
+                  <p>
+                    Link this payment request to the right release rule before
+                    PM review.
+                  </p>
+                </div>
+                {isMilestonePackage && (
+                  <>
+                    <label className="work-package-view__reject-label">
+                      Milestone
+                    </label>
+                    <select
+                      className="work-package-view__reject-input"
+                      value={invoiceMilestone}
+                      onChange={(e) => {
+                        setInvoiceMilestone(e.target.value);
+                        setInvoiceAmountError(null);
+                      }}
+                      disabled={pending}
+                    >
+                      <option value="">Select milestone</option>
+                      {[...milestones]
+                        .sort((a, b) =>
+                          a.account.milestoneId < b.account.milestoneId
+                            ? -1
+                            : 1,
+                        )
+                        .filter((m) => m.account.status === "active")
+                        .map((m) => (
+                          <option
+                            key={m.address.toBase58()}
+                            value={m.address.toBase58()}
+                            disabled={m.account.hasActiveRequest}
+                          >
+                            {m.account.milestoneId.toString()} -{" "}
+                            {m.account.hasActiveRequest
+                              ? "request active"
+                              : "available"}{" "}
+                            -{" "}
+                            {formatMockUsdc(m.account.amount, {
+                              withSymbol: true,
+                            })}
+                          </option>
+                        ))}
+                    </select>
+                  </>
+                )}
+                <label className="work-package-view__reject-label">
+                  Invoice amount
+                </label>
+                <input
+                  className="work-package-view__reject-input"
+                  type="text"
+                  value={invoiceAmount}
+                  onChange={(e) => {
+                    setInvoiceAmount(e.target.value);
+                    setInvoiceAmountError(null);
+                  }}
+                  placeholder="e.g. 25000"
+                  disabled={pending}
+                />
+                {invoiceAmountError && (
+                  <p className="work-package-view__form-error">
+                    {invoiceAmountError}
+                  </p>
+                )}
+                <label className="work-package-view__reject-label">
+                  Document (optional filename)
+                </label>
+                <input
+                  className="work-package-view__reject-input"
+                  type="text"
+                  value={invoiceDoc}
+                  onChange={(e) => setInvoiceDoc(e.target.value)}
+                  placeholder="Invoice.pdf"
+                  disabled={pending}
+                />
+                <div className="work-package-view__reject-actions">
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--ghost"
+                    onClick={() => {
+                      setInvoiceOpen(false);
+                      setInvoiceAmount("");
                       setInvoiceAmountError(null);
+                      setInvoiceDoc("");
+                      setInvoiceMilestone("");
                     }}
                     disabled={pending}
                   >
-                    <option value="">Select milestone</option>
-                    {[...milestones]
-                      .sort((a, b) =>
-                        a.account.milestoneId < b.account.milestoneId ? -1 : 1,
-                      )
-                      .filter((m) => m.account.status === "active")
-                      .map((m) => (
-                        <option
-                          key={m.address.toBase58()}
-                          value={m.address.toBase58()}
-                          disabled={m.account.hasActiveRequest}
-                        >
-                          {m.account.milestoneId.toString()} -{" "}
-                          {m.account.hasActiveRequest
-                            ? "request active"
-                            : "available"}{" "}
-                          -{" "}
-                          {formatMockUsdc(m.account.amount, {
-                            withSymbol: true,
-                          })}
-                        </option>
-                      ))}
-                  </select>
-                </>
-              )}
-              <label className="work-package-view__reject-label">
-                Invoice amount
-              </label>
-              <input
-                className="work-package-view__reject-input"
-                type="text"
-                value={invoiceAmount}
-                onChange={(e) => {
-                  setInvoiceAmount(e.target.value);
-                  setInvoiceAmountError(null);
-                }}
-                placeholder="e.g. 25000"
-                disabled={pending}
-              />
-              {invoiceAmountError && (
-                <p className="work-package-view__form-error">
-                  {invoiceAmountError}
-                </p>
-              )}
-              <label className="work-package-view__reject-label">
-                Document (optional filename)
-              </label>
-              <input
-                className="work-package-view__reject-input"
-                type="text"
-                value={invoiceDoc}
-                onChange={(e) => setInvoiceDoc(e.target.value)}
-                placeholder="Invoice.pdf"
-                disabled={pending}
-              />
-              <div className="work-package-view__reject-actions">
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--ghost"
-                  onClick={() => {
-                    setInvoiceOpen(false);
-                    setInvoiceAmount("");
-                    setInvoiceAmountError(null);
-                    setInvoiceDoc("");
-                    setInvoiceMilestone("");
-                  }}
-                  disabled={pending}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--primary"
-                  onClick={onSubmitInvoice}
-                  disabled={
-                    pending ||
-                    invoiceAmount.trim().length === 0 ||
-                    (isMilestonePackage && invoiceMilestone.length === 0)
-                  }
-                >
-                  Submit invoice
-                </button>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--primary"
+                    onClick={onSubmitInvoice}
+                    disabled={
+                      pending ||
+                      invoiceAmount.trim().length === 0 ||
+                      (isMilestonePackage && invoiceMilestone.length === 0)
+                    }
+                  >
+                    Submit invoice
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -2128,7 +2456,7 @@ const ActionPanel = ({
             onClick={onApprove}
             disabled={pending}
           >
-            Approve as PM
+            Approve request
           </button>
         </div>
       )}
@@ -2141,7 +2469,7 @@ const ActionPanel = ({
             onClick={onApprove}
             disabled={pending}
           >
-            Approve high step
+            Approve director step
           </button>
         </div>
       )}
@@ -2151,11 +2479,52 @@ const ActionPanel = ({
           <button
             type="button"
             className="work-package-view__btn work-package-view__btn--primary"
-            onClick={onRelease}
+            onClick={() => setReleaseOpen(true)}
             disabled={pending}
           >
-            Release payment
+            Release funds
           </button>
+        </div>
+      )}
+
+      {releaseOpen && activeRequest && (
+        <div className="work-package-view__action-modal-overlay">
+          <div
+            className="work-package-view__reject-form work-package-view__action-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Release funds"
+          >
+            <div className="work-package-view__action-modal-head">
+              <h3>Release funds</h3>
+              <p>
+                Confirm release of{" "}
+                <Money
+                  amount={activeRequest.request.account.amount}
+                  withSymbol
+                />{" "}
+                from escrow to the assigned contractor.
+              </p>
+            </div>
+            <div className="work-package-view__reject-actions">
+              <button
+                type="button"
+                className="work-package-view__btn work-package-view__btn--ghost"
+                onClick={() => setReleaseOpen(false)}
+                disabled={pending}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="work-package-view__btn work-package-view__btn--primary"
+                onClick={onRelease}
+                disabled={pending}
+              >
+                Confirm release
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -2181,41 +2550,55 @@ const ActionPanel = ({
               onClick={() => setHoldOpen(true)}
               disabled={pending}
             >
-              Place hold…
+              Place hold
             </button>
           ) : (
-            <div className="work-package-view__reject-form">
-              <label className="work-package-view__reject-label">
-                Reason (recorded with the hold)
-              </label>
-              <textarea
-                className="work-package-view__reject-input"
-                value={holdText}
-                onChange={(e) => setHoldText(e.target.value)}
-                rows={3}
-                disabled={pending}
-                placeholder="Why is this request being held?"
-              />
-              <div className="work-package-view__reject-actions">
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--ghost"
-                  onClick={() => {
-                    setHoldOpen(false);
-                    setHoldText("");
-                  }}
+            <div className="work-package-view__action-modal-overlay">
+              <div
+                className="work-package-view__reject-form work-package-view__action-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Place hold"
+              >
+                <div className="work-package-view__action-modal-head">
+                  <h3>Place hold</h3>
+                  <p>
+                    Record why Finance is pausing this payment request before
+                    release.
+                  </p>
+                </div>
+                <label className="work-package-view__reject-label">
+                  Reason (recorded with the hold)
+                </label>
+                <textarea
+                  className="work-package-view__reject-input"
+                  value={holdText}
+                  onChange={(e) => setHoldText(e.target.value)}
+                  rows={3}
                   disabled={pending}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--danger"
-                  onClick={onPlaceHold}
-                  disabled={pending || holdText.trim().length === 0}
-                >
-                  Place hold
-                </button>
+                  placeholder="Why is this request being held?"
+                />
+                <div className="work-package-view__reject-actions">
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--ghost"
+                    onClick={() => {
+                      setHoldOpen(false);
+                      setHoldText("");
+                    }}
+                    disabled={pending}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--danger"
+                    onClick={onPlaceHold}
+                    disabled={pending || holdText.trim().length === 0}
+                  >
+                    Place hold
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -2231,41 +2614,55 @@ const ActionPanel = ({
               onClick={() => setRejectOpen(true)}
               disabled={pending}
             >
-              Reject…
+              Reject
             </button>
           ) : (
-            <div className="work-package-view__reject-form">
-              <label className="work-package-view__reject-label">
-                Reason (will be recorded on the approval record)
-              </label>
-              <textarea
-                className="work-package-view__reject-input"
-                value={rejectText}
-                onChange={(e) => setRejectText(e.target.value)}
-                rows={3}
-                disabled={pending}
-                placeholder="What needs to change before this can be approved?"
-              />
-              <div className="work-package-view__reject-actions">
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--ghost"
-                  onClick={() => {
-                    setRejectOpen(false);
-                    setRejectText("");
-                  }}
+            <div className="work-package-view__action-modal-overlay">
+              <div
+                className="work-package-view__reject-form work-package-view__action-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-label="Reject request"
+              >
+                <div className="work-package-view__action-modal-head">
+                  <h3>Reject request</h3>
+                  <p>
+                    Leave an approval note so the contractor can see what needs
+                    to change.
+                  </p>
+                </div>
+                <label className="work-package-view__reject-label">
+                  Reason (will be recorded on the approval record)
+                </label>
+                <textarea
+                  className="work-package-view__reject-input"
+                  value={rejectText}
+                  onChange={(e) => setRejectText(e.target.value)}
+                  rows={3}
                   disabled={pending}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="work-package-view__btn work-package-view__btn--danger"
-                  onClick={onReject}
-                  disabled={pending || rejectText.trim().length === 0}
-                >
-                  Reject request
-                </button>
+                  placeholder="What needs to change before this can be approved?"
+                />
+                <div className="work-package-view__reject-actions">
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--ghost"
+                    onClick={() => {
+                      setRejectOpen(false);
+                      setRejectText("");
+                    }}
+                    disabled={pending}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="work-package-view__btn work-package-view__btn--danger"
+                    onClick={onReject}
+                    disabled={pending || rejectText.trim().length === 0}
+                  >
+                    Reject request
+                  </button>
+                </div>
               </div>
             </div>
           )}

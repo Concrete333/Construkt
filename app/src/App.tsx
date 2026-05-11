@@ -1,8 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import type { ReactNode } from "react";
 import { AppShell } from "./components/AppShell";
 import { ClientsProvider } from "./components/ClientsProvider";
-import { useClients } from "./components/clientsContext";
 import { Dashboard2Page } from "./pages/Dashboard2Page";
 import { ProjectListPage } from "./pages/ProjectListPage";
 import { ProjectDetailPage } from "./pages/ProjectDetailPage";
@@ -12,17 +10,20 @@ import { WorkPackageViewPage } from "./pages/WorkPackageViewPage";
 import { buildAnchorClients, buildDemoClients } from "./lib/clients";
 import { applyTheme, nextTheme } from "./lib/theme";
 import { useHashRoute } from "./lib/router";
-import { walletForRole } from "./lib/clients";
 import type { ParsedRoute } from "./lib/router";
 import type { DemoNetwork, DemoRole, ThemeMode } from "./lib/theme";
 import "./App.css";
 
 const App = () => {
   const [theme, setTheme] = useState<ThemeMode>("light");
-  const [network] = useState<DemoNetwork>("localnet");
   const [role, setRole] = useState<DemoRole>("financeDirector");
   const route = useHashRoute();
   const rpc = import.meta.env.VITE_ANCHOR_RPC as string | undefined;
+  const network: DemoNetwork = rpc
+    ? rpc.toLowerCase().includes("devnet")
+      ? "devnet"
+      : "localnet"
+    : "mock";
 
   useEffect(() => {
     applyTheme(theme);
@@ -39,18 +40,19 @@ const App = () => {
     onChangeRole: setRole,
     theme,
     onToggleTheme: () => setTheme((t) => nextTheme(t)),
+    route: route.key,
   };
 
   return (
     <ClientsProvider
       buildClients={buildClients}
       fallback={
-        <AppShell header={{ ...headerCommon, wallet: null }}>
+        <AppShell header={headerCommon}>
           <DemoSeedingNotice />
         </AppShell>
       }
     >
-      <SeededShell headerCommon={headerCommon}>
+      <AppShell header={headerCommon}>
         <RouteSwitch
           route={route}
           role={role}
@@ -58,20 +60,9 @@ const App = () => {
           network={network}
           onSelectRole={setRole}
         />
-      </SeededShell>
+      </AppShell>
     </ClientsProvider>
   );
-};
-
-interface SeededShellProps {
-  headerCommon: Omit<React.ComponentProps<typeof AppShell>["header"], "wallet">;
-  children: ReactNode;
-}
-
-const SeededShell = ({ headerCommon, children }: SeededShellProps) => {
-  const { world } = useClients();
-  const wallet = walletForRole(world, headerCommon.role);
-  return <AppShell header={{ ...headerCommon, wallet }}>{children}</AppShell>;
 };
 
 const RouteSwitch = ({
@@ -112,20 +103,23 @@ const HomePlaceholder = () => (
     <h1>Clean approvals for work-package payments.</h1>
     <p className="home-placeholder__lead">
       Construkt keeps finance, site teams, and contractors aligned on package
-      funding, request status, approval progress, and release readiness. The
-      integrated app shell is in place; project, dashboard, and work-package
-      surfaces land in the next steps.
+      funding, request status, approval progress, and release readiness. Use the
+      dashboard for the walkthrough or open projects to create and manage
+      packages.
     </p>
     <div className="home-placeholder__cta">
       <a className="home-placeholder__button" href="#signin">
         Sign in to demo
+      </a>
+      <a className="home-placeholder__button" href="#dashboard2">
+        Open dashboard
       </a>
     </div>
   </section>
 );
 
 const DemoSeedingNotice = () => (
-  <div className="home-placeholder__loading">Seeding demo data…</div>
+  <div className="home-placeholder__loading">Seeding demo data...</div>
 );
 
 export default App;

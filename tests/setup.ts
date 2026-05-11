@@ -345,6 +345,24 @@ export const createFixture = () => {
     return milestone;
   };
 
+  const setDraftContractorForTest = async (
+    packageAddresses: { workPackage: anchor.web3.PublicKey },
+    packageContractor = contractor.publicKey,
+    drafter = pm,
+    projectDrafter = deriveProjectDrafterAddress(project, drafter.publicKey)
+  ) => {
+    await program.methods
+      .setDraftContractor(packageContractor)
+      .accountsStrict({
+        drafter: drafter.publicKey,
+        project,
+        projectDrafter,
+        workPackage: packageAddresses.workPackage,
+      })
+      .signers([drafter])
+      .rpc();
+  };
+
   const activateWorkPackageForTest = async (packageAddresses: {
     workPackage: anchor.web3.PublicKey;
     vaultAuthority: anchor.web3.PublicKey;
@@ -527,6 +545,7 @@ export const createFixture = () => {
     setProjectDrafterActiveForTest,
     createPackageDraftForTest,
     createDraftMilestoneForTest,
+    setDraftContractorForTest,
     activateWorkPackageForTest,
     createMilestoneForTest,
     fundPackage,

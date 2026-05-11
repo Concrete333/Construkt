@@ -52,6 +52,7 @@ import type {
   ProjectStatus,
   RejectRequestParams,
   ReleasePaymentParams,
+  SetDraftContractorParams,
   UpdateHighApprovalPolicyParams,
   RemoveHoldParams,
   Role,
@@ -839,6 +840,33 @@ class AnchorConstruktClient implements ConstruktClient {
           projectDrafter,
           workPackage,
           systemProgram: SystemProgram.programId,
+        })
+        .signers(this.extraSigners(params.drafter))
+        .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async setDraftContractor(
+    params: SetDraftContractorParams,
+  ): Promise<TxResult> {
+    try {
+      const projectDrafter = deriveProjectDrafterAddress(
+        this.programId,
+        params.project,
+        params.drafter,
+      );
+      const signature = await this.method(
+        "setDraftContractor",
+        params.contractor,
+      )
+        .accounts({
+          drafter: params.drafter,
+          project: params.project,
+          projectDrafter,
+          workPackage: params.workPackage,
         })
         .signers(this.extraSigners(params.drafter))
         .rpc();

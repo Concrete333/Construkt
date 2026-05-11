@@ -13,7 +13,7 @@ export const applyTheme = (theme: ThemeMode): void => {
   document.documentElement.dataset.theme = theme;
 };
 
-export type DemoNetwork = "localnet" | "devnet";
+export type DemoNetwork = "mock" | "localnet" | "devnet";
 
 export interface NetworkBadgeContent {
   network: DemoNetwork;
@@ -21,20 +21,20 @@ export interface NetworkBadgeContent {
 }
 
 const NETWORK_LABEL: Record<DemoNetwork, string> = {
-  localnet: "LOCALNET",
-  devnet: "DEVNET",
+  mock: "MOCK DEMO",
+  localnet: "SOLANA LOCALNET DEMO",
+  devnet: "SOLANA DEVNET DEMO",
 };
 
 /**
- * The integrated app must never claim mainnet — escrowed funds are mock
- * USDC against a localnet/devnet program. The badge format makes that
- * unambiguous so demo screenshots can never be mistaken for production.
+ * The integrated app must never claim mainnet. This keeps screenshots clear
+ * while matching the prototype's concise network badge.
  */
 export const networkBadgeContent = (
   network: DemoNetwork,
 ): NetworkBadgeContent => ({
   network,
-  label: `${NETWORK_LABEL[network]} · MOCK USDC`,
+  label: NETWORK_LABEL[network],
 });
 
 export type DemoRole =

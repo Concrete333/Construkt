@@ -194,6 +194,13 @@ export interface CreatePackageDraftParams {
   highApprovalRequired?: boolean;
 }
 
+export interface SetDraftContractorParams {
+  drafter: PublicKey;
+  project: PublicKey;
+  workPackage: PublicKey;
+  contractor: PublicKey;
+}
+
 export interface CreateDraftMilestoneParams {
   drafter: PublicKey;
   project: PublicKey;
@@ -366,6 +373,7 @@ export interface ConstruktClient {
     params: SetProjectDrafterActiveParams,
   ): Promise<TxResult>;
   createPackageDraft(params: CreatePackageDraftParams): Promise<TxResult>;
+  setDraftContractor(params: SetDraftContractorParams): Promise<TxResult>;
   createDraftMilestone(params: CreateDraftMilestoneParams): Promise<TxResult>;
   activateWorkPackage(params: ActivateWorkPackageParams): Promise<TxResult>;
   fundEscrow(params: FundEscrowParams): Promise<TxResult>;

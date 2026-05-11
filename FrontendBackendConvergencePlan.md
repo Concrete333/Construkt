@@ -6,6 +6,8 @@ The static frontend in `frontend-prototype/web/index.html` is the clearest expre
 
 The goal is not to copy every static-demo shortcut into the backend. The goal is to make the backend and React app support the same user-visible capabilities that the demo promises, while preserving the Solana model: one deployed program, with projects, packages, milestones, payment requests, approvals, and vaults represented as accounts under it.
 
+The product decision is now explicit: the current static prototype is not just a loose inspiration, it is the intended presentation layer. The next phase below therefore treats `frontend-prototype/web/index.html` as the canonical UX specification and drives the React app toward literal screen-by-screen parity while keeping the real backend/state model intact.
+
 ## Implementation Status
 
 Current repo status:
@@ -18,6 +20,8 @@ Current repo status:
 - Phase 5 is complete: `WorkPackageAccount.high_approval_required` is plumbed through `create_work_package`, `create_package_draft`, and `activate_work_package`; `release_payment` rejects low-only releases on required-high packages with `HighApprovalRequired`; `update_high_approval_policy` lets Finance flip the flag only while no request value is reserved on the package, covering both package-level and milestone-targeted active requests; mock and Anchor clients mirror everything; React UI exposes the toggle in the create form, switches Optional/Required labels, and ships a Finance-only `ApprovalPolicyPanel`. Demo seed adds a `complianceUpgrade` package parked at `lowApproved` to demonstrate the gated release.
 - Phase 6 is complete as an app/metadata convergence slice: document requests and withdrawal clearances are modeled in `MetadataClient`; the work-package view supports request-linked evidence/document requests, contractor document fulfillment, released-but-not-cleared withdrawal balances, and "mark withdrawn" clearing; `Dashboard2Page` uses a tested dashboard selector for allocated, funded, requested, approved, released, withdrawal, held, evidence-review, and document-request metrics. The backend withdrawal/claim instruction remains out of scope for V0.
 - Phase 7 is complete: the static prototype README, landing copy, mocked feedback cards, state-log links, release copy, and withdrawal language now label the prototype as a backendless walkthrough and align with the converged V0 split between on-chain payment-control state, app/metadata document-request state, and app-derived withdrawal clearing.
+- Phase 8 is planned: prototype-exact app UX parity. The next product slice ports the prototype's navigation, layout, copy, CTA placement, role flows, and modal structure into `app/` so the backend-backed runtime feels the same as the hosted walkthrough rather than merely supporting the same underlying capabilities.
+- Phase 8 contractor-assignment parity is now partly landed: PM-created drafts may start as unassigned estimates; authorized project drafters can assign or change the proposed contractor while the package remains a draft; Finance activation still requires a contractor and formalizes the contractor role assignment.
 
 Important repo notes for the remaining phases:
 
@@ -37,6 +41,7 @@ If another agent is implementing this plan, use these rules to avoid drift:
 6. If a detail appears in Resolved Decisions, implement it. If a detail appears in Open Decisions, do not block the current phase unless that open decision is named as a prerequisite for that phase.
 7. The mock client and Anchor client must accept the same parameters and produce the same observable behavior. When a backend change adds an argument, state rule, or error condition, update both clients and keep app selectors/pages working identically against either mode.
 8. In V0, Finance is `ProjectAccount.authority`. The terms "Finance", "project authority", and "Finance/project authority" are interchangeable in this plan unless a later phase explicitly introduces a different authority.
+9. For Phase 8 UX parity work, default to porting prototype copy, information order, controls, layout, and route discoverability into `app/`. Any intentional deviation from `frontend-prototype/web/index.html` must be documented in this plan or inline near the affected screen.
 
 ## Canonical V0 Flow
 
@@ -45,7 +50,7 @@ This is the flow the backend-backed React app must support by the end of this co
 1. Finance creates a project with a budget and mint.
 2. Finance authorizes a PM/project drafter.
 3. The PM creates a draft work package with either a simple package value or a complete milestone schedule.
-4. The PM assigns or proposes the contractor while the package is still a draft.
+4. The PM may create an unassigned estimate first, then assign or change the proposed contractor while the package is still a draft.
 5. Finance reviews the contractor, cap, schedule, approval policy, and funding details, then activates the package and funds escrow.
 6. The contractor submits a payment request against either the whole package or a specific milestone, with evidence/document references.
 7. The PM reviews evidence and approves, rejects, or holds the request.
@@ -169,6 +174,7 @@ Seed and tooling:
 | Phase 6: Evidence, Withdrawal, Dashboard, And Audit Polish | Workstream 6                                   | Align evidence refs, withdrawal UX, dashboard selectors, and audit views with real state               |
 | Workstream 7: Demo Seed Alignment                          | Continuous workstream                          | Extend localnet seed data after each phase so seeded state demonstrates the implemented behavior       |
 | Phase 7: Static Prototype Audit                            | Final audit pass, no backend workstream number | Verify prototype claims against implemented backend/app behavior after each phase and again at the end |
+| Phase 8: Prototype-Exact App UX Parity                     | UX parity slice across existing workstreams    | Rebuild `app/` so the visible UX, navigation, copy, and role flows match the prototype while keeping real state and backend rules |
 
 ## Convergence Principles
 
@@ -183,6 +189,7 @@ Seed and tooling:
 9. Milestones are account-backed payment-control units, not separate deployed programs.
 10. Every backend feature must have an Anchor test and a corresponding React app path.
 11. Backend workstreams that change account layout must regenerate and commit the IDL.
+12. Until a newer approved design replaces it, `frontend-prototype/web/index.html` is the canonical UX specification. `app/` should match its routes, section order, labels, and interaction model unless backend/runtime constraints require a documented deviation.
 
 ## Migration Policy
 
@@ -207,7 +214,7 @@ For V0:
 | Milestone names/dates/amounts             | Metadata only                                                                                                                               | Store compact milestone metadata ref, date bounds, amount/cap, released amount, and status                                                                                                                 | WS 2 / Phases 2-3                                                                            |
 | Milestone date overlap                    | UI/local only                                                                                                                               | Validate overlap off-chain/UI; on-chain only enforces `start_at < end_at` and money invariants                                                                                                             | WS 2 app path / Phase 3                                                                      |
 | PM package creation                       | Supported through authorized project drafter package drafts in `app/` and Anchor                                                            | Add project-level drafter authorization before PM draft package flow                                                                                                                                       | WS 0 + WS 4 / Phase 4 complete                                                               |
-| Contractor assignment after package setup | Contractor is proposed on the draft and formalized as contractor role assignment at Finance activation                                      | Allow controlled pre-activity contractor assignment/update                                                                                                                                                 | WS 3 / Phase 4 complete for draft activation; explicit draft edit path remains future polish |
+| Contractor assignment after package setup | PM drafts may start unassigned; authorized project drafters can assign/change contractor while draft; Finance activation requires contractor and formalizes contractor role assignment | Allow controlled pre-activity contractor assignment/update                                                                                                                                                 | WS 3 / Phase 4 complete for activation; Phase 8 parity update landed for draft assignment |
 | Finance escrow approval after assignment  | Supported: Finance activates draft package, creates vault/contractor role assignment, then funds escrow                                     | Add draft activation / escrow approval path before funding and requests                                                                                                                                    | WS 4 / Phase 4 complete                                                                      |
 | Contractor invoice submission             | Supported at package level and milestone level in backend and app                                                                           | Extend to package-level or milestone-level request targets                                                                                                                                                 | WS 2 / Phase 3 complete                                                                      |
 | Evidence pack review                      | Partial: document reference exists; review UX is prototype-only                                                                             | Treat evidence/document refs as request-linked workflow inputs; keep raw files off-chain                                                                                                                   | WS 6 / Phase 6                                                                               |
@@ -726,16 +733,65 @@ Implementation notes:
 - Prototype feedback cards and links now use "Mock State Feedback" / "state log" language instead of implying a live devnet explorer transaction.
 - Release and contractor withdrawal copy now matches the V0 model: Finance release transfers tokens, while the contractor-facing withdrawal/cleared state is app-derived.
 
+### Phase 8: Prototype-Exact App UX Parity
+
+Deliverable: the React app in `app/` presents the same UX as `frontend-prototype/web/index.html` for Finance, PM, Contractor, and document/release workflows, while continuing to read/write through the real app clients, selectors, metadata adapters, and Anchor-backed state model.
+
+Why eighth: Phases 0 through 7 proved the backend rules, seeded state, and app runtime. The remaining gap is no longer capability, it is presentation. Users should not need a separate explanation for "the real app" versus "the prototype walkthrough."
+
+Non-goals:
+
+- Do not reintroduce the prototype's in-memory store as runtime architecture.
+- Do not weaken backend/account rules to mimic prototype shortcuts.
+- Do not fork the UX again inside `app/`; Phase 8 reduces drift rather than adding a third interpretation.
+
+Execution method:
+
+1. Treat `frontend-prototype/web/index.html`, `frontend-prototype/web/static/projects/css/construkt.css`, and `frontend-prototype/web/static/projects/js/construkt.js` as the canonical UX source.
+2. Inventory every visible screen, panel, CTA, modal, label, and table from the prototype and map each one to an `app/` route or component.
+3. Port the prototype layout and styling into React screen-by-screen, preferring faithful reproduction over reinterpretation.
+4. Replace prototype store reads with existing app selectors, client reads, metadata reads, and seeded localnet/mock data.
+5. Replace prototype button actions/modals with the existing app write paths (`initializeProject`, `createPackageDraft`, `activateWorkPackage`, `fundEscrow`, `submitPaymentRequest`, `approveRequest`, `releasePayment`, metadata writes, etc.).
+6. Keep a deviation log: if a prototype interaction cannot be mirrored because the backend/runtime has stricter state rules, document that deviation explicitly and adjust the prototype-facing copy so the behavior still feels intentional.
+
+Execution slices:
+
+1. Shell and route parity
+   Make the app navigation, landing state, top-level route discoverability, and role switching match the prototype's visible flow. Users must be able to reach Dashboard, Projects, Project Detail, Work Package View, and Settings from the UI without typing hash routes.
+2. Finance flow parity
+   Match the prototype's Finance experience for project creation, dashboard summaries, project list presentation, project detail layout, contractor assignment visibility, and "Approve escrow" / release review path.
+3. PM flow parity
+   Match the prototype's PM package creation flow, milestone editor, contractor assignment path, dashboard tasks, and evidence-review framing.
+4. Contractor flow parity
+   Match the prototype's contractor dashboard, assigned-package presentation, invoice submission flow, milestone targeting, and withdrawal/clear-withdrawn experience.
+5. Evidence, documents, and variation parity
+   Match the prototype's tables, linked-document presentation, evidence review affordances, document-request UX, and lightweight variation visibility using the Phase 6 metadata-backed model.
+6. Copy, labels, and CTA parity
+   Align terminology, section titles, button labels, status copy, and empty states with the prototype unless the copy would make a false backend claim.
+7. Parity QA and hosted rollout readiness
+   Verify every role walkthrough side-by-side against the prototype in both mock mode and localnet mode. Use a screen checklist and screenshot comparison so hosted `app/` rollout can replace the need to demo from the static prototype.
+
+Acceptance criteria:
+
+- A Finance user can follow the same visible click path in `app/` as in the prototype for creating a project, reviewing packages, approving escrow, and releasing funds.
+- A PM user can follow the same visible click path in `app/` as in the prototype for creating a package, editing milestones, assigning a contractor, and reviewing evidence.
+- A Contractor user can follow the same visible click path in `app/` as in the prototype for viewing assigned work, submitting an invoice against a package or milestone, and clearing released funds.
+- Every primary prototype CTA has a matching CTA in `app/` with the same label or an intentionally documented state-aware equivalent.
+- The app's route structure is discoverable from the header/nav and no longer depends on hidden hash knowledge.
+- The app's screen order, panel order, and information hierarchy match the prototype closely enough that a walkthrough can move between them without re-explaining where things live.
+- Any remaining UX difference between prototype and app is listed explicitly as a backend/runtime-driven deviation rather than an accidental drift.
+
 ## Near-Term First Slice
 
-Phase 0 through Phase 7 are complete. Phase 6 shipped the Workstream 6 app/metadata convergence slice:
+Phase 0 through Phase 7 are complete. The next useful slice is Phase 8: prototype-exact app UX parity. Execute it in this order:
 
-1. Treat evidence packs and document requests as request-linked metadata with status (`requested`, `fulfilled`, reviewer note).
-2. Derive contractor withdrawal balance in the app from released-but-not-cleared state and add a "mark withdrawn" UX.
-3. Promote dashboard selectors to surface project-level totals (allocated, funded, requested, approved, released, contractor-withdrawal balance, held amount, evidence awaiting review, document requests outstanding).
-4. Strengthen audit-trail event coverage so user-facing state transitions are reconstructable from chain reads plus metadata.
+1. Finish route discoverability and shell parity so the app can be navigated the same way the prototype is presented.
+2. Port the Finance journey first: Dashboard -> Projects -> Project Detail -> Approve Escrow -> Work Package release path.
+3. Port the PM package-creation, milestone-editor, and contractor-assignment journey so the app reproduces the prototype's most important authoring flow.
+4. Port the Contractor dashboard, invoice submission, and withdrawal UX so the full walkthrough can be run from `app/`.
+5. Finish documents, evidence, variation, and audit presentation parity, then run side-by-side walkthrough QA in both mock and localnet modes.
 
-The convergence plan's V0 implementation slice is now complete. The next useful work is V1/product hardening: close the open decisions below, decide whether withdrawal claiming becomes an on-chain instruction, and keep the static prototype as an explicitly labeled walkthrough rather than a source of backend truth.
+V1/product hardening remains important, but it comes after Phase 8 if the goal is for the backend-backed app to feel identical to the prototype.
 
 ## Resolved Decisions
 
@@ -766,13 +822,14 @@ The convergence plan's V0 implementation slice is now complete. The next useful 
 25. Evidence packs and document requests use off-chain document/reference metadata linked to packages, milestones, and payment requests; raw files do not belong on-chain.
 26. Contractor withdrawal balance can be app-derived from released-but-not-withdrawn state for now; a separate on-chain claim/withdraw instruction is a later product decision.
 27. Lightweight variation requests can remain metadata-first unless they change package cap, milestone amount, contractor assignment, `high_approval_required`, or the wallet authorized to release.
+28. The current static prototype is the canonical UX specification for the next app slice. The React app should be made visually and behaviorally consistent with it rather than merely functionally equivalent.
 
 ## Open Decisions
 
 1. How much audit history must be reconstructable from chain events alone versus off-chain metadata/indexing?
 2. Should released funds transfer immediately, or should a later backend version create a claimable withdrawal balance that the contractor explicitly withdraws on-chain?
 3. Which variation requests should become first-class on-chain state rather than off-chain metadata plus references?
-4. Should the static prototype be retired once `app/` converges, or kept as a pitch-only artifact with explicit labels?
+4. After Phase 8 lands, should the static prototype be retired, kept as a pitch-only artifact, or regenerated from the React app so there is only one maintained UX surface?
 
 ## Test File Convention
 
@@ -807,5 +864,8 @@ The frontend/backend convergence is successful when:
 - released funds appear in contractor withdrawal views and can be cleared from the app state when withdrawn
 - lightweight variation/document workflows have a clear metadata/reference path when they affect project delivery or release decisions
 - holds, rejection, release, and audit trail behave consistently across app screens
+- users can reach every primary workflow in `app/` from visible navigation without typing or knowing hidden hash routes
+- the main role walkthroughs in `app/` follow the same screen order, labels, CTA placement, and information hierarchy as the prototype
+- any remaining UX difference between the prototype and `app/` is documented as an intentional backend/runtime-driven deviation
 - seeded localnet data tells the same story as the demo
 - `frontend-prototype/web/index.html` and `frontend-prototype/web/static/projects/js/construkt.js` have been audited so every core product claim is backed by current backend behavior, assigned to a workstream, or removed/reworded

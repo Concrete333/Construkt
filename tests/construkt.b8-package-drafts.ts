@@ -34,6 +34,78 @@ describe("construkt b8 package drafts", () => {
     assert.strictEqual(project.allocatedAmount.toNumber(), 0);
   });
 
+  it("authorized project drafter can create an unassigned estimate and assign contractor before activation", async () => {
+    const { fx, projectDrafter } = await setupDraftFixture();
+    const draft = await fx.createPackageDraftForTest(
+      810,
+      fx.pm,
+      projectDrafter,
+      defaultPubkey
+    );
+
+    let workPackage = await fx.program.account.workPackageAccount.fetch(
+      draft.workPackage
+    );
+    assert.deepStrictEqual(workPackage.status, { draft: {} });
+    assert.ok(workPackage.contractor.equals(defaultPubkey));
+
+    await expectError(
+      fx.activateWorkPackageForTest(draft),
+      "InvalidAccountRelationship"
+    );
+
+    await fx.setDraftContractorForTest(draft);
+    workPackage = await fx.program.account.workPackageAccount.fetch(
+      draft.workPackage
+    );
+    assert.ok(workPackage.contractor.equals(fx.contractor.publicKey));
+
+    const { contractorRoleAssignment } = await fx.activateWorkPackageForTest(
+      draft
+    );
+    const contractorRole = await fx.program.account.roleAssignmentAccount.fetch(
+      contractorRoleAssignment
+    );
+    assert.ok(contractorRole.wallet.equals(fx.contractor.publicKey));
+  });
+
+  it("draft contractor assignment is limited to active project drafters and draft packages", async () => {
+    const { fx, projectDrafter } = await setupDraftFixture();
+    const draft = await fx.createPackageDraftForTest(
+      811,
+      fx.pm,
+      projectDrafter,
+      defaultPubkey
+    );
+
+    await expectError(
+      fx.setDraftContractorForTest(draft, defaultPubkey, fx.pm, projectDrafter),
+      "InvalidAccountRelationship"
+    );
+
+    await expectError(
+      fx.setDraftContractorForTest(
+        draft,
+        fx.contractor.publicKey,
+        fx.unrelatedUser,
+        fx.deriveProjectDrafterAddress(fx.project, fx.unrelatedUser.publicKey)
+      ),
+      "AccountNotInitialized"
+    );
+
+    await fx.setDraftContractorForTest(draft, fx.contractor.publicKey);
+    await expectError(
+      fx.setDraftContractorForTest(draft, fx.contractor.publicKey),
+      "RoleAlreadyInRequestedState"
+    );
+
+    await fx.activateWorkPackageForTest(draft);
+    await expectError(
+      fx.setDraftContractorForTest(draft, fx.pm2.publicKey),
+      "InvalidStatus"
+    );
+  });
+
   it("unassigned and inactive drafters cannot create draft packages", async () => {
     const { fx, projectDrafter } = await setupDraftFixture();
 

@@ -33,8 +33,8 @@ export const SignInPage = ({ onSelectRole }: SignInPageProps) => {
         <p className="sign-in__eyebrow">Demo sign-in · no real auth</p>
         <h1>Pick a demo persona</h1>
         <p className="sign-in__lead">
-          Each persona is wired to a deterministic demo wallet seeded into the
-          mock on-chain state. Switch any time from the header.
+          Each persona is wired to a deterministic demo account seeded into the
+          test state. Switch any time from the header.
         </p>
       </header>
       <ul className="sign-in__roles">

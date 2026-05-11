@@ -1278,6 +1278,74 @@
       "args": []
     },
     {
+      "name": "setDraftContractor",
+      "discriminator": [
+        88,
+        201,
+        72,
+        90,
+        206,
+        83,
+        117,
+        207
+      ],
+      "accounts": [
+        {
+          "name": "drafter",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "project"
+        },
+        {
+          "name": "projectDrafter",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  111,
+                  106,
+                  101,
+                  99,
+                  116,
+                  95,
+                  100,
+                  114,
+                  97,
+                  102,
+                  116,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "project"
+              },
+              {
+                "kind": "account",
+                "path": "drafter"
+              }
+            ]
+          }
+        },
+        {
+          "name": "workPackage",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "contractor",
+          "type": "pubkey"
+        }
+      ]
+    },
+    {
       "name": "setProjectDrafterActive",
       "discriminator": [
         255,
@@ -1815,6 +1883,19 @@
         217,
         246,
         228
+      ]
+    },
+    {
+      "name": "WorkPackageDraftContractorSet",
+      "discriminator": [
+        194,
+        237,
+        8,
+        30,
+        72,
+        48,
+        68,
+        102
       ]
     },
     {
@@ -3050,6 +3131,34 @@
           {
             "name": "projectAllocatedAmount",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "WorkPackageDraftContractorSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "project",
+            "type": "pubkey"
+          },
+          {
+            "name": "workPackage",
+            "type": "pubkey"
+          },
+          {
+            "name": "drafter",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractor",
+            "type": "pubkey"
+          },
+          {
+            "name": "updatedAt",
+            "type": "i64"
           }
         ]
       }
