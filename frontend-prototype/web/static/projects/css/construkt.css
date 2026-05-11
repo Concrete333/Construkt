@@ -1317,6 +1317,16 @@
       overflow: hidden;
     }
 
+    .landing-appendix details.landing-appendix-feature {
+      border-color: color-mix(in srgb, var(--color-success) 42%, var(--color-divider));
+      background: color-mix(in srgb, var(--color-success) 4%, var(--color-surface));
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-success) 12%, transparent);
+    }
+
+    .landing-appendix details.landing-appendix-feature summary::after {
+      color: var(--color-success);
+    }
+
     .landing-appendix summary {
       cursor: pointer;
       padding: var(--space-4) var(--space-5);
@@ -1354,6 +1364,159 @@
 
     .landing-appendix details p + p {
       padding-top: 0;
+    }
+
+    .landing-escrow-diagram {
+      margin: 0;
+      padding: 0 var(--space-5) var(--space-5);
+    }
+
+    .landing-escrow-flow {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1.1fr) auto minmax(0, 1.1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: stretch;
+      gap: var(--space-2);
+      padding: var(--space-3);
+      border: 1px solid color-mix(in srgb, var(--color-divider) 72%, transparent);
+      border-radius: var(--radius-lg);
+      background: color-mix(in srgb, var(--color-surface-2) 52%, transparent);
+    }
+
+    .landing-escrow-node {
+      position: relative;
+      display: grid;
+      align-content: start;
+      gap: var(--space-1);
+      min-width: 0;
+      min-height: 116px;
+      padding: var(--space-3);
+      border: 1px solid color-mix(in srgb, var(--color-divider) 74%, transparent);
+      border-radius: var(--radius-md);
+      background: color-mix(in srgb, var(--color-surface) 84%, transparent);
+      box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-text-inverse) 35%, transparent);
+    }
+
+    .landing-escrow-node span {
+      width: fit-content;
+      padding: 0.2rem 0.42rem;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+      color: var(--color-primary);
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .landing-escrow-node strong {
+      color: var(--color-text);
+      font-size: clamp(0.74rem, 0.68rem + 0.18vw, 0.88rem);
+      font-weight: 700;
+      line-height: 1.15;
+    }
+
+    .landing-escrow-node small {
+      color: var(--color-text-muted);
+      font-size: clamp(0.68rem, 0.64rem + 0.14vw, 0.78rem);
+      line-height: 1.32;
+    }
+
+    .landing-escrow-node--lock {
+      border-color: color-mix(in srgb, var(--color-primary) 34%, var(--color-divider));
+      background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+    }
+
+    .landing-escrow-node--lock::after {
+      content: "";
+      position: absolute;
+      top: var(--space-3);
+      right: var(--space-3);
+      width: 0.72rem;
+      height: 0.54rem;
+      border: 1.8px solid var(--color-primary);
+      border-radius: 0.12rem;
+      box-sizing: border-box;
+    }
+
+    .landing-escrow-node--lock::before {
+      content: "";
+      position: absolute;
+      top: calc(var(--space-3) - 0.28rem);
+      right: calc(var(--space-3) + 0.16rem);
+      width: 0.4rem;
+      height: 0.36rem;
+      border: 1.8px solid var(--color-primary);
+      border-bottom: 0;
+      border-radius: 999px 999px 0 0;
+      box-sizing: border-box;
+    }
+
+    .landing-escrow-node--release {
+      border-color: color-mix(in srgb, var(--color-success) 38%, var(--color-divider));
+      background: color-mix(in srgb, var(--color-success) 8%, var(--color-surface));
+    }
+
+    .landing-escrow-flow i {
+      display: block;
+      align-self: center;
+      width: clamp(1rem, 1.2vw, 1.8rem);
+      height: 1px;
+      background: color-mix(in srgb, var(--color-primary) 42%, var(--color-divider));
+    }
+
+    .landing-escrow-flow i::after {
+      content: "";
+      display: block;
+      width: 0.42rem;
+      height: 0.42rem;
+      margin-top: -0.2rem;
+      margin-left: auto;
+      border-top: 1px solid color-mix(in srgb, var(--color-primary) 52%, var(--color-divider));
+      border-right: 1px solid color-mix(in srgb, var(--color-primary) 52%, var(--color-divider));
+      transform: rotate(45deg);
+    }
+
+    @media (max-width: 980px) {
+      .landing-escrow-flow {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .landing-escrow-flow i {
+        display: none;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .landing-escrow-diagram {
+        padding-inline: var(--space-4);
+      }
+
+      .landing-escrow-flow {
+        grid-template-columns: 1fr;
+      }
+
+      .landing-escrow-node {
+        min-height: 0;
+      }
+    }
+
+    .landing-appendix details ul {
+      display: grid;
+      gap: var(--space-3);
+      margin: 0;
+      padding: 0 var(--space-5) var(--space-5);
+      color: var(--color-text-muted);
+      font-size: var(--text-sm);
+      line-height: 1.5;
+    }
+
+    .landing-appendix details li {
+      padding-left: var(--space-1);
+    }
+
+    .landing-appendix details li strong {
+      color: var(--color-text);
+      font-weight: 700;
     }
 
     .landing-origin {

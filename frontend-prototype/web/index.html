@@ -297,6 +297,59 @@
             <p>Construction payments often involve more than a simple invoice. Payment may depend on milestones, evidence of completed work, variations, budget checks, and several approvals.</p>
             <p>Construkt uses smart contracts for the parts of that process where rules matter most. A payment request is submitted against a work package or milestone, the required stakeholders approve it in sequence, and funds become eligible for release only when the agreed conditions are met.</p>
           </details>
+          <details class="landing-appendix-feature">
+            <summary>How does the escrow actually work?</summary>
+            <figure class="landing-escrow-diagram" aria-label="Escrow flow from project budget to contractor release.">
+              <div class="landing-escrow-flow" aria-hidden="true">
+                <div class="landing-escrow-node">
+                  <span>01</span>
+                  <strong>Project budget</strong>
+                  <small>Finance authority</small>
+                </div>
+                <i></i>
+                <div class="landing-escrow-node">
+                  <span>02</span>
+                  <strong>Package cap</strong>
+                  <small>Fixed release limit</small>
+                </div>
+                <i></i>
+                <div class="landing-escrow-node landing-escrow-node--lock">
+                  <span>03</span>
+                  <strong>Escrow locked</strong>
+                  <small>Smart-contract control</small>
+                </div>
+                <i></i>
+                <div class="landing-escrow-node">
+                  <span>04</span>
+                  <strong>Invoice + evidence</strong>
+                  <small>Milestone or package</small>
+                </div>
+                <i></i>
+                <div class="landing-escrow-node">
+                  <span>05</span>
+                  <strong>Approval rules</strong>
+                  <small>PM / Director / holds</small>
+                </div>
+                <i></i>
+                <div class="landing-escrow-node landing-escrow-node--release">
+                  <span>06</span>
+                  <strong>Release</strong>
+                  <small>Contractor account</small>
+                </div>
+              </div>
+            </figure>
+            <p>Construkt treats each funded work package as a controlled payment account with rules attached to it. The high-level flow is:</p>
+            <ul>
+              <li><strong>Finance sets the cap.</strong> A project budget is created, then each work package is approved with a fixed maximum value. That cap is the upper limit the smart contract will allow to be released.</li>
+              <li><strong>Funds are locked to the package.</strong> When Finance approves the package, the agreed amount is moved into a smart-contract-controlled escrow account as blockchain-based funds. The funds are not controlled by the contractor, the project manager, or an individual Finance user.</li>
+              <li><strong>Milestones create smaller release rules.</strong> If a package is split into milestones, each milestone has its own value, date range, status, and release capacity. The milestone values must add up to the package cap before the escrow can be fully locked.</li>
+              <li><strong>Invoices reserve escrow capacity.</strong> When the contractor submits an invoice, it is tied to either the whole package or a specific milestone. Construkt reserves that requested amount so the same escrow balance cannot be promised to another payment.</li>
+              <li><strong>Approvals change payment state.</strong> The project manager approves after reviewing the evidence. If the client requires a second approval layer, a director or senior approver must approve as well. Finance can also place a hold if the payment should pause.</li>
+              <li><strong>Release only opens when the rules are met.</strong> The smart contract blocks release if a hold is active, an approval is missing, the request exceeds the cap, the milestone is already exhausted, or the escrow does not contain enough funds.</li>
+              <li><strong>Approved funds move to the contractor.</strong> Once all release conditions are satisfied, Finance triggers release and the smart contract moves the approved funds from escrow to the contractor's account.</li>
+              <li><strong>Evidence stays off-chain, references stay auditable.</strong> Full documents remain in proper document storage. Construkt stores compact references and hashes with the payment record, so each release can be traced back to the evidence and approvals behind it.</li>
+            </ul>
+          </details>
           <details>
             <summary>Why blockchain?</summary>
             <p>Blockchain is useful when several parties need to rely on the same payment record but do not all use the same internal system.</p>
