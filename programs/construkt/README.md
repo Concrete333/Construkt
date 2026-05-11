@@ -1,82 +1,54 @@
-# programs/construkt — Anchor On-Chain Program
+# Construkt On-Chain Program
 
-Single Anchor/Rust program that enforces the Construkt escrow and approval workflow on Solana.
+The `programs/construkt/` folder contains the Solana program that enforces Construkt's escrow and approval rules.
 
-**Program ID:** `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4`
-**Target networks:** localnet and devnet only. Do not target mainnet.
+This is the control layer behind the product. It is where package budgets, payment requests, approval states, and release permissions become enforceable rather than merely presentational.
 
-The program is deployed once. Projects, work packages, payment requests, approval records, role assignments, and vaults are PDA/accounts under this program; the backend does not deploy a new smart contract per project, work package, or milestone.
+## Why It Exists
 
-## Prerequisites
+Construkt is not using blockchain as branding. The on-chain program exists to solve a practical coordination problem in construction payments:
 
-All commands must run inside **WSL (Ubuntu)**. Solana CLI and Anchor CLI are installed in WSL only — they do not work on the Windows side.
+- who is allowed to approve a request
+- whether a package has been funded
+- whether a milestone schedule is complete
+- whether a payment is ready for release
+- whether the release authority can actually move funds
 
-Required tools (WSL):
+That gives Finance Directors and Project Managers a shared, structured source of truth for payment control.
 
-- Rust + Cargo
-- Solana CLI
-- Anchor CLI
+## What It Models
 
-## Commands
+The program manages a hierarchy of project-related state rather than deploying a new smart contract for every deal.
 
-```bash
-# Build the program (outputs to target/deploy/)
-anchor build
+At a high level it covers:
 
-# Run all integration tests against localnet (preferred)
-anchor test --provider.cluster localnet
+- projects and budgets
+- work packages
+- milestone schedules
+- role assignments
+- payment requests
+- approval records
+- escrow vault relationships
+- release decisions
 
-# Run a single test file
-npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
-```
+This keeps Construkt focused on work-package payment control instead of expanding into a full ERP or document-management platform.
 
-From the repo root you can also use:
+## Product Meaning
 
-```bash
-npm run anchor:test
-```
+For judges, the important point is that this folder shows the commercial workflow has a real enforcement model underneath it.
 
-## Account hierarchy
+The prototype may show the user journey and the app may show the operational surface, but this program is what makes the most sensitive parts of the flow meaningful:
 
-```
-ProjectAccount          (authority = finance wallet)
-  └── WorkPackageAccount  (holds escrow vault reference, cap, counters)
-        ├── RoleAssignmentAccount  (one per role per wallet)
-        ├── PaymentRequestAccount  (one active at a time per package)
-        │     └── ApprovalRecord  (one per approver role)
-        └── vault  (SPL Token ATA, owned by vault_authority PDA)
-```
+- approval order
+- release gating
+- milestone-based controls
+- funded versus released state
+- authority boundaries
 
-## PDA seeds
+## In Context
 
-| Account        | Seeds                                                    |
-| -------------- | -------------------------------------------------------- |
-| Project        | `["project", authority, project_id_le_bytes]`            |
-| WorkPackage    | `["work_package", project, package_id_le_bytes]`         |
-| VaultAuthority | `["vault_authority", work_package]`                      |
-| RoleAssignment | `["role", work_package, role_byte, wallet]`              |
-| PaymentRequest | `["payment_request", work_package, request_id_le_bytes]` |
-| ApprovalRecord | `["approval", payment_request, role_byte]`               |
+Viewed together with the rest of the repository:
 
-Role bytes: `Contractor=1`, `LowApprover=2`, `HighApprover=3`
-
-## Payment request lifecycle
-
-```
-Submitted → LowApproved → Released
-                                        (or Rejected at any stage)
-```
-
-`HighApproved` is retained as an optional/custom approval state. It is not required before release in the current PM-to-finance demo flow.
-
-Holds block approval, rejection, document updates, and release at any stage.
-
-## Key invariants
-
-- Only one active unreleased request per work package
-- If HighApprover is used, LowApprover must approve first
-- Release accepts `LowApproved` or `HighApproved`; the current PM-to-Finance flow does not require high approval
-- Contractor cannot approve their own request
-- Same wallet cannot hold both LowApprover and HighApprover on a package
-- Release checks cap, tracked funded balance, and real vault token balance
-- Finance is always `ProjectAccount.authority`; only authority can release
+- the prototype shows the intended experience
+- the app shows the runtime product
+- this program shows the payment-control engine that supports both

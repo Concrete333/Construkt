@@ -1,38 +1,31 @@
-# tests — On-Chain Integration Tests
+# Construkt Validation
 
-Four ordered TypeScript test files that run against a live Solana localnet validator. Each file covers a distinct phase of the Construkt lifecycle.
+The `tests/` folder contains the validation layer for the Construkt payment-control model.
 
-## Prerequisites
+These tests matter because Construkt is not only a UI concept. The repository includes a real rules engine for approvals, escrow, milestone-aware requests, and release decisions, and this folder is how that behaviour is continuously checked.
 
-- WSL (Ubuntu) with Solana CLI and Anchor CLI installed
-- Localnet running (see [`scripts/`](../scripts/))
+## What Is Being Validated
 
-## Run
+The test suites are focused on the core lifecycle:
 
-```bash
-# All four files (from repo root, in WSL)
-npm run anchor:test
-# or directly:
-anchor test --provider.cluster localnet
+- project and work package creation
+- role assignment and authority boundaries
+- escrow funding
+- payment request submission
+- approvals and rejections
+- holds and blocked states
+- milestone behaviour
+- release logic
+- draft package and contractor-assignment flow
 
-# From Windows PowerShell
-npm run anchor:test:wsl
+## Why This Matters For A Submission
 
-# Single file (in WSL)
-npx ts-mocha -p ./tsconfig.json -t 1000000 "tests/construkt.b1-accounts.ts"
-```
+For judges, this folder is useful as evidence that the product logic is being treated seriously.
 
-## Test files
+Construkt is presenting:
 
-| File | Covers |
-|---|---|
-| `construkt.b1-accounts.ts` | Project and work package creation, role assignment |
-| `construkt.b2-funding.ts` | Escrow vault funding |
-| `construkt.b3-requests.ts` | Payment request submission, document references, approvals, rejections, holds |
-| `construkt.b4-release.ts` | Payment release and blocked-state guards, including both PM-approved release and optional high-approved release |
+- a polished prototype
+- a backend-backed app
+- a tested payment-control engine
 
-Files must run in order (b1 → b4) because later suites depend on state established by earlier ones.
-
-## Fixtures
-
-`tests/setup.ts` exports `createFixture()`, which generates isolated per-test keypairs and PDAs. This prevents test suites from sharing mutable on-chain state.
+That combination is important. It shows the project is not only visually coherent, but also structurally thought through.

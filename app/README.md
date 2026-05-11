@@ -1,75 +1,52 @@
-# app — React + Vite Frontend
+# Construkt App
 
-React 19 + TypeScript + Vite frontend for Construkt. Defaults to a seeded mock client, and can run in Anchor mode against localnet/devnet via `@coral-xyz/anchor` and `@solana/web3.js`.
+The `app/` folder contains the backend-backed Construkt application.
 
-**Status:** Development phase. Not yet the canonical live UI — see [`frontend-prototype/web/`](../frontend-prototype/web/) for the current demo.
+Where the static prototype is the clearest expression of the intended product experience, this app is the version that ties the user journey to real project, package, milestone, approval, and release state.
 
-## Prerequisites
+## What This App Represents
 
-- Node.js (v18+) and npm
-- No WSL or blockchain connection needed for default mock local dev and unit tests
-- WSL/localnet is needed only for Anchor-backed demo mode
+This application is the bridge between product vision and enforceable workflow.
 
-## Commands
+It is built to show how Construkt moves from a compelling construction-finance UX into a real operating system for:
 
-All commands run from this directory (`app/`).
+- project budgets
+- work package controls
+- milestone-aware payment requests
+- approval sequencing
+- escrow funding
+- release readiness
+- contractor withdrawal visibility
 
-```bash
-npm install          # install dependencies (first time only)
-npm run dev          # Vite dev server → http://localhost:5173
-npm run build        # type-check + production bundle → dist/
-npm run preview      # serve the production bundle locally
-npm run test         # run unit tests once (vitest)
-npm run test:watch   # run tests in watch mode
-npm run lint         # ESLint + Prettier check
-npm run lint:fix     # auto-fix lint and formatting issues
-```
+## Product Role
 
-## Project structure
+The app is not a separate concept from the prototype. It is the same product moving closer to a production-style runtime.
 
-```
-app/
-├── src/
-│   ├── components/     # shared UI components (AppHeader, RoleSwitcher, WalletDisplay, …)
-│   ├── pages/          # route-level page components (Dashboard2, ProjectList, WorkPackageView, …)
-│   ├── selectors/      # pure state-derivation helpers (payment, project, audit)
-│   ├── lib/            # client interfaces, mock, PDA helpers, format, router, theme
-│   ├── styles/         # design tokens and global CSS
-│   ├── idl/            # Anchor IDL (construkt.json)
-│   └── main.tsx        # app entry point
-├── public/             # static assets
-├── vite.config.ts
-├── tsconfig.json
-└── eslint.config.js
-```
+Compared with the static prototype, this app matters because it demonstrates:
 
-## Connecting to the on-chain program
+- a real account-backed model rather than only mock presentation state
+- the connection between user actions and backend state transitions
+- the convergence of product design, workflow logic, and payment-control rules
 
-The app does not use a real wallet adapter yet. In Anchor mode it signs with deterministic demo keypairs that match the seeded localnet data. Start localnet and seed it from the repo root:
+## What Judges Should Notice
 
-```bash
-# Preferred, from repo root
-npm run reset:localnet
+The Construkt app is designed around three core user groups:
 
-# Manual fallback in WSL, from repo root
-bash scripts/setup-localnet.sh
-npm run seed:localnet
-```
+- Finance Director: owns project budgets, escrow approval, release authority, and payment control
+- Project Manager: creates and shapes work packages, milestones, and review decisions
+- Contractor: submits invoices, provides evidence, and sees released funds progress toward withdrawal
 
-From Windows PowerShell, seed through WSL after starting the validator in Ubuntu:
+The app shows how those roles interact across a shared workflow instead of acting in isolated dashboards.
 
-```powershell
-npm run seed:localnet:wsl
-```
+## Relationship To The Prototype
 
-Then start the app with `VITE_ANCHOR_RPC` set:
+The prototype remains the cleanest presentation layer for the full story.
 
-```bash
-cd app
-VITE_ANCHOR_RPC=http://localhost:8899 npm run dev
-```
+The app shows the same story becoming operational:
 
-```powershell
-cd app
-$env:VITE_ANCHOR_RPC = "http://localhost:8899"; npm run dev
-```
+- packages can be drafted and approved
+- milestones can become first-class payment-control units
+- requests can move through real approval states
+- releases and contractor balances can be derived from actual package and request state
+
+In short, the prototype explains the product. The app demonstrates how the product can actually behave.

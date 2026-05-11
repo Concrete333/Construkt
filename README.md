@@ -1,119 +1,90 @@
 # Construkt
 
-Solana-backed escrow and approval engine for construction work-package payments.
+Construkt is a construction payment-control product that uses Solana to coordinate escrow, approvals, release decisions, and contractor payout visibility at the work-package level.
 
-The repository currently has two closely related surfaces:
+This repository contains two public-facing product surfaces:
 
-- The on-chain Anchor program enforces the current PM-to-Finance payment release path.
-- The frontend prototype models the broader end-to-end product flow we want the backend to grow into.
+- [`frontend-prototype/`](frontend-prototype/) is the clearest walkthrough of the intended user experience. It is a polished browser prototype that shows the full product story across Finance Director, Project Manager, and Contractor roles.
+- [`app/`](app/) is the backend-backed application runtime. It connects the product flow to the real Construkt account model, approval rules, and escrow logic.
 
-Target networks: `localnet` and `devnet` only. Do not target mainnet.
+Together, they show both the product vision and the real system architecture behind it.
 
-## Repository layout
+## What Construkt Does
 
-| Directory | What it is |
-|---|---|
-| [`programs/construkt/`](programs/construkt/) | Anchor/Rust on-chain program |
-| [`tests/`](tests/) | On-chain integration tests (requires WSL + localnet) |
-| [`frontend-prototype/`](frontend-prototype/) | Static demo UI + frontend unit tests |
-| [`app/`](app/) | React + Vite frontend in development |
-| [`scripts/`](scripts/) | Localnet setup and seed utilities |
-| [`migrations/`](migrations/) | Anchor migration scripts |
-| [`docs/`](docs/) | Product plans and front/back integration notes |
+Construkt is designed for construction teams that need tighter control over how package budgets move from approval to release.
 
-## Quick start
+At a high level, the product supports this flow:
 
-### View the demo UI
+1. Finance creates a project and budget.
+2. A Project Manager creates an estimated work package, with milestones where needed.
+3. The contractor is assigned to that package.
+4. Finance approves and funds escrow for the package.
+5. The contractor submits an invoice against the package or a milestone.
+6. The Project Manager reviews and approves or rejects the request.
+7. Finance releases funds when the approval conditions are satisfied.
+8. The contractor sees released funds available for withdrawal.
 
-Open [`frontend-prototype/web/index.html`](frontend-prototype/web/index.html) in any browser. No build step, no server, and no blockchain connection are required.
+The wider product concept also includes document references, evidence review, lightweight variation handling, audit visibility, and role-specific dashboards.
 
-### Run frontend unit tests
+## What The Two Experiences Show
 
-```bash
-npm run test:frontend
-```
+### Frontend Prototype
 
-### Run on-chain tests
+The static prototype is the most presentation-ready version of Construkt. It is intended to show judges the user journey, interface design, information hierarchy, and the full commercial workflow we want the product to support.
 
-All Anchor and Solana CLI commands must run inside WSL (Ubuntu). Solana and Anchor are not installed on the Windows side.
+It demonstrates:
 
-```bash
-# Preferred: rebuild, reset localnet, sync IDL, and reseed in one command
-npm run reset:localnet
+- role-based dashboards
+- project creation
+- work package creation
+- contractor assignment
+- escrow approval
+- milestone-aware invoicing
+- evidence and document review
+- payment release
+- contractor withdrawal balance visibility
 
-# In WSL
-npm run anchor:test
+This surface is a product walkthrough, not a live blockchain application.
 
-# From Windows PowerShell, call the WSL wrapper
-npm run anchor:test:wsl
+### App
 
-# Optional: start a validator with the program pre-loaded
-bash scripts/setup-localnet.sh
+The React app is the backend-backed product runtime. It mirrors the same product direction, but its value is that it is wired to the actual Construkt state model rather than existing only as a static demo.
 
-# Optional: seed that running localnet with demo data
-npm run seed:localnet
+It demonstrates:
 
-# From Windows PowerShell, seed through WSL
-npm run seed:localnet:wsl
-```
+- the real project, work package, milestone, approval, and release model
+- the split between on-chain payment-control rules and app-level metadata
+- the progression from prototype UX into a true application runtime
+- how the product can move from concept to enforceable workflow
 
-### Develop the React app
+## Repository Guide
 
-```bash
-cd app
-npm install
-npm run dev
-```
+| Directory | Public meaning |
+| --- | --- |
+| [`frontend-prototype/`](frontend-prototype/) | Product walkthrough and presentation prototype |
+| [`app/`](app/) | Backend-backed application runtime |
+| [`programs/construkt/`](programs/construkt/) | Solana program that enforces escrow and approval rules |
+| [`tests/`](tests/) | Validation of the on-chain payment-control lifecycle |
+| [`scripts/`](scripts/) | Support tooling used during development and validation |
 
-## Root npm scripts
+## Architecture In Plain English
 
-| Script | What it does | Requires WSL? |
-|---|---|---|
-| `npm run anchor:test` | Run on-chain Anchor tests against localnet | Yes |
-| `npm run anchor:test:wsl` | Run the WSL Anchor test wrapper from Windows PowerShell | Yes |
-| `npm run idl:sync` | Regenerate the app-facing camelCase IDL from `target/idl/construkt.json` | Yes |
-| `npm run reset:localnet` | Build, sync IDL, reset localnet, preload the program, and reseed demo state | Yes |
-| `npm run seed:localnet` | Seed localnet with deterministic demo data | Yes |
-| `npm run seed:localnet:wsl` | Run the WSL localnet seed wrapper from Windows PowerShell | Yes |
-| `npm run typecheck:scripts` | Type-check TypeScript utility scripts | No |
-| `npm run test:frontend` | Run 75 frontend unit tests in Node | No |
-| `npm run lint` | Check formatting for `migrations/` and `tests/` | No |
-| `npm run lint:fix` | Auto-fix formatting | No |
+Construkt does not create a separate smart contract for every project. Instead, one Solana program manages a family of project, package, milestone, approval, and escrow accounts beneath it.
 
-## Current prototype flow
+That matters because the product is not trying to be a generic blockchain showcase. The design is focused on one commercial problem:
 
-The static prototype is the current canonical demo surface. It models this user journey:
+- who can approve
+- when funds can be locked
+- when funds can be released
+- how milestone-based payments can be controlled
+- how the product keeps Finance, PMs, and Contractors aligned
 
-1. Finance Director creates a project.
-2. Project Manager creates an estimated work package, with milestones or another payment schedule if needed.
-3. Project Manager assigns that package to a contractor.
-4. Finance Director approves escrow for the assigned package.
-5. Contractor submits an invoice against the package or a specific milestone.
-6. Project Manager reviews evidence and approves or rejects the request.
-7. Finance Director releases funds to the contractor withdrawal balance.
-8. Contractor withdraws released funds.
+## For Judges
 
-The prototype also includes lightweight variation requests, document references, evidence review, audit history, and chain-state placeholders. Those flows are mocked in the prototype and should be treated as product targets, not as proof that the on-chain program already implements them all.
+The most useful way to read this repository is:
 
-## Architecture summary
+1. Start with the prototype to understand the intended product experience.
+2. Look at the app to see how that experience is being translated into a real runtime.
+3. Look at the Solana program and tests to see the payment-control logic that underpins the workflow.
 
-### On-chain program today
-
-A single Anchor program at `cTkcdfaMNy3LbZVtaX4j4RwFrE91j34gRZQ5CHTKCb4` holds the business logic. The program is deployed once; projects, work packages, payment requests, approval records, and vaults are PDA/accounts under it rather than separate deployed smart contracts.
-
-Finance wallets own `ProjectAccount`. Escrow funds live in SPL Token ATAs controlled by PDA vault authorities.
-
-The current on-chain payment-request lifecycle is:
-
-```text
-Submitted -> LowApproved -> Released
-                     (or Rejected at any stage)
-```
-
-`HighApproved` remains available as an optional/custom approval state, but finance release does not require it in the current PM-to-Finance path.
-
-### Prototype alignment notes
-
-- The prototype is ahead of the current on-chain flow in a few places, especially package assignment, evidence handling, variation workflow, and contractor withdrawal UX.
-- The backend should treat the prototype as the target product workflow where practical, while still documenting what is already implemented on-chain versus what remains mocked.
-- User-facing prototype copy now uses `withdrawal balance` rather than exposing wallet mechanics directly, even though the eventual backend will still map releases and withdrawals to real signer and token-account behavior.
+This repository is being presented as a product submission rather than as an open-source contributor onboarding pack, so the top-level documentation focuses on the product, the user journey, and the architecture rather than local setup instructions.
