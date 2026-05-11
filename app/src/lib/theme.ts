@@ -21,9 +21,9 @@ export interface NetworkBadgeContent {
 }
 
 const NETWORK_LABEL: Record<DemoNetwork, string> = {
-  mock: "MOCK DEMO",
-  localnet: "SOLANA LOCALNET DEMO",
-  devnet: "SOLANA DEVNET DEMO",
+  mock: "SEEDED REVIEW",
+  localnet: "SOLANA LOCALNET",
+  devnet: "SOLANA DEVNET",
 };
 
 /**

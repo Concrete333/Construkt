@@ -12,7 +12,7 @@ interface SignInPageProps {
 
 /**
  * One short sentence per role explaining what's on the dashboard for them.
- * Surface copy only — actual permissions are enforced on chain.
+ * Surface copy only; actual permissions are enforced on chain.
  */
 const ROLE_BLURB: Record<DemoRole, string> = {
   financeDirector:
@@ -30,11 +30,11 @@ export const SignInPage = ({ onSelectRole }: SignInPageProps) => {
   return (
     <section className="sign-in">
       <header className="sign-in__head">
-        <p className="sign-in__eyebrow">Demo sign-in · no real auth</p>
-        <h1>Pick a demo persona</h1>
+        <p className="sign-in__eyebrow">Review sign-in - no real auth</p>
+        <h1>Pick a product role</h1>
         <p className="sign-in__lead">
-          Each persona is wired to a deterministic demo account seeded into the
-          test state. Switch any time from the header.
+          Each role is wired to a deterministic account seeded into the review
+          state. Switch any time from the header.
         </p>
       </header>
       <ul className="sign-in__roles">
@@ -53,7 +53,7 @@ export const SignInPage = ({ onSelectRole }: SignInPageProps) => {
                 </p>
                 <p className="sign-in__role-blurb">{ROLE_BLURB[role]}</p>
                 <span className="sign-in__role-cta" aria-hidden="true">
-                  Continue →
+                  Continue -&gt;
                 </span>
               </a>
             </li>

@@ -614,12 +614,6 @@ const CreateProjectModal = ({
                 each stage.
               </p>
             </div>
-            <button
-              className="project-list__btn project-list__btn--ghost"
-              type="button"
-            >
-              Add section
-            </button>
           </div>
           <div className="project-list__budget-summary">
             Overall budget: GBP {budgetText || "0"}

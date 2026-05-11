@@ -8,7 +8,7 @@ export interface WalletDisplayProps {
 }
 
 /**
- * Shows the demo wallet that would sign for the current role. This is
+ * Shows the seeded wallet that would sign for the current role. This is
  * deliberately separate from the role display per the plan's
  * "Role visibility is not authorization" rule. The signing pubkey may not
  * match the visible role. Click to copy the full base58 for on-chain
@@ -33,10 +33,10 @@ export const WalletDisplay = ({ wallet }: WalletDisplayProps) => {
       type="button"
       className="wallet-display"
       onClick={onClick}
-      aria-label={`Copy demo account address ${base58}`}
+      aria-label={`Copy seeded account address ${base58}`}
       title={base58}
     >
-      <span className="wallet-display__caption">Demo account</span>
+      <span className="wallet-display__caption">Seeded account</span>
       <span className="wallet-display__value">
         {shortAddress(base58, { head: 4, tail: 4 })}
       </span>

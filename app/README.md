@@ -4,6 +4,8 @@ The `app/` folder contains the backend-backed Construkt application.
 
 Where the static prototype is the clearest expression of the intended product experience, this app is the version that ties the user journey to real project, package, milestone, approval, and release state.
 
+The app can run against the Anchor-backed Construkt program on localnet or devnet. It also includes a seeded in-browser review mode so the product flow can be explored without requiring a wallet, validator, or RPC setup.
+
 ## What This App Represents
 
 This application is the bridge between product vision and enforceable workflow.
@@ -28,7 +30,7 @@ Compared with the static prototype, this app matters because it demonstrates:
 - the connection between user actions and backend state transitions
 - the convergence of product design, workflow logic, and payment-control rules
 
-## What Judges Should Notice
+## Core Roles
 
 The Construkt app is designed around three core user groups:
 

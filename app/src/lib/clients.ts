@@ -35,7 +35,7 @@ export interface AppClients {
   client: ConstruktClient;
   metadata: MetadataClient;
   /**
-   * Off-chain metadata write surface. Present in V0 (the mock client
+   * Off-chain metadata write surface. Present in the current release (the mock client
    * implements both interfaces). Backend-backed modes may set this to
    * `null` because real services own their own mutation paths. The UI must
    * handle the `null` case rather than assuming write capability.
@@ -45,7 +45,7 @@ export interface AppClients {
 }
 
 /**
- * Build the V0 demo bundle: a mock on-chain client seeded with the
+ * Build the seeded review bundle: a mock on-chain client seeded with the
  * Demo Hospital Fit-Out world plus a metadata client populated with
  * matching display copy. `buildAnchorClients` exposes the same shape
  * for localnet/devnet without changing any consumer of this interface.

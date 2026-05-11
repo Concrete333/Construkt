@@ -1,12 +1,12 @@
-# frontend-prototype - Static Demo UI + Frontend Unit Tests
+# frontend-prototype - Static Product Walkthrough + Frontend Unit Tests
 
 Contains the backendless static walkthrough and the unit test suite for its helper functions.
 
-## Demo UI
+## Product Walkthrough
 
 Open [`web/index.html`](web/index.html) in any browser. No build step, no server, and no blockchain connection are required. Business state is fully mocked.
 
-This is now a static product walkthrough used for comparison and demos. The converged implementation surface is `../app`, backed by the Anchor/mock client boundary described in `../FrontendBackendConvergencePlan.md`.
+This is a static product walkthrough used for comparison and live presentation. The converged implementation surface is `../app`, which connects the same product flow to seeded review state or the Anchor-backed Solana program.
 
 ## What the prototype currently demonstrates
 
@@ -30,7 +30,7 @@ The prototype also includes lightweight UX around:
 - audit history
 - mocked state/reference logs
 
-These flows are mocked in the prototype. They are the product target and static UX reference, not a claim that every step is implemented on-chain. Current V0 keeps raw files, document-request state, and contractor withdrawal clearing off-chain/app-derived; token release still happens at Finance release.
+These flows are mocked in the prototype. They are the product target and static UX reference, not a claim that every step is implemented on-chain. The current release keeps raw files, document-request state, and contractor withdrawal clearing off-chain/app-derived; token release still happens at Finance release.
 
 ## Frontend unit tests
 
@@ -53,9 +53,9 @@ npx ts-mocha -p ../tsconfig.json -t 10000 "tests/construkt.frontend.ts"
 ```text
 frontend-prototype/
 |-- web/
-|   |-- index.html                          # demo entry point
+|   |-- index.html                          # walkthrough entry point
 |   |-- static/projects/css/construkt.css  # shared styles
-|   |-- static/projects/js/construkt.js    # demo logic and mocked business state
+|   |-- static/projects/js/construkt.js    # walkthrough logic and mocked business state
 |   `-- static/projects/img/               # logos and assets
 `-- tests/
     `-- construkt.frontend.ts              # 75 unit tests

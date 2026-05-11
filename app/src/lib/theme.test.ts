@@ -14,22 +14,22 @@ describe("nextTheme", () => {
 });
 
 describe("networkBadgeContent", () => {
-  it("formats mock mode clearly for hosted or no-RPC demos", () => {
+  it("formats mock mode clearly for hosted or no-RPC review", () => {
     expect(networkBadgeContent("mock")).toEqual({
       network: "mock",
-      label: "MOCK DEMO",
+      label: "SEEDED REVIEW",
     });
   });
 
   it("formats localnet like the prototype app badge", () => {
     expect(networkBadgeContent("localnet")).toEqual({
       network: "localnet",
-      label: "SOLANA LOCALNET DEMO",
+      label: "SOLANA LOCALNET",
     });
   });
 
   it("formats devnet like the prototype app badge", () => {
-    expect(networkBadgeContent("devnet").label).toBe("SOLANA DEVNET DEMO");
+    expect(networkBadgeContent("devnet").label).toBe("SOLANA DEVNET");
   });
 
   it("never claims mainnet", () => {

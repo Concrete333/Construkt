@@ -35,9 +35,28 @@ const ROLE_ORG: Record<DemoRole, string> = {
   director: "Northstar Capital Board",
 };
 
+const modeLabel = (network: DemoNetwork): string => {
+  switch (network) {
+    case "mock":
+      return "Seeded review";
+    case "localnet":
+      return "Anchor localnet";
+    case "devnet":
+      return "Anchor devnet";
+  }
+};
+
 export const SettingsPage = ({ role, theme, network }: SettingsPageProps) => {
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
+  const [notificationPrefs, setNotificationPrefs] = useState({
+    approvals: true,
+    documents: true,
+    escrow: true,
+  });
   const badge = networkBadgeContent(network);
+  const toggleNotification = (key: keyof typeof notificationPrefs) => {
+    setNotificationPrefs((prefs) => ({ ...prefs, [key]: !prefs[key] }));
+  };
 
   return (
     <section className="settings">
@@ -45,7 +64,7 @@ export const SettingsPage = ({ role, theme, network }: SettingsPageProps) => {
         <p className="settings__breadcrumb">Settings</p>
         <h1>Account settings</h1>
         <p className="settings__lead">
-          Demo profile, role access, and localnet connection state.
+          Profile, role access, and network connection state.
         </p>
       </header>
 
@@ -123,19 +142,31 @@ export const SettingsPage = ({ role, theme, network }: SettingsPageProps) => {
                 mono
                 copyValue={CONSTRUKT_PROGRAM_ID.toBase58()}
               />
-              <SettingsRow
-                label="Mode"
-                value={network === "localnet" ? "Anchor localnet" : "Demo mode"}
-              />
+              <SettingsRow label="Mode" value={modeLabel(network)} />
             </SettingsCard>
           )}
 
           {activeTab === "notifications" && (
             <SettingsCard title="Notifications">
               <ul className="settings__list">
-                <DeferredItem label="Email approvals and release alerts" />
-                <DeferredItem label="Contractor document request reminders" />
-                <DeferredItem label="Escrow funding status changes" />
+                <NotificationPreference
+                  label="Approval and release alerts"
+                  detail="Notify the right approver when a request is ready for review or release."
+                  active={notificationPrefs.approvals}
+                  onToggle={() => toggleNotification("approvals")}
+                />
+                <NotificationPreference
+                  label="Document request reminders"
+                  detail="Flag evidence requests and reference updates on active packages."
+                  active={notificationPrefs.documents}
+                  onToggle={() => toggleNotification("documents")}
+                />
+                <NotificationPreference
+                  label="Escrow status changes"
+                  detail="Track funding, holds, releases, and contractor withdrawal availability."
+                  active={notificationPrefs.escrow}
+                  onToggle={() => toggleNotification("escrow")}
+                />
               </ul>
             </SettingsCard>
           )}
@@ -211,11 +242,29 @@ const AccessRow = ({
   </li>
 );
 
-const DeferredItem = ({ label }: { label: string }) => (
-  <li className="settings__access-row settings__access-row--muted">
+const NotificationPreference = ({
+  label,
+  detail,
+  active,
+  onToggle,
+}: {
+  label: string;
+  detail: string;
+  active: boolean;
+  onToggle: () => void;
+}) => (
+  <li className="settings__access-row">
     <div>
       <strong>{label}</strong>
-      <span>Coming in a later phase.</span>
+      <span>{detail}</span>
     </div>
+    <button
+      type="button"
+      className={`settings__toggle ${active ? "is-active" : ""}`}
+      aria-pressed={active}
+      onClick={onToggle}
+    >
+      {active ? "On" : "Off"}
+    </button>
   </li>
 );

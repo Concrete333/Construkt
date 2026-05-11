@@ -109,7 +109,7 @@ const HomePlaceholder = () => (
     </p>
     <div className="home-placeholder__cta">
       <a className="home-placeholder__button" href="#signin">
-        Sign in to demo
+        Choose role
       </a>
       <a className="home-placeholder__button" href="#dashboard2">
         Open dashboard
@@ -119,7 +119,7 @@ const HomePlaceholder = () => (
 );
 
 const DemoSeedingNotice = () => (
-  <div className="home-placeholder__loading">Seeding demo data...</div>
+  <div className="home-placeholder__loading">Preparing review state...</div>
 );
 
 export default App;

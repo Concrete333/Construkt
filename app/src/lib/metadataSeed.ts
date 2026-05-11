@@ -35,6 +35,9 @@ export const demoHoldRef = (packageName: string): string =>
 export const demoDocumentRequestRef = (packageName: string): string =>
   `${DEMO_BASE}/document-request/${packageScopeSlug(packageName)}-evidence`;
 
+export const demoVariationRequestRef = (packageName: string): string =>
+  `${DEMO_BASE}/variation/${packageScopeSlug(packageName)}-scope-change`;
+
 export interface MetadataSeedOptions {
   /** Defaults to a fixed demo timestamp so seeded values are stable in tests. */
   now?: () => string;
@@ -268,6 +271,23 @@ export const seedDemoMetadata = (
       requestedByRole: "financeDirector",
       requestedAt: now(),
       note: "Upload the independent structural inspector report before the hold can be removed.",
+    },
+  );
+  metadata.putVariationRequest(
+    demoVariationRequestRef(world.packages.rejectedDelta.name),
+    {
+      workPackage: world.packages.rejectedDelta.address.toBase58(),
+      status: "rejected",
+      kind: "scopeOnly",
+      title: "Revised crane access window",
+      description:
+        "Contractor requested a logistics variation after the agreed lifting window changed.",
+      requestedByDisplayName: CONTRACTOR.displayName,
+      requestedByRole: "contractor",
+      requestedAt: now(),
+      rejectedByDisplayName: PM.displayName,
+      rejectedAt: now(),
+      decisionNote: "Rejected pending a re-priced lifting plan.",
     },
   );
 };

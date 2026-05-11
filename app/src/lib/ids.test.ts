@@ -10,6 +10,7 @@ import {
   noteMetadataRef,
   packageScopeMetadataRef,
   projectMetadataRef,
+  variationRequestMetadataRef,
 } from "./ids";
 import type {
   Fetched,
@@ -79,6 +80,9 @@ describe("metadata refs", () => {
     expect(holdMetadataRef(key, "2026-05-07T12:34:56.000Z")).toContain(
       "metadata://demo/hold/",
     );
+    expect(
+      variationRequestMetadataRef(key, "2026-05-07T12:34:56.000Z"),
+    ).toContain("/variation/");
   });
 });
 

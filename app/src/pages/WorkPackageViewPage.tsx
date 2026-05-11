@@ -19,6 +19,7 @@ import {
   nextDocumentVersion,
   nextPaymentRequestId,
   noteMetadataRef,
+  variationRequestMetadataRef,
   withdrawalClearanceMetadataRef,
 } from "../lib/ids";
 import { friendlyClientError } from "../lib/program";
@@ -60,6 +61,9 @@ import type {
   PackageScopeMetadata,
   ProjectMetadata,
   TeamMember,
+  VariationKind,
+  VariationRequestMetadata,
+  VariationStatus,
   WithdrawalClearanceMetadata,
 } from "../lib/metadataClient";
 import type { DemoRole } from "../lib/theme";
@@ -80,7 +84,7 @@ interface RequestRow {
   isActive: boolean;
 }
 
-type WorkPackageRecordsTab = "audit" | "documents" | "payments";
+type WorkPackageRecordsTab = "audit" | "documents" | "variations" | "payments";
 
 interface EnrichedAuditEvent extends AuditEvent {
   actorDisplayName: string | null;
@@ -97,6 +101,7 @@ interface LoadedDetail {
   requests: RequestRow[];
   documentRequests: Array<[string, DocumentRequestMetadata]>;
   withdrawalClearances: Array<[string, WithdrawalClearanceMetadata]>;
+  variationRequests: Array<[string, VariationRequestMetadata]>;
   timeline: EnrichedAuditEvent[];
   teamMembers: TeamMember[];
   hasHighApproverAssignment: boolean;
@@ -164,6 +169,7 @@ export const WorkPackageViewPage = ({
         milestones,
         documentRequests,
         withdrawalClearances,
+        variationRequests,
       ] = await Promise.all([
         metadata.resolvePackageScope(pkg.scopeRef),
         metadata.resolveProject(projectFetched.metadataRef),
@@ -172,6 +178,7 @@ export const WorkPackageViewPage = ({
         client.fetchMilestonesForPackage(packageKey),
         metadata.listDocumentRequestsForPackage(packageKey.toBase58()),
         metadata.listWithdrawalClearancesForPackage(packageKey.toBase58()),
+        metadata.listVariationRequestsForPackage(packageKey.toBase58()),
       ]);
       const milestonesByAddress = new Map(
         milestones.map((m) => [m.address.toBase58(), m]),
@@ -271,6 +278,7 @@ export const WorkPackageViewPage = ({
           requests: requestRows,
           documentRequests,
           withdrawalClearances,
+          variationRequests,
           timeline: enriched,
           teamMembers,
           hasHighApproverAssignment,
@@ -315,6 +323,7 @@ export const WorkPackageViewPage = ({
     requests,
     documentRequests,
     withdrawalClearances,
+    variationRequests,
     timeline,
     teamMembers,
     contractorDisplayName,
@@ -433,6 +442,8 @@ export const WorkPackageViewPage = ({
             activeRequestRow={activeRequestRow}
             activeRequestAddress={activeRequestAddress}
             documentRequests={documentRequests}
+            variationRequests={variationRequests}
+            milestones={milestones}
             project={loaded.project.address}
             workPackage={loaded.packageAddress}
             pending={pending}
@@ -877,6 +888,7 @@ const MilestoneSchedulePanel = ({
 const RECORD_TABS: Array<{ id: WorkPackageRecordsTab; label: string }> = [
   { id: "audit", label: "Audit Trail" },
   { id: "documents", label: "Documents" },
+  { id: "variations", label: "Variations" },
   { id: "payments", label: "Payments" },
 ];
 
@@ -892,6 +904,8 @@ const WorkPackageRecordsPanel = ({
   activeRequestRow,
   activeRequestAddress,
   documentRequests,
+  variationRequests,
+  milestones,
   project,
   workPackage,
   pending,
@@ -911,6 +925,8 @@ const WorkPackageRecordsPanel = ({
   activeRequestRow: RequestRow | null;
   activeRequestAddress: PublicKey | null;
   documentRequests: Array<[string, DocumentRequestMetadata]>;
+  variationRequests: Array<[string, VariationRequestMetadata]>;
+  milestones: Fetched<MilestoneAccount>[];
   project: PublicKey;
   workPackage: PublicKey;
   pending: boolean;
@@ -987,6 +1003,21 @@ const WorkPackageRecordsPanel = ({
           onMetadataChange={onMetadataChange}
           client={client}
           metadataWriter={metadataWriter}
+        />
+      )}
+
+      {activeTab === "variations" && (
+        <VariationPanel
+          variations={variationRequests}
+          role={role}
+          wallet={wallet}
+          walletDisplayName={walletDisplayName}
+          contractor={contractor}
+          workPackage={workPackage}
+          milestones={milestones}
+          pending={pending}
+          metadataWriter={metadataWriter}
+          onMetadataChange={onMetadataChange}
         />
       )}
 
@@ -1071,6 +1102,434 @@ const ActiveRequestPanel = ({
         })}
       </select>
     </section>
+  );
+};
+
+const VARIATION_KIND_LABEL: Record<VariationKind, string> = {
+  scopeOnly: "Scope note",
+  capChange: "Package cap change",
+  milestoneAmount: "Milestone amount",
+  milestoneSchedule: "Milestone schedule",
+  contractorChange: "Contractor change",
+  approvalPolicy: "Approval policy",
+};
+
+const VARIATION_STATUS_LABEL: Record<VariationStatus, string> = {
+  submitted: "Submitted",
+  pmApproved: "PM approved",
+  financeApproved: "Finance approved",
+  applied: "Applied",
+  rejected: "Rejected",
+};
+
+const variationStatusTone = (
+  status: VariationStatus,
+): "neutral" | "info" | "warning" | "success" | "error" => {
+  switch (status) {
+    case "submitted":
+      return "info";
+    case "pmApproved":
+    case "financeApproved":
+      return "warning";
+    case "applied":
+      return "success";
+    case "rejected":
+      return "error";
+  }
+};
+
+interface VariationPanelProps {
+  variations: Array<[string, VariationRequestMetadata]>;
+  role: DemoRole;
+  wallet: PublicKey;
+  walletDisplayName: string | null;
+  contractor: PublicKey;
+  workPackage: PublicKey;
+  milestones: Fetched<MilestoneAccount>[];
+  pending: boolean;
+  metadataWriter: MetadataWriter | null;
+  onMetadataChange: (message: string) => void;
+}
+
+const VariationPanel = ({
+  variations,
+  role,
+  wallet,
+  walletDisplayName,
+  contractor,
+  workPackage,
+  milestones,
+  pending,
+  metadataWriter,
+  onMetadataChange,
+}: VariationPanelProps) => {
+  const [createOpen, setCreateOpen] = useState(false);
+  const [kind, setKind] = useState<VariationKind>("scopeOnly");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [amountDeltaText, setAmountDeltaText] = useState("");
+  const [targetDate, setTargetDate] = useState("");
+  const [milestone, setMilestone] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const canCreate =
+    metadataWriter !== null &&
+    (role === "projectManager" ||
+      (role === "contractor" && wallet.equals(contractor)));
+  const sorted = [...variations].sort((a, b) =>
+    b[1].requestedAt.localeCompare(a[1].requestedAt),
+  );
+  const needsAmount = kind === "capChange" || kind === "milestoneAmount";
+  const needsDate = kind === "milestoneSchedule";
+  const needsMilestone =
+    kind === "milestoneAmount" || kind === "milestoneSchedule";
+
+  const resetForm = () => {
+    setCreateOpen(false);
+    setKind("scopeOnly");
+    setTitle("");
+    setDescription("");
+    setAmountDeltaText("");
+    setTargetDate("");
+    setMilestone("");
+    setError(null);
+  };
+
+  const writeVariation = (
+    ref: string,
+    next: VariationRequestMetadata,
+    message: string,
+  ) => {
+    if (!metadataWriter) return;
+    metadataWriter.putVariationRequest(ref, next);
+    onMetadataChange(message);
+  };
+
+  const onSubmit = () => {
+    if (!metadataWriter) return;
+    const cleanTitle = title.trim();
+    const cleanDescription = description.trim();
+    if (!cleanTitle || !cleanDescription) {
+      setError("Add a title and commercial note.");
+      return;
+    }
+    if (needsMilestone && milestone.length === 0) {
+      setError("Choose the affected milestone.");
+      return;
+    }
+
+    let amountDelta: bigint | undefined;
+    if (needsAmount) {
+      try {
+        amountDelta = parseMockUsdc(amountDeltaText);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Invalid amount");
+        return;
+      }
+      if (amountDelta === 0n) {
+        setError("Variation amount cannot be zero.");
+        return;
+      }
+    }
+    if (needsDate && !targetDate) {
+      setError("Choose the revised target date.");
+      return;
+    }
+
+    const requestedAt = new Date().toISOString();
+    const ref = variationRequestMetadataRef(workPackage, requestedAt);
+    writeVariation(
+      ref,
+      {
+        workPackage: workPackage.toBase58(),
+        milestone: milestone || undefined,
+        status: "submitted",
+        kind,
+        title: cleanTitle,
+        description: cleanDescription,
+        requestedByDisplayName:
+          walletDisplayName ?? shortAddress(wallet.toBase58()),
+        requestedByRole: role,
+        requestedAt,
+        amountDelta,
+        targetDate: targetDate || undefined,
+      },
+      "Variation request recorded.",
+    );
+    resetForm();
+  };
+
+  const updateVariation = (
+    ref: string,
+    current: VariationRequestMetadata,
+    status: VariationStatus,
+  ) => {
+    const actor = walletDisplayName ?? shortAddress(wallet.toBase58());
+    const now = new Date().toISOString();
+    const next: VariationRequestMetadata = { ...current, status };
+    if (status === "pmApproved") {
+      next.approvedByPmDisplayName = actor;
+    } else if (status === "financeApproved") {
+      next.approvedByFinanceDisplayName = actor;
+    } else if (status === "applied") {
+      next.appliedAt = now;
+    } else if (status === "rejected") {
+      next.rejectedByDisplayName = actor;
+      next.rejectedAt = now;
+    }
+    writeVariation(
+      ref,
+      next,
+      `Variation ${VARIATION_STATUS_LABEL[status].toLowerCase()}.`,
+    );
+  };
+
+  return (
+    <div className="work-package-view__variations">
+      <div className="work-package-view__variation-head">
+        <div>
+          <h3>Variation requests</h3>
+          <p>
+            Commercial changes are recorded here first. Payment-control changes
+            can later be promoted into the Solana variation flow.
+          </p>
+        </div>
+        {canCreate && !createOpen && (
+          <button
+            className="work-package-view__btn work-package-view__btn--primary"
+            type="button"
+            onClick={() => setCreateOpen(true)}
+            disabled={pending}
+          >
+            New variation
+          </button>
+        )}
+      </div>
+
+      {createOpen && (
+        <div className="work-package-view__variation-form">
+          <label className="work-package-view__reject-label">
+            Variation type
+            <select
+              className="work-package-view__reject-input"
+              value={kind}
+              onChange={(e) => {
+                setKind(e.target.value as VariationKind);
+                setError(null);
+              }}
+              disabled={pending}
+            >
+              {Object.entries(VARIATION_KIND_LABEL).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="work-package-view__reject-label">
+            Title
+            <input
+              className="work-package-view__reject-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              disabled={pending}
+              placeholder="e.g. Revised access sequence"
+            />
+          </label>
+          <label className="work-package-view__reject-label">
+            Commercial note
+            <textarea
+              className="work-package-view__reject-input"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              disabled={pending}
+              rows={3}
+              placeholder="What changed, why, and what evidence supports it?"
+            />
+          </label>
+          {needsMilestone && (
+            <label className="work-package-view__reject-label">
+              Affected milestone
+              <select
+                className="work-package-view__reject-input"
+                value={milestone}
+                onChange={(e) => setMilestone(e.target.value)}
+                disabled={pending}
+              >
+                <option value="">Choose milestone</option>
+                {milestones.map((m) => (
+                  <option
+                    key={m.address.toBase58()}
+                    value={m.address.toBase58()}
+                  >
+                    Milestone {m.account.milestoneId.toString()}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {needsAmount && (
+            <label className="work-package-view__reject-label">
+              Amount change
+              <input
+                className="work-package-view__reject-input"
+                value={amountDeltaText}
+                onChange={(e) => setAmountDeltaText(e.target.value)}
+                disabled={pending}
+                placeholder="e.g. 25000"
+                type="number"
+              />
+            </label>
+          )}
+          {needsDate && (
+            <label className="work-package-view__reject-label">
+              Revised target date
+              <input
+                className="work-package-view__reject-input"
+                value={targetDate}
+                onChange={(e) => setTargetDate(e.target.value)}
+                disabled={pending}
+                type="date"
+              />
+            </label>
+          )}
+          {error && <p className="work-package-view__form-error">{error}</p>}
+          <div className="work-package-view__reject-actions">
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--ghost"
+              onClick={resetForm}
+              disabled={pending}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="work-package-view__btn work-package-view__btn--primary"
+              onClick={onSubmit}
+              disabled={pending}
+            >
+              Submit variation
+            </button>
+          </div>
+        </div>
+      )}
+
+      {sorted.length === 0 ? (
+        <p className="work-package-view__empty">
+          No variation requests recorded yet.
+        </p>
+      ) : (
+        <ul className="work-package-view__variation-list">
+          {sorted.map(([ref, variation]) => (
+            <li key={ref} className="work-package-view__variation-card">
+              <div className="work-package-view__variation-card-head">
+                <div>
+                  <p className="work-package-view__variation-title">
+                    {variation.title}
+                  </p>
+                  <p className="work-package-view__document-meta">
+                    {VARIATION_KIND_LABEL[variation.kind]} - requested by{" "}
+                    {variation.requestedByDisplayName} -{" "}
+                    {new Intl.DateTimeFormat(undefined, {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    }).format(new Date(variation.requestedAt))}
+                  </p>
+                </div>
+                <StatusPill tone={variationStatusTone(variation.status)}>
+                  {VARIATION_STATUS_LABEL[variation.status]}
+                </StatusPill>
+              </div>
+              <p className="work-package-view__variation-description">
+                {variation.description}
+              </p>
+              {(variation.amountDelta !== undefined ||
+                variation.targetDate ||
+                variation.milestone) && (
+                <div className="work-package-view__variation-facts">
+                  {variation.amountDelta !== undefined && (
+                    <span>
+                      Amount:{" "}
+                      <Money amount={variation.amountDelta} withSymbol />
+                    </span>
+                  )}
+                  {variation.targetDate && (
+                    <span>Date: {variation.targetDate}</span>
+                  )}
+                  {variation.milestone && (
+                    <span>Milestone: {shortAddress(variation.milestone)}</span>
+                  )}
+                </div>
+              )}
+              {variation.decisionNote && (
+                <p className="work-package-view__variation-note">
+                  {variation.decisionNote}
+                </p>
+              )}
+              {metadataWriter && (
+                <div className="work-package-view__action-buttons">
+                  {role === "projectManager" &&
+                    variation.status === "submitted" && (
+                      <button
+                        className="work-package-view__btn work-package-view__btn--primary"
+                        type="button"
+                        onClick={() =>
+                          updateVariation(ref, variation, "pmApproved")
+                        }
+                        disabled={pending}
+                      >
+                        PM approve
+                      </button>
+                    )}
+                  {role === "financeDirector" &&
+                    variation.status === "pmApproved" && (
+                      <button
+                        className="work-package-view__btn work-package-view__btn--primary"
+                        type="button"
+                        onClick={() =>
+                          updateVariation(ref, variation, "financeApproved")
+                        }
+                        disabled={pending}
+                      >
+                        Finance approve
+                      </button>
+                    )}
+                  {role === "financeDirector" &&
+                    variation.status === "financeApproved" && (
+                      <button
+                        className="work-package-view__btn work-package-view__btn--primary"
+                        type="button"
+                        onClick={() =>
+                          updateVariation(ref, variation, "applied")
+                        }
+                        disabled={pending}
+                      >
+                        Mark applied
+                      </button>
+                    )}
+                  {(role === "projectManager" || role === "financeDirector") &&
+                    variation.status !== "applied" &&
+                    variation.status !== "rejected" && (
+                      <button
+                        className="work-package-view__btn work-package-view__btn--danger"
+                        type="button"
+                        onClick={() =>
+                          updateVariation(ref, variation, "rejected")
+                        }
+                        disabled={pending}
+                      >
+                        Reject
+                      </button>
+                    )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 };
 

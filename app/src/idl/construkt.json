@@ -2442,7 +2442,7 @@
           {
             "name": "releasedAmount",
             "docs": [
-              "V0 releases a request in full, so this is either 0 or equal to `amount`."
+              "The current release settles a request in full, so this is either 0 or equal to `amount`."
             ],
             "type": "u64"
           },

@@ -1997,7 +1997,7 @@ pub struct PaymentRequestAccount {
     pub status: PaymentRequestStatus,
     pub submitted_at: i64,
     pub updated_at: i64,
-    /// V0 releases a request in full, so this is either 0 or equal to `amount`.
+    /// The current release settles a request in full, so this is either 0 or equal to `amount`.
     pub released_amount: u64,
     pub hold_active: bool,
     pub hold_by: Pubkey,

@@ -11,6 +11,7 @@ import type {
   PackageScopeMetadata,
   ProjectMetadata,
   MetadataStorage,
+  VariationRequestMetadata,
   WithdrawalClearanceMetadata,
 } from "./metadataClient";
 
@@ -79,6 +80,18 @@ const sampleWithdrawalClearance: WithdrawalClearanceMetadata = {
   clearedAt: "2026-04-18T12:00:00Z",
 };
 
+const sampleVariationRequest: VariationRequestMetadata = {
+  workPackage: "pkg1",
+  status: "submitted",
+  kind: "scopeOnly",
+  title: "Revised access route",
+  description:
+    "Contractor requested a logistics change after site access moved.",
+  requestedByDisplayName: "Daniel Okafor",
+  requestedByRole: "contractor",
+  requestedAt: "2026-04-19T09:00:00Z",
+};
+
 describe("MockMetadataClient — null on miss", () => {
   it("returns null for refs that have not been written", async () => {
     const client = new MockMetadataClient();
@@ -89,6 +102,7 @@ describe("MockMetadataClient — null on miss", () => {
     expect(await client.resolveHold("missing")).toBeNull();
     expect(await client.resolveDocumentRequest("missing")).toBeNull();
     expect(await client.resolveWithdrawalClearance("missing")).toBeNull();
+    expect(await client.resolveVariationRequest("missing")).toBeNull();
   });
 });
 
@@ -132,6 +146,7 @@ describe("LocalStorageMetadataClient", () => {
     });
     first.putDocumentRequest("dr1", sampleDocumentRequest);
     first.putWithdrawalClearance("wc1", sampleWithdrawalClearance);
+    first.putVariationRequest("vr1", sampleVariationRequest);
 
     const second = new LocalStorageMetadataClient(storage, "test");
     expect(await second.resolveProject("p1")).toEqual(sampleProject);
@@ -143,6 +158,9 @@ describe("LocalStorageMetadataClient", () => {
     );
     expect(await second.resolveWithdrawalClearance("wc1")).toEqual(
       sampleWithdrawalClearance,
+    );
+    expect(await second.resolveVariationRequest("vr1")).toEqual(
+      sampleVariationRequest,
     );
   });
 
@@ -247,6 +265,21 @@ describe("MockMetadataClient — round trips", () => {
     );
     expect(await client.listWithdrawalClearancesForPackage("pkg1")).toEqual([
       ["wc1", sampleWithdrawalClearance],
+    ]);
+  });
+
+  it("stores and lists variation requests by work package", async () => {
+    const client = new MockMetadataClient();
+    client.putVariationRequest("vr1", sampleVariationRequest);
+    client.putVariationRequest("vr2", {
+      ...sampleVariationRequest,
+      workPackage: "pkg2",
+    });
+    expect(await client.resolveVariationRequest("vr1")).toEqual(
+      sampleVariationRequest,
+    );
+    expect(await client.listVariationRequestsForPackage("pkg1")).toEqual([
+      ["vr1", sampleVariationRequest],
     ]);
   });
 });

@@ -7,9 +7,9 @@ export interface NetworkBadgeProps {
 }
 
 /**
- * Pure display badge that surfaces the active demo network and explicitly
+ * Pure display badge that surfaces the active review network and explicitly
  * signals that funds are mock USDC, never real. Replaces the prototype's
- * generic "SOLANA DEVNET DEMO" string. Never renders mainnet — see
+ * generic "SOLANA DEVNET" string. Never renders mainnet; see
  * `networkBadgeContent` for the formatter contract.
  */
 export const NetworkBadge = ({ network }: NetworkBadgeProps) => {

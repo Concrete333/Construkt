@@ -102,7 +102,7 @@ export interface SeedOptions {
  * Drives a `ConstruktClient` through the on-chain instruction set to build
  * a representative "Demo Hospital Fit-Out" world: one project, seven work
  * packages each in a different state, plus all the role assignments and
- * payment requests needed to exercise the V0 dashboard, project list, and
+ * payment requests needed to exercise the dashboard, project list, and
  * work-package surfaces.
  *
  * Status coverage across the seven packages:

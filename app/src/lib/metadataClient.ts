@@ -6,7 +6,7 @@
  * versions, hold reasons) without ever leaking an off-chain dependency
  * into the on-chain client or the selector layer.
  *
- * V0 ships with `MockMetadataClient` (in-memory). Phase 4+ can swap in a
+ * The current release ships with `MockMetadataClient` (in-memory). A hosted release can swap in a
  * Supabase / IPFS / S3-backed implementation by satisfying this same
  * interface. Selectors and components must always go through the
  * interface — never reach into a concrete implementation.
@@ -134,6 +134,42 @@ export interface WithdrawalClearanceMetadata {
   clearedAt: string;
 }
 
+export type VariationKind =
+  | "scopeOnly"
+  | "capChange"
+  | "milestoneAmount"
+  | "milestoneSchedule"
+  | "contractorChange"
+  | "approvalPolicy";
+
+export type VariationStatus =
+  | "submitted"
+  | "pmApproved"
+  | "financeApproved"
+  | "applied"
+  | "rejected";
+
+export interface VariationRequestMetadata {
+  workPackage: string;
+  milestone?: string;
+  status: VariationStatus;
+  kind: VariationKind;
+  title: string;
+  description: string;
+  requestedByDisplayName: string;
+  requestedByRole: TeamRole;
+  requestedAt: string;
+  amountDelta?: bigint;
+  targetDate?: string;
+  proposedContractor?: string;
+  approvedByPmDisplayName?: string;
+  approvedByFinanceDisplayName?: string;
+  appliedAt?: string;
+  rejectedByDisplayName?: string;
+  rejectedAt?: string;
+  decisionNote?: string;
+}
+
 /**
  * Read-side surface used by selectors and components. Every method is
  * async (so a network-backed implementation drops in cleanly) and
@@ -156,6 +192,12 @@ export interface MetadataClient {
   listWithdrawalClearancesForPackage(
     workPackage: string,
   ): Promise<Array<[string, WithdrawalClearanceMetadata]>>;
+  resolveVariationRequest(
+    ref: string,
+  ): Promise<VariationRequestMetadata | null>;
+  listVariationRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, VariationRequestMetadata]>>;
 }
 
 /**
@@ -171,6 +213,7 @@ export interface MetadataWriter {
   putHold(ref: string, data: HoldMetadata): void;
   putDocumentRequest(ref: string, data: DocumentRequestMetadata): void;
   putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void;
+  putVariationRequest(ref: string, data: VariationRequestMetadata): void;
 }
 
 export interface MetadataSnapshot {
@@ -181,6 +224,7 @@ export interface MetadataSnapshot {
   holds: Record<string, HoldMetadata>;
   documentRequests: Record<string, DocumentRequestMetadata>;
   withdrawalClearances: Record<string, WithdrawalClearanceMetadata>;
+  variationRequests: Record<string, VariationRequestMetadata>;
 }
 
 export interface MetadataSnapshotStore {
@@ -206,6 +250,7 @@ const emptySnapshot = (): MetadataSnapshot => ({
   holds: {},
   documentRequests: {},
   withdrawalClearances: {},
+  variationRequests: {},
 });
 
 const BIGINT_MARKER = "__construktBigInt";
@@ -233,7 +278,7 @@ const parseSnapshot = (raw: string): MetadataSnapshot =>
   }) as MetadataSnapshot;
 
 /**
- * In-memory `MetadataClient + MetadataWriter`. Suitable for V0 demo and
+ * In-memory `MetadataClient + MetadataWriter`. Suitable for seeded review and
  * tests. Returned values are deep-cloned so callers can't mutate the
  * stored payload by accident.
  */
@@ -252,6 +297,10 @@ export class MockMetadataClient
   private readonly withdrawalClearances = new Map<
     string,
     WithdrawalClearanceMetadata
+  >();
+  private readonly variationRequests = new Map<
+    string,
+    VariationRequestMetadata
   >();
 
   async resolveProject(ref: string): Promise<ProjectMetadata | null> {
@@ -293,6 +342,18 @@ export class MockMetadataClient
       .filter(([, data]) => data.workPackage === workPackage)
       .map(([ref, data]) => [ref, structuredClone(data)]);
   }
+  async resolveVariationRequest(
+    ref: string,
+  ): Promise<VariationRequestMetadata | null> {
+    return cloneOrNull(this.variationRequests.get(ref));
+  }
+  async listVariationRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, VariationRequestMetadata]>> {
+    return [...this.variationRequests]
+      .filter(([, data]) => data.workPackage === workPackage)
+      .map(([ref, data]) => [ref, structuredClone(data)]);
+  }
 
   putProject(ref: string, data: ProjectMetadata): void {
     this.projects.set(ref, structuredClone(data));
@@ -315,6 +376,9 @@ export class MockMetadataClient
   putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void {
     this.withdrawalClearances.set(ref, structuredClone(data));
   }
+  putVariationRequest(ref: string, data: VariationRequestMetadata): void {
+    this.variationRequests.set(ref, structuredClone(data));
+  }
 
   loadSnapshot(snapshot: Partial<MetadataSnapshot>): void {
     this.projects.clear();
@@ -324,6 +388,7 @@ export class MockMetadataClient
     this.holds.clear();
     this.documentRequests.clear();
     this.withdrawalClearances.clear();
+    this.variationRequests.clear();
 
     for (const [ref, data] of Object.entries(snapshot.projects ?? {})) {
       this.putProject(ref, data);
@@ -347,6 +412,11 @@ export class MockMetadataClient
       snapshot.withdrawalClearances ?? {},
     )) {
       this.putWithdrawalClearance(ref, data);
+    }
+    for (const [ref, data] of Object.entries(
+      snapshot.variationRequests ?? {},
+    )) {
+      this.putVariationRequest(ref, data);
     }
   }
 
@@ -375,6 +445,12 @@ export class MockMetadataClient
       ),
       withdrawalClearances: Object.fromEntries(
         [...this.withdrawalClearances].map(([ref, data]) => [
+          ref,
+          structuredClone(data),
+        ]),
+      ),
+      variationRequests: Object.fromEntries(
+        [...this.variationRequests].map(([ref, data]) => [
           ref,
           structuredClone(data),
         ]),
@@ -437,6 +513,16 @@ export class LocalStorageMetadataClient
   ): Promise<Array<[string, WithdrawalClearanceMetadata]>> {
     return this.client.listWithdrawalClearancesForPackage(workPackage);
   }
+  async resolveVariationRequest(
+    ref: string,
+  ): Promise<VariationRequestMetadata | null> {
+    return this.client.resolveVariationRequest(ref);
+  }
+  async listVariationRequestsForPackage(
+    workPackage: string,
+  ): Promise<Array<[string, VariationRequestMetadata]>> {
+    return this.client.listVariationRequestsForPackage(workPackage);
+  }
 
   putProject(ref: string, data: ProjectMetadata): void {
     this.client.putProject(ref, data);
@@ -464,6 +550,10 @@ export class LocalStorageMetadataClient
   }
   putWithdrawalClearance(ref: string, data: WithdrawalClearanceMetadata): void {
     this.client.putWithdrawalClearance(ref, data);
+    this.persist();
+  }
+  putVariationRequest(ref: string, data: VariationRequestMetadata): void {
+    this.client.putVariationRequest(ref, data);
     this.persist();
   }
 

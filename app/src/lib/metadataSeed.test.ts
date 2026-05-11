@@ -10,6 +10,7 @@ import {
   demoNoteRef,
   demoPackageScopeRef,
   demoProjectRef,
+  demoVariationRequestRef,
   seedDemoMetadata,
 } from "./metadataSeed";
 
@@ -140,6 +141,23 @@ describe("seedDemoMetadata - document requests", () => {
       world.packages.facade.request!.toBase58(),
     );
     expect(request.note).toMatch(/inspector report/i);
+  });
+});
+
+describe("seedDemoMetadata - variation requests", () => {
+  it("creates a rejected variation record for the re-priced logistics package", async () => {
+    const { metadata, world } = await seedBoth();
+    const [ref, variation] = (
+      await metadata.listVariationRequestsForPackage(
+        world.packages.rejectedDelta.address.toBase58(),
+      )
+    )[0];
+    expect(ref).toBe(
+      demoVariationRequestRef(world.packages.rejectedDelta.name),
+    );
+    expect(variation.status).toBe("rejected");
+    expect(variation.kind).toBe("scopeOnly");
+    expect(variation.description).toMatch(/lifting window/i);
   });
 });
 

@@ -68,6 +68,12 @@ export const withdrawalClearanceMetadataRef = (
 ): string =>
   `metadata://demo/withdrawal-clearance/${paymentRequest.toBase58()}`;
 
+export const variationRequestMetadataRef = (
+  workPackage: PublicKey,
+  requestedAt: string,
+): string =>
+  `metadata://demo/variation/${workPackage.toBase58()}/${timestampKey(requestedAt)}`;
+
 /**
  * Approval records are immutable per (request, role) on chain, but the
  * timestamp suffix keeps refs unique if future backends ever allow more

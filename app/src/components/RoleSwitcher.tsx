@@ -9,8 +9,8 @@ export interface RoleSwitcherProps {
 }
 
 /**
- * Demo-only role switcher. Custom listbox (rather than a native
- * `<select>`) so the popup honors the app's design tokens — the OS-
+ * Review role switcher. Custom listbox (rather than a native
+ * `<select>`) so the popup honors the app's design tokens; the OS-
  * native popup doesn't pick up our typography, surface colors, or dark
  * mode. The component still satisfies the listbox WAI-ARIA pattern:
  * arrow keys move highlight, Enter/Space commits, Escape cancels.
@@ -18,7 +18,7 @@ export interface RoleSwitcherProps {
  * This swaps the *visible* role across the surface (which projects and
  * tasks render) and is **not** signing authority. Per the plan's "Role
  * visibility is not authorization" rule, this control must stay clearly
- * labeled as demo behavior.
+ * labeled as review behavior.
  */
 export const RoleSwitcher = ({ role, onChange }: RoleSwitcherProps) => {
   const [open, setOpen] = useState(false);
@@ -107,7 +107,7 @@ export const RoleSwitcher = ({ role, onChange }: RoleSwitcherProps) => {
           setOpen((o) => !o);
         }}
       >
-        <span className="role-switcher__caption">Demo role</span>
+        <span className="role-switcher__caption">Active role</span>
         <span className="role-switcher__value">{DEMO_ROLE_LABEL[role]}</span>
         <svg
           className="role-switcher__caret"
@@ -130,7 +130,7 @@ export const RoleSwitcher = ({ role, onChange }: RoleSwitcherProps) => {
           ref={listRef}
           className="role-switcher__list"
           role="listbox"
-          aria-label="Active demo role"
+          aria-label="Active role"
           aria-activedescendant={`${listboxId}-${highlight}`}
           tabIndex={-1}
           onKeyDown={onListKey}
