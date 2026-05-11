@@ -81,9 +81,6 @@ interface ProjectDetailPageProps {
 interface FundCtx {
   isFinance: boolean;
   isProjectManager: boolean;
-  fundTarget: string | null;
-  fundText: string;
-  fundError: string | null;
   assignTarget: string | null;
   assignContractorText: string;
   assignContractorError: string | null;
@@ -92,11 +89,8 @@ interface FundCtx {
   onActivatePackage: (
     packageAddress: PublicKey,
     projectAddress: PublicKey,
+    escrowAmount: bigint,
   ) => void;
-  onOpenFund: (packageAddress: string) => void;
-  onChangeFundText: (v: string) => void;
-  onCancelFund: () => void;
-  onSubmitFund: (packageAddress: PublicKey, projectAddress: PublicKey) => void;
   onOpenAssignContractor: (packageAddress: string) => void;
   onChangeAssignContractorText: (v: string) => void;
   onCancelAssignContractor: () => void;
@@ -245,9 +239,6 @@ export const ProjectDetailPage = ({
   );
   const [milestoneError, setMilestoneError] = useState<string | null>(null);
 
-  const [fundTarget, setFundTarget] = useState<string | null>(null);
-  const [fundText, setFundText] = useState("");
-  const [fundError, setFundError] = useState<string | null>(null);
   const [assignTarget, setAssignTarget] = useState<string | null>(null);
   const [assignContractorText, setAssignContractorText] = useState(
     world.contractor.publicKey.toBase58(),
@@ -553,42 +544,19 @@ export const ProjectDetailPage = ({
     });
   };
 
-  const onSubmitFund = (
-    packageAddress: PublicKey,
-    projectAddress: PublicKey,
-  ) => {
-    let amount: bigint;
-    try {
-      amount = parseMockUsdc(fundText);
-    } catch (e) {
-      setFundError(e instanceof Error ? e.message : "Invalid amount");
-      return;
-    }
-    setFundError(null);
-    void onAct(() =>
-      client.fundEscrow({
-        authority: wallet,
-        project: projectAddress,
-        workPackage: packageAddress,
-        amount,
-      }),
-    ).then(() => {
-      setFundTarget(null);
-      setFundText("");
-    });
-  };
-
   const onActivatePackage = (
     packageAddress: PublicKey,
     projectAddress: PublicKey,
+    escrowAmount: bigint,
   ) => {
-    void onAct(() =>
-      client.activateWorkPackage({
+    void onAct(async () => {
+      return client.activateAndFundWorkPackage({
         authority: wallet,
         project: projectAddress,
         workPackage: packageAddress,
-      }),
-    );
+        amount: escrowAmount,
+      });
+    });
   };
 
   const onSubmitAssignContractor = (
@@ -643,30 +611,12 @@ export const ProjectDetailPage = ({
   const fundCtx: FundCtx = {
     isFinance: role === "financeDirector",
     isProjectManager: role === "projectManager",
-    fundTarget,
-    fundText,
-    fundError,
     assignTarget,
     assignContractorText,
     assignContractorError,
     demoContractorAddress: world.contractor.publicKey.toBase58(),
     pending,
     onActivatePackage,
-    onOpenFund: (addr) => {
-      setFundTarget(addr);
-      setFundText("");
-      setFundError(null);
-    },
-    onChangeFundText: (v) => {
-      setFundText(v);
-      setFundError(null);
-    },
-    onCancelFund: () => {
-      setFundTarget(null);
-      setFundText("");
-      setFundError(null);
-    },
-    onSubmitFund,
     onOpenAssignContractor: (addr) => {
       setAssignTarget(addr);
       setAssignContractorText(world.contractor.publicKey.toBase58());
@@ -1123,13 +1073,17 @@ const AddPackageModal = ({
         aria-label="Create package steps"
       >
         <span
-          className={`project-detail__modal-step ${step === 1 ? "is-active" : ""}`}
+          className={`project-detail__modal-step ${
+            step === 1 ? "is-active" : ""
+          }`}
         >
           <span>1</span>Package setup
         </span>
         <i />
         <span
-          className={`project-detail__modal-step ${step === 2 ? "is-active" : ""}`}
+          className={`project-detail__modal-step ${
+            step === 2 ? "is-active" : ""
+          }`}
         >
           <span>2</span>Payment schedule
         </span>
@@ -1161,11 +1115,11 @@ const AddPackageModal = ({
             </ProjectDetailField>
             <ProjectDetailField label="Estimated Budget - GBP">
               <input
-                type="number"
-                min="0"
-                step="1000"
+                type="text"
+                inputMode="decimal"
                 value={capText}
                 onChange={(e) => onCapText(e.target.value)}
+                autoComplete="off"
                 disabled={pending}
               />
               {capError && (
@@ -1275,6 +1229,7 @@ const AddPackageModal = ({
                   />
                   <input
                     type="text"
+                    inputMode="decimal"
                     value={row.amountText}
                     onChange={(e) => {
                       onMilestoneRows((rows) =>
@@ -1287,6 +1242,7 @@ const AddPackageModal = ({
                       onMilestoneError(null);
                     }}
                     placeholder="Amount"
+                    autoComplete="off"
                     disabled={pending}
                   />
                   <input
@@ -1463,7 +1419,6 @@ const PackageTableRow = ({
     ? paymentRequestDisplayStatus(row.activeRequest)
     : null;
   const packageAddr = row.rollup.address.toBase58();
-  const isFundTarget = fundCtx.fundTarget === packageAddr;
   const isAssignTarget = fundCtx.assignTarget === packageAddr;
   const contractorAssigned = !row.rollup.package.contractor.equals(
     PublicKey.default,
@@ -1475,11 +1430,6 @@ const PackageTableRow = ({
   );
   const milestoneScheduleComplete =
     !isMilestoneMode || milestoneTotal === row.rollup.package.capAmount;
-  const canFund =
-    fundCtx.isFinance &&
-    status === "active" &&
-    row.rollup.package.fundedAmount < row.rollup.package.capAmount &&
-    milestoneScheduleComplete;
   const financeApproval =
     status === "draft" && !contractorAssigned
       ? "Needs Contractor"
@@ -1511,7 +1461,9 @@ const PackageTableRow = ({
       </td>
       <td>
         {isMilestoneMode
-          ? `Stage ${Math.min(row.milestones.length, 1)} of ${row.milestones.length}`
+          ? `Stage ${Math.min(row.milestones.length, 1)} of ${
+              row.milestones.length
+            }`
           : "Package level"}
       </td>
       <td>
@@ -1561,20 +1513,15 @@ const PackageTableRow = ({
             type="button"
             className="project-detail__btn project-detail__btn--primary"
             onClick={() =>
-              fundCtx.onActivatePackage(row.rollup.address, projectAddress)
+              fundCtx.onActivatePackage(
+                row.rollup.address,
+                projectAddress,
+                row.rollup.package.capAmount,
+              )
             }
             disabled={fundCtx.pending}
           >
-            Approve escrow
-          </button>
-        ) : canFund && !isFundTarget ? (
-          <button
-            type="button"
-            className="project-detail__btn project-detail__btn--ghost"
-            onClick={() => fundCtx.onOpenFund(packageAddr)}
-            disabled={fundCtx.pending}
-          >
-            Fund escrow
+            Approve & fund escrow
           </button>
         ) : (
           <a className="project-detail__text-link" href={wpHref}>
@@ -1629,39 +1576,6 @@ const PackageTableRow = ({
             </button>
           </div>
         )}
-        {canFund && isFundTarget && (
-          <div className="project-detail__fund-popover">
-            <input
-              className="project-detail__form-input"
-              type="text"
-              value={fundCtx.fundText}
-              onChange={(e) => fundCtx.onChangeFundText(e.target.value)}
-              placeholder="e.g. 10000"
-              disabled={fundCtx.pending}
-            />
-            {fundCtx.fundError && (
-              <p className="project-detail__form-error">{fundCtx.fundError}</p>
-            )}
-            <button
-              type="button"
-              className="project-detail__btn project-detail__btn--primary"
-              onClick={() =>
-                fundCtx.onSubmitFund(row.rollup.address, projectAddress)
-              }
-              disabled={fundCtx.pending || fundCtx.fundText.trim().length === 0}
-            >
-              Fund
-            </button>
-            <button
-              type="button"
-              className="project-detail__btn project-detail__btn--ghost"
-              onClick={fundCtx.onCancelFund}
-              disabled={fundCtx.pending}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
       </td>
     </tr>
   );
@@ -1683,8 +1597,6 @@ const PackageCard = ({
   const requestStatus = row.activeRequest
     ? paymentRequestDisplayStatus(row.activeRequest)
     : null;
-  const packageAddr = row.rollup.address.toBase58();
-  const isFundTarget = fundCtx.fundTarget === packageAddr;
   const isMilestoneMode = row.rollup.package.milestoneCounter > 0n;
   const milestoneTotal = row.milestones.reduce(
     (sum, milestone) => sum + milestone.account.amount,
@@ -1692,12 +1604,6 @@ const PackageCard = ({
   );
   const milestoneScheduleComplete =
     !isMilestoneMode || milestoneTotal === row.rollup.package.capAmount;
-  const canFund =
-    fundCtx.isFinance &&
-    status === "active" &&
-    row.rollup.package.fundedAmount < row.rollup.package.capAmount &&
-    milestoneScheduleComplete;
-
   return (
     <li className="project-detail__package">
       <a className="project-detail__package-link" href={wpHref}>
@@ -1766,11 +1672,15 @@ const PackageCard = ({
             className="project-detail__btn project-detail__btn--primary"
             onClick={(e) => {
               e.preventDefault();
-              fundCtx.onActivatePackage(row.rollup.address, projectAddress);
+              fundCtx.onActivatePackage(
+                row.rollup.address,
+                projectAddress,
+                row.rollup.package.capAmount,
+              );
             }}
             disabled={fundCtx.pending}
           >
-            Approve package
+            Approve & fund package
           </button>
         </div>
       )}
@@ -1782,81 +1692,6 @@ const PackageCard = ({
             Approval opens once milestone amounts equal the package cap.
           </p>
         )}
-
-      {fundCtx.isFinance &&
-        status === "active" &&
-        row.rollup.package.fundedAmount < row.rollup.package.capAmount &&
-        !milestoneScheduleComplete && (
-          <p className="project-detail__package-note">
-            Funding opens once milestone amounts equal the package cap.
-          </p>
-        )}
-
-      {canFund && (
-        <div className="project-detail__package-fund">
-          {!isFundTarget ? (
-            <button
-              type="button"
-              className="project-detail__btn project-detail__btn--ghost"
-              onClick={(e) => {
-                e.preventDefault();
-                fundCtx.onOpenFund(packageAddr);
-              }}
-              disabled={fundCtx.pending}
-            >
-              Fund…
-            </button>
-          ) : (
-            <div
-              className="project-detail__create-form"
-              onClick={(e) => e.preventDefault()}
-            >
-              <div className="project-detail__form-field">
-                <label className="project-detail__form-label">Amount</label>
-                <input
-                  className="project-detail__form-input"
-                  type="text"
-                  value={fundCtx.fundText}
-                  onChange={(e) => fundCtx.onChangeFundText(e.target.value)}
-                  placeholder="e.g. 10000"
-                  disabled={fundCtx.pending}
-                />
-                {fundCtx.fundError && (
-                  <p className="project-detail__form-error">
-                    {fundCtx.fundError}
-                  </p>
-                )}
-              </div>
-              <div className="project-detail__create-actions">
-                <button
-                  type="button"
-                  className="project-detail__btn project-detail__btn--ghost"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    fundCtx.onCancelFund();
-                  }}
-                  disabled={fundCtx.pending}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="project-detail__btn project-detail__btn--primary"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    fundCtx.onSubmitFund(row.rollup.address, projectAddress);
-                  }}
-                  disabled={
-                    fundCtx.pending || fundCtx.fundText.trim().length === 0
-                  }
-                >
-                  Fund
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </li>
   );
 };

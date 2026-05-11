@@ -218,6 +218,10 @@ export interface ActivateWorkPackageParams {
   workPackage: PublicKey;
 }
 
+export interface ActivateAndFundWorkPackageParams extends ActivateWorkPackageParams {
+  amount: bigint;
+}
+
 export interface FundEscrowParams {
   authority: PublicKey;
   project: PublicKey;
@@ -376,6 +380,9 @@ export interface ConstruktClient {
   setDraftContractor(params: SetDraftContractorParams): Promise<TxResult>;
   createDraftMilestone(params: CreateDraftMilestoneParams): Promise<TxResult>;
   activateWorkPackage(params: ActivateWorkPackageParams): Promise<TxResult>;
+  activateAndFundWorkPackage(
+    params: ActivateAndFundWorkPackageParams,
+  ): Promise<TxResult>;
   fundEscrow(params: FundEscrowParams): Promise<TxResult>;
   assignRole(params: AssignRoleParams): Promise<TxResult>;
   setRoleActive(params: SetRoleActiveParams): Promise<TxResult>;
@@ -460,7 +467,8 @@ const ERROR_MESSAGES: Record<ConstruktErrorCode, string> = {
   RequestAlreadyReleased: "This request has already been released.",
   InsufficientRemainingCap:
     "Amount would exceed the remaining project or package cap.",
-  InsufficientVaultBalance: "Escrow vault doesn't hold enough tokens.",
+  InsufficientVaultBalance:
+    "Token balance is not sufficient for this transfer. Refresh localnet seed funds or reduce the transfer amount.",
   WrongMint: "Token account uses the wrong mint.",
   WrongTokenOwner: "Token account is owned by an unexpected wallet.",
   ArithmeticOverflow: "Arithmetic overflow on amount math.",

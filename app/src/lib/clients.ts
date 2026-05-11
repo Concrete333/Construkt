@@ -19,7 +19,7 @@ import {
   deriveProjectAddress,
   deriveWorkPackageAddress,
 } from "./pda";
-import type { ConstruktClient } from "./program";
+import type { ConstruktClient, Fetched, ProjectAccount } from "./program";
 import type { DemoRole } from "./theme";
 
 export interface AppWorld {
@@ -43,6 +43,39 @@ export interface AppClients {
   metadataWriter: MetadataWriter | null;
   world: AppWorld;
 }
+
+const SEEDED_REVIEW_PROJECT_NAME = "Demo Hospital Fit-Out";
+
+export const isSeededReviewProject = (
+  project: Fetched<ProjectAccount>,
+): boolean =>
+  project.account.metadataRef === demoProjectRef() ||
+  project.account.name === SEEDED_REVIEW_PROJECT_NAME;
+
+/**
+ * Local validators can accumulate repeated seeded review projects when they are
+ * not reset between runs. Keep the canonical seeded project in the UI and hide
+ * stale duplicates, while callers can still retain the raw list for ID
+ * allocation.
+ */
+export const collapseSeededReviewProjects = (
+  projects: Fetched<ProjectAccount>[],
+  canonicalProject: PublicKey,
+): Fetched<ProjectAccount>[] => {
+  const seeded = projects.filter(isSeededReviewProject);
+  if (seeded.length <= 1) return projects;
+
+  const keeper =
+    seeded.find((project) => project.address.equals(canonicalProject)) ??
+    [...seeded].sort((a, b) =>
+      a.account.projectId > b.account.projectId ? 1 : -1,
+    )[0];
+
+  return projects.filter(
+    (project) =>
+      !isSeededReviewProject(project) || project.address.equals(keeper.address),
+  );
+};
 
 /**
  * Build the seeded review bundle: a mock on-chain client seeded with the

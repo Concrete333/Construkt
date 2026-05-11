@@ -1,5 +1,11 @@
+import { Keypair } from "@solana/web3.js";
 import { describe, expect, it } from "vitest";
-import { buildDemoClients, walletForRole } from "./clients";
+import {
+  buildDemoClients,
+  collapseSeededReviewProjects,
+  walletForRole,
+} from "./clients";
+import type { Fetched, ProjectAccount } from "./program";
 import { DEMO_ROLES } from "./theme";
 
 describe("walletForRole", () => {
@@ -25,5 +31,27 @@ describe("walletForRole", () => {
     expect(walletForRole(world, "contractor").toBase58()).toBe(
       world.contractor.publicKey.toBase58(),
     );
+  });
+});
+
+describe("collapseSeededReviewProjects", () => {
+  it("keeps the canonical seeded project and hides stale localnet duplicates", async () => {
+    const { client, world } = await buildDemoClients();
+    const [canonical] = await client.fetchProjects();
+    const stale: Fetched<ProjectAccount> = {
+      address: Keypair.generate().publicKey,
+      account: {
+        ...canonical.account,
+        projectId: 99n,
+      },
+    };
+
+    const collapsed = collapseSeededReviewProjects(
+      [stale, canonical],
+      world.project,
+    );
+
+    expect(collapsed).toHaveLength(1);
+    expect(collapsed[0].address.toBase58()).toBe(world.project.toBase58());
   });
 });

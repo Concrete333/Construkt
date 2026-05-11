@@ -9,9 +9,10 @@ import {
   Keypair,
   PublicKey,
   SystemProgram,
+  Transaction,
   VersionedTransaction,
 } from "@solana/web3.js";
-import type { Transaction } from "@solana/web3.js";
+import type { TransactionInstruction } from "@solana/web3.js";
 import IDL_JSON from "../idl/construkt.json";
 import {
   deriveApprovalRecordAddress,
@@ -28,6 +29,7 @@ import { ConstruktClientError } from "./program";
 import type {
   AddDocumentReferenceParams,
   ApprovalRecord,
+  ActivateAndFundWorkPackageParams,
   ActivateWorkPackageParams,
   ApproveRequestParams,
   AssignProjectDrafterParams,
@@ -171,6 +173,7 @@ interface MethodWithAccounts {
 
 interface MethodWithSigners {
   signers(signers: Keypair[]): MethodWithRpc;
+  instruction(): Promise<TransactionInstruction>;
 }
 
 interface MethodWithRpc {
@@ -235,6 +238,11 @@ const isConstruktErrorCode = (value: string): value is ConstruktErrorCode =>
   ERROR_CODE_SET.has(value as ConstruktErrorCode);
 
 const mapAnchorError = (err: unknown): never => {
+  const message = err instanceof Error ? err.message : String(err);
+  if (/insufficient funds/i.test(message)) {
+    throw new ConstruktClientError("InsufficientVaultBalance");
+  }
+
   const top =
     typeof err === "object" && err !== null
       ? (err as Record<string, unknown>)
@@ -949,6 +957,70 @@ class AnchorConstruktClient implements ConstruktClient {
         })
         .signers(this.extraSigners(params.authority))
         .rpc();
+      return { signature };
+    } catch (err) {
+      return mapAnchorError(err);
+    }
+  }
+
+  async activateAndFundWorkPackage(
+    params: ActivateAndFundWorkPackageParams,
+  ): Promise<TxResult> {
+    try {
+      const wp = await this.requireWorkPackage(params.workPackage);
+      const vaultAuthority = deriveVaultAuthorityAddress(
+        this.programId,
+        params.workPackage,
+      );
+      const vault = getAssociatedTokenAddressSync(
+        wp.mint,
+        vaultAuthority,
+        true,
+      );
+      const contractorRoleAssignment = deriveRoleAssignmentAddress(
+        this.programId,
+        params.workPackage,
+        ROLE_BYTES.contractor,
+        wp.contractor,
+      );
+      const financeTokenAccount = getAssociatedTokenAddressSync(
+        wp.mint,
+        params.authority,
+      );
+
+      const activateIx = await this.method("activateWorkPackage")
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          workPackage: params.workPackage,
+          vaultAuthority,
+          mint: wp.mint,
+          vault,
+          contractorRoleAssignment,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .instruction();
+
+      const fundIx = await this.method("fundEscrow", toBn(params.amount))
+        .accounts({
+          authority: params.authority,
+          project: params.project,
+          workPackage: params.workPackage,
+          mint: wp.mint,
+          financeTokenAccount,
+          vault,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .instruction();
+
+      const signature = await (
+        this.program.provider as AnchorProvider
+      ).sendAndConfirm(
+        new Transaction().add(activateIx, fundIx),
+        this.extraSigners(params.authority),
+      );
       return { signature };
     } catch (err) {
       return mapAnchorError(err);

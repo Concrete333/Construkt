@@ -5,6 +5,7 @@ import { StatusPill } from "../components/StatusPill";
 import { buildHash } from "../lib/router";
 import { formatTimestamp, shortAddress } from "../lib/format";
 import { DEMO_ROLE_LABEL } from "../lib/theme";
+import { collapseSeededReviewProjects } from "../lib/clients";
 import {
   filterProjectsByContractor,
   selectPackageRollup,
@@ -83,131 +84,146 @@ export const Dashboard2Page = ({ role }: Dashboard2PageProps) => {
     let cancelled = false;
     void (async () => {
       const allProjects = await client.fetchProjects();
+      const displayProjects = collapseSeededReviewProjects(
+        allProjects,
+        world.project,
+      );
       const packagesByProject = new Map<
         string,
         Fetched<WorkPackageAccount>[]
       >();
 
-      for (const project of allProjects) {
-        const packages = await client.fetchWorkPackagesForProject(
-          project.address,
-        );
+      const packageEntries = await Promise.all(
+        displayProjects.map(async (project) => ({
+          project,
+          packages: await client.fetchWorkPackagesForProject(project.address),
+        })),
+      );
+      for (const { project, packages } of packageEntries) {
         packagesByProject.set(project.address.toBase58(), packages);
       }
 
       const visibleProjects =
         role === "contractor"
           ? filterProjectsByContractor(
-              allProjects,
+              displayProjects,
               packagesByProject,
               world.contractor.publicKey,
             )
-          : allProjects;
+          : displayProjects;
 
-      const bundles: ProjectBundle[] = [];
-      const allEvents: EnrichedAuditEvent[] = [];
+      const projectResults = await Promise.all(
+        visibleProjects.map(async (project) => {
+          const packages =
+            packagesByProject.get(project.address.toBase58()) ?? [];
 
-      for (const project of visibleProjects) {
-        const packages =
-          packagesByProject.get(project.address.toBase58()) ?? [];
+          const rollups: PackageRollup[] = [];
+          const packageSources: DashboardPackageSource[] = [];
+          const packageNames = new Map<PublicKeyB58, string>();
+          const activeRequests: ProjectBundle["activeRequests"] = [];
+          const allRoleAssignments: Fetched<RoleAssignmentAccount>[] = [];
+          const allRequests: Fetched<PaymentRequestAccount>[] = [];
+          const allApprovals: Fetched<ApprovalRecord>[] = [];
 
-        const rollups: PackageRollup[] = [];
-        const packageSources: DashboardPackageSource[] = [];
-        const packageNames = new Map<PublicKeyB58, string>();
-        const activeRequests: ProjectBundle["activeRequests"] = [];
-        const allRoleAssignments: Fetched<RoleAssignmentAccount>[] = [];
-        const allRequests: Fetched<PaymentRequestAccount>[] = [];
-        const allApprovals: Fetched<ApprovalRecord>[] = [];
+          await Promise.all(
+            packages.map(async (pkg) => {
+              const [
+                roleAssignments,
+                requests,
+                documentRequests,
+                withdrawalClearances,
+                scope,
+              ] = await Promise.all([
+                client.fetchRoleAssignmentsForPackage(pkg.address),
+                client.fetchPaymentRequestsForPackage(pkg.address),
+                metadata.listDocumentRequestsForPackage(pkg.address.toBase58()),
+                metadata.listWithdrawalClearancesForPackage(
+                  pkg.address.toBase58(),
+                ),
+                metadata.resolvePackageScope(pkg.account.scopeRef),
+              ]);
+              allRoleAssignments.push(...roleAssignments);
+              allRequests.push(...requests);
+              const packageName =
+                scope?.description?.split(".")[0] ??
+                `Package #${pkg.account.packageId.toString()}`;
+              packageNames.set(pkg.address.toBase58(), packageName);
 
-        for (const pkg of packages) {
-          const roleAssignments = await client.fetchRoleAssignmentsForPackage(
-            pkg.address,
-          );
-          allRoleAssignments.push(...roleAssignments);
+              const approvals = await Promise.all(
+                requests.map((request) =>
+                  client.fetchApprovalsForRequest(request.address),
+                ),
+              );
+              allApprovals.push(...approvals.flat());
 
-          const requests = await client.fetchPaymentRequestsForPackage(
-            pkg.address,
-          );
-          allRequests.push(...requests);
+              const activeFetchedRequests = [...requests]
+                .filter((request) => isPaymentRequestActive(request.account))
+                .sort((a, b) =>
+                  a.account.requestId < b.account.requestId ? 1 : -1,
+                );
+              const activeFetchedRequest =
+                activeFetchedRequests.find(
+                  (request) => request.account.holdActive,
+                ) ??
+                (pkg.account.hasActiveRequest
+                  ? (requests.find((request) =>
+                      request.address.equals(pkg.account.activeRequest),
+                    ) ?? null)
+                  : (activeFetchedRequests[0] ?? null));
 
-          const [documentRequests, withdrawalClearances] = await Promise.all([
-            metadata.listDocumentRequestsForPackage(pkg.address.toBase58()),
-            metadata.listWithdrawalClearancesForPackage(pkg.address.toBase58()),
-          ]);
-          const scope = await metadata.resolvePackageScope(
-            pkg.account.scopeRef,
-          );
-          const packageName =
-            scope?.description?.split(".")[0] ??
-            `Package #${pkg.account.packageId.toString()}`;
-          packageNames.set(pkg.address.toBase58(), packageName);
-
-          for (const request of requests) {
-            const approvals = await client.fetchApprovalsForRequest(
-              request.address,
-            );
-            allApprovals.push(...approvals);
-          }
-
-          const activeFetchedRequests = [...requests]
-            .filter((request) => isPaymentRequestActive(request.account))
-            .sort((a, b) =>
-              a.account.requestId < b.account.requestId ? 1 : -1,
-            );
-          const activeFetchedRequest =
-            activeFetchedRequests.find(
-              (request) => request.account.holdActive,
-            ) ??
-            (pkg.account.hasActiveRequest
-              ? (requests.find((request) =>
-                  request.address.equals(pkg.account.activeRequest),
-                ) ?? null)
-              : (activeFetchedRequests[0] ?? null));
-
-          const packageRollup = selectPackageRollup(
-            pkg,
-            activeFetchedRequest?.account ?? null,
-            activeFetchedRequest?.address ?? null,
-          );
-          rollups.push(packageRollup);
-          packageSources.push({
-            rollup: packageRollup,
-            requests,
-            documentRequests: documentRequests.map(([, data]) => data),
-            withdrawalClearances: withdrawalClearances.map(([, data]) => data),
-          });
-
-          if (activeFetchedRequests.length > 0) {
-            for (const request of activeFetchedRequests) {
-              activeRequests.push({
-                workPackage: pkg.address.toBase58(),
-                workPackageName: packageName,
-                request: request.account,
-                address: request.address.toBase58(),
+              const packageRollup = selectPackageRollup(
+                pkg,
+                activeFetchedRequest?.account ?? null,
+                activeFetchedRequest?.address ?? null,
+              );
+              rollups.push(packageRollup);
+              packageSources.push({
+                rollup: packageRollup,
+                requests,
+                documentRequests: documentRequests.map(([, data]) => data),
+                withdrawalClearances: withdrawalClearances.map(
+                  ([, data]) => data,
+                ),
               });
-            }
-          }
-        }
 
-        const rollup = selectProjectRollup(project, rollups);
-        bundles.push({
-          rollup,
-          packages: rollups,
-          packageSources,
-          packageNames,
-          activeRequests,
-        });
+              if (activeFetchedRequests.length > 0) {
+                for (const request of activeFetchedRequests) {
+                  activeRequests.push({
+                    workPackage: pkg.address.toBase58(),
+                    workPackageName: packageName,
+                    request: request.account,
+                    address: request.address.toBase58(),
+                  });
+                }
+              }
+            }),
+          );
 
-        const baseTimeline = selectAuditTimeline({
-          project,
-          roleAssignments: allRoleAssignments,
-          paymentRequests: allRequests,
-          approvals: allApprovals,
-        });
-        for (const event of baseTimeline) {
-          allEvents.push({ ...event, projectName: project.account.name });
-        }
-      }
+          const rollup = selectProjectRollup(project, rollups);
+          const bundle = {
+            rollup,
+            packages: rollups,
+            packageSources,
+            packageNames,
+            activeRequests,
+          };
+
+          const baseTimeline = selectAuditTimeline({
+            project,
+            roleAssignments: allRoleAssignments,
+            paymentRequests: allRequests,
+            approvals: allApprovals,
+          });
+          const events = baseTimeline.map((event) => ({
+            ...event,
+            projectName: project.account.name,
+          }));
+          return { bundle, events };
+        }),
+      );
+
+      const bundles = projectResults.map((result) => result.bundle);
+      const allEvents = projectResults.flatMap((result) => result.events);
 
       allEvents.sort((a, b) => {
         if (a.at < b.at) return 1;

@@ -123,6 +123,19 @@ const tryDecode = (address?: string): PublicKey | null => {
   }
 };
 
+const requestableEscrowBalance = (
+  workPackage: Pick<
+    WorkPackageAccount,
+    "fundedAmount" | "releasedAmount" | "reservedRequestAmount"
+  >,
+): bigint => {
+  const balance =
+    workPackage.fundedAmount -
+    workPackage.releasedAmount -
+    workPackage.reservedRequestAmount;
+  return balance > 0n ? balance : 0n;
+};
+
 export const WorkPackageViewPage = ({
   address,
   role,
@@ -487,6 +500,7 @@ export const WorkPackageViewPage = ({
             walletDisplayName={walletDisplayName}
             project={loaded.project.address}
             workPackage={loaded.packageAddress}
+            packageAccount={rollup.package}
             packageStatus={rollup.package.status}
             contractor={rollup.package.contractor}
             milestones={milestones}
@@ -599,6 +613,7 @@ const CurrentActionCard = ({
   let title = "Package status";
   let detail = workPackageStatusLabel(rollup.package.status);
   let tone: "neutral" | "info" | "warning" | "success" | "error" = "neutral";
+  const availableEscrow = requestableEscrowBalance(rollup.package);
 
   if (request && activeRequestRow) {
     title =
@@ -620,22 +635,18 @@ const CurrentActionCard = ({
     rollup.package.status === "active" &&
     rollup.package.releasedAmount < rollup.package.capAmount
   ) {
-    title = "Submit invoice";
-    detail =
-      milestoneCount > 0
-        ? "Choose an available milestone before submitting."
-        : "Submit against the package balance.";
-    tone = "info";
-  } else if (
-    role === "financeDirector" &&
-    rollup.package.status === "active" &&
-    rollup.remainingCapacity > 0n
-  ) {
-    title = "Fund remaining escrow";
-    detail = `${formatMockUsdc(rollup.remainingCapacity, {
-      withSymbol: true,
-    })} remains unfunded.`;
-    tone = "warning";
+    if (availableEscrow === 0n) {
+      title = "Waiting for escrow funding";
+      detail = "Finance must fund escrow before invoices can be submitted.";
+      tone = "warning";
+    } else {
+      title = "Submit invoice";
+      detail =
+        milestoneCount > 0
+          ? "Use Package Actions below to choose a milestone and submit."
+          : "Use Package Actions below to submit against the package balance.";
+      tone = "info";
+    }
   } else if (rollup.package.status === "completed") {
     title = "Package complete";
     detail = "All package funds have been released.";
@@ -1377,7 +1388,9 @@ const VariationPanel = ({
                 onChange={(e) => setAmountDeltaText(e.target.value)}
                 disabled={pending}
                 placeholder="e.g. 25000"
-                type="number"
+                type="text"
+                inputMode="decimal"
+                autoComplete="off"
               />
             </label>
           )}
@@ -2429,6 +2442,7 @@ interface ActionPanelProps {
   walletDisplayName: string | null;
   project: PublicKey;
   workPackage: PublicKey;
+  packageAccount: WorkPackageAccount;
   packageStatus: WorkPackageAccount["status"];
   contractor: PublicKey;
   milestones: Fetched<MilestoneAccount>[];
@@ -2448,6 +2462,7 @@ const ActionPanel = ({
   walletDisplayName,
   project,
   workPackage,
+  packageAccount,
   packageStatus,
   contractor,
   milestones,
@@ -2500,13 +2515,18 @@ const ActionPanel = ({
   const isContractorAction = role === "contractor";
   const contractorIsSelf = wallet.equals(contractor);
   const isMilestonePackage = milestones.length > 0;
+  const availableEscrow = requestableEscrowBalance(packageAccount);
   const hasInvoiceableMilestone = milestones.some(
-    (m) => m.account.status === "active" && !m.account.hasActiveRequest,
+    (m) =>
+      m.account.status === "active" &&
+      !m.account.hasActiveRequest &&
+      m.account.releasedAmount < m.account.amount,
   );
   const canSubmitInvoice =
     isContractorAction &&
     contractorIsSelf &&
     packageStatus === "active" &&
+    availableEscrow > 0n &&
     (!activeRequest || (isMilestonePackage && hasInvoiceableMilestone));
   const requestLabel = activeRequest
     ? `Request #${activeRequest.request.account.requestId.toString()}`
@@ -2553,6 +2573,17 @@ const ActionPanel = ({
         body: isMilestonePackage
           ? "Select an available milestone, add evidence, and submit the invoice for PM review."
           : "Add evidence and submit an invoice against this package for PM review.",
+      };
+    }
+    if (
+      isContractorAction &&
+      contractorIsSelf &&
+      packageStatus === "active" &&
+      availableEscrow === 0n
+    ) {
+      return {
+        title: "Waiting for escrow funding",
+        body: "Finance must approve and fund escrow before invoices can be submitted.",
       };
     }
     if (activeRequest && requestLabel) {
@@ -2701,9 +2732,44 @@ const ActionPanel = ({
       setInvoiceAmountError(e instanceof Error ? e.message : "Invalid amount");
       return;
     }
+    if (parsedAmount <= 0n) {
+      setInvoiceAmountError("Invoice amount must be greater than zero.");
+      return;
+    }
     if (isMilestonePackage && invoiceMilestone.length === 0) {
       setInvoiceAmountError("Select a milestone for this invoice.");
       return;
+    }
+    if (parsedAmount > availableEscrow) {
+      setInvoiceAmountError(
+        `Escrow has ${formatMockUsdc(availableEscrow, {
+          withSymbol: true,
+        })} available. Finance must fund escrow before this invoice amount can be submitted.`,
+      );
+      return;
+    }
+    const milestone = isMilestonePackage
+      ? new PublicKey(invoiceMilestone)
+      : null;
+    const selectedMilestone = milestone
+      ? milestones.find((m) => m.address.equals(milestone))?.account
+      : null;
+    if (isMilestonePackage && !selectedMilestone) {
+      setInvoiceAmountError("Select a valid milestone for this invoice.");
+      return;
+    }
+    if (selectedMilestone) {
+      const remainingMilestoneAmount =
+        selectedMilestone.amount - selectedMilestone.releasedAmount;
+      if (parsedAmount > remainingMilestoneAmount) {
+        setInvoiceAmountError(
+          `Amount exceeds the remaining milestone value of ${formatMockUsdc(
+            remainingMilestoneAmount,
+            { withSymbol: true },
+          )}.`,
+        );
+        return;
+      }
     }
     setInvoiceAmountError(null);
     void onAct(async () => {
@@ -2716,12 +2782,6 @@ const ActionPanel = ({
       const requestId = nextPaymentRequestId(latestWorkPackage, latestRequests);
       const uploadedAt = new Date().toISOString();
       const docRef = documentMetadataRef(workPackage, requestId);
-      const milestone = isMilestonePackage
-        ? new PublicKey(invoiceMilestone)
-        : null;
-      const selectedMilestone = milestone
-        ? milestones.find((m) => m.address.equals(milestone))?.account
-        : null;
       const result = await client.submitPaymentRequest({
         contractor: wallet,
         project,
@@ -2849,12 +2909,14 @@ const ActionPanel = ({
                 <input
                   className="work-package-view__reject-input"
                   type="text"
+                  inputMode="decimal"
                   value={invoiceAmount}
                   onChange={(e) => {
                     setInvoiceAmount(e.target.value);
                     setInvoiceAmountError(null);
                   }}
                   placeholder="e.g. 25000"
+                  autoComplete="off"
                   disabled={pending}
                 />
                 {invoiceAmountError && (

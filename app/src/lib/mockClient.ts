@@ -14,6 +14,7 @@ import type { RoleByte } from "./pda";
 import { ConstruktClientError } from "./program";
 import type {
   AddDocumentReferenceParams,
+  ActivateAndFundWorkPackageParams,
   ActivateWorkPackageParams,
   ApprovalRecord,
   ApproveRequestParams,
@@ -515,6 +516,57 @@ export class MockConstruktClient implements ConstruktClient {
     wp.vault = vaultAuthority;
     wp.vaultAuthorityBump = 255;
     wp.status = "active";
+    project.allocatedAmount += wp.capAmount;
+
+    const roleAssignment = deriveRoleAssignmentAddress(
+      this.programId,
+      p.workPackage,
+      ROLE_BYTES.contractor,
+      wp.contractor,
+    );
+    const now = this.clock();
+    this.roleAssignments.set(roleAssignment.toBase58(), {
+      workPackage: p.workPackage,
+      wallet: wp.contractor,
+      role: "contractor",
+      active: true,
+      assignedBy: p.authority,
+      assignedAt: now,
+      updatedBy: p.authority,
+      updatedAt: now,
+      bump: 255,
+    });
+    return this.tx();
+  }
+
+  async activateAndFundWorkPackage(
+    p: ActivateAndFundWorkPackageParams,
+  ): Promise<TxResult> {
+    const project = this.requireProject(p.project);
+    if (!project.authority.equals(p.authority)) fail("Unauthorized");
+    if (p.amount <= 0n) fail("InvalidAmount");
+    const wp = this.requireWorkPackage(p.workPackage);
+    if (!wp.project.equals(p.project)) fail("InvalidAccountRelationship");
+    if (wp.status !== "draft") fail("InvalidStatus");
+    if (wp.contractor.equals(PublicKey.default))
+      fail("InvalidAccountRelationship");
+    if (
+      wp.milestoneCounter > 0n &&
+      wp.allocatedMilestoneAmount !== wp.capAmount
+    )
+      fail("InvalidStatus");
+    const remainingAllocatable = project.budgetAmount - project.allocatedAmount;
+    if (wp.capAmount > remainingAllocatable) fail("InsufficientRemainingCap");
+    if (p.amount > wp.capAmount) fail("InsufficientRemainingCap");
+
+    const vaultAuthority = deriveVaultAuthorityAddress(
+      this.programId,
+      p.workPackage,
+    );
+    wp.vault = vaultAuthority;
+    wp.vaultAuthorityBump = 255;
+    wp.status = "active";
+    wp.fundedAmount += p.amount;
     project.allocatedAmount += wp.capAmount;
 
     const roleAssignment = deriveRoleAssignmentAddress(

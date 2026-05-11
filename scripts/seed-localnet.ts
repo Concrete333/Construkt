@@ -44,7 +44,7 @@ const RPC_URL = process.env.ANCHOR_RPC_URL ?? "http://localhost:8899";
 const PROJECT_ID = 1;
 const PROJECT_BUDGET = 1_400_000_000;
 const CAP_AMOUNT = 200_000_000;
-const MINT_SUPPLY = 2_000_000_000;
+const MINT_SUPPLY = 1_000_000_000_000_000n;
 
 const ROLE_BYTES = {
   contractor: 1,

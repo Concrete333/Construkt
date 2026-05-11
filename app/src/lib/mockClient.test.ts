@@ -1016,6 +1016,55 @@ describe("MockConstruktClient — high approval policy parity", () => {
     expect(active?.highApprovalRequired).toBe(true);
   });
 
+  it("activateAndFundWorkPackage approves and fully funds a draft in one client action", async () => {
+    const client = newClient();
+    const w = wallets();
+    const projectId = 111n;
+    const packageId = 111n;
+    const capAmount = 500_000n;
+    const project = deriveProjectAddress(PROGRAM_ID, w.finance, projectId);
+    const workPackage = deriveWorkPackageAddress(
+      PROGRAM_ID,
+      project,
+      packageId,
+    );
+
+    await client.initializeProject({
+      authority: w.finance,
+      projectId,
+      mint: w.mint,
+      budgetAmount: PROJECT_BUDGET,
+      name: "Atomic activation project",
+      metadataRef: "ipfs://atomic-activation",
+    });
+    await client.assignProjectDrafter({
+      authority: w.finance,
+      project,
+      wallet: w.pm,
+    });
+    await client.createPackageDraft({
+      drafter: w.pm,
+      project,
+      packageId,
+      capAmount,
+      contractor: w.contractor,
+      scopeRef: "ipfs://atomic-activation-scope",
+    });
+
+    await client.activateAndFundWorkPackage({
+      authority: w.finance,
+      project,
+      workPackage,
+      amount: capAmount,
+    });
+
+    const active = await client.fetchWorkPackage(workPackage);
+    expect(active?.status).toBe("active");
+    expect(active?.fundedAmount).toBe(capAmount);
+    const updatedProject = await client.fetchProject(project);
+    expect(updatedProject?.allocatedAmount).toBe(capAmount);
+  });
+
   it("allows PM draft estimates to be assigned to a contractor before activation", async () => {
     const client = newClient();
     const w = wallets();

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useClients } from "../components/clientsContext";
 import { buildHash } from "../lib/router";
-import { walletForRole } from "../lib/clients";
+import { collapseSeededReviewProjects, walletForRole } from "../lib/clients";
 import { CONSTRUKT_PROGRAM_ID } from "../lib/config";
 import { deriveProjectAddress } from "../lib/pda";
 import { parseMockUsdc } from "../lib/format";
@@ -90,58 +90,65 @@ export const ProjectListPage = ({ role }: ProjectListPageProps) => {
     let cancelled = false;
     void (async () => {
       const all = await client.fetchProjects();
+      const displayProjects = collapseSeededReviewProjects(all, world.project);
       const packageMap = new Map<string, Fetched<WorkPackageAccount>[]>();
 
-      for (const project of all) {
-        const packages = await client.fetchWorkPackagesForProject(
-          project.address,
-        );
+      const packageEntries = await Promise.all(
+        displayProjects.map(async (project) => ({
+          project,
+          packages: await client.fetchWorkPackagesForProject(project.address),
+        })),
+      );
+      for (const { project, packages } of packageEntries) {
         packageMap.set(project.address.toBase58(), packages);
       }
 
       const visible =
         role === "contractor"
           ? filterProjectsByContractor(
-              all,
+              displayProjects,
               packageMap,
               world.contractor.publicKey,
             )
-          : all;
+          : displayProjects;
 
-      const next: LoadedProject[] = [];
-      for (const project of visible) {
-        const packages = packageMap.get(project.address.toBase58()) ?? [];
-        const rollups: PackageRollup[] = [];
-        for (const pkg of packages) {
-          const requests = await client.fetchPaymentRequestsForPackage(
-            pkg.address,
+      const next = await Promise.all(
+        visible.map(async (project): Promise<LoadedProject> => {
+          const packages = packageMap.get(project.address.toBase58()) ?? [];
+          const rollups = await Promise.all(
+            packages.map(async (pkg): Promise<PackageRollup> => {
+              const requests = await client.fetchPaymentRequestsForPackage(
+                pkg.address,
+              );
+              const activeFetchedRequest = pkg.account.hasActiveRequest
+                ? (requests.find((request) =>
+                    request.address.equals(pkg.account.activeRequest),
+                  ) ?? null)
+                : ([...requests]
+                    .filter((request) =>
+                      isPaymentRequestActive(request.account),
+                    )
+                    .sort((a, b) =>
+                      a.account.requestId < b.account.requestId ? 1 : -1,
+                    )[0] ?? null);
+              return selectPackageRollup(
+                pkg,
+                activeFetchedRequest?.account ?? null,
+                activeFetchedRequest?.address ?? null,
+              );
+            }),
           );
-          const activeFetchedRequest = pkg.account.hasActiveRequest
-            ? (requests.find((request) =>
-                request.address.equals(pkg.account.activeRequest),
-              ) ?? null)
-            : ([...requests]
-                .filter((request) => isPaymentRequestActive(request.account))
-                .sort((a, b) =>
-                  a.account.requestId < b.account.requestId ? 1 : -1,
-                )[0] ?? null);
-          rollups.push(
-            selectPackageRollup(
-              pkg,
-              activeFetchedRequest?.account ?? null,
-              activeFetchedRequest?.address ?? null,
-            ),
+          const projectMetadata = await metadata.resolveProject(
+            project.account.metadataRef,
           );
-        }
-        const projectMetadata = await metadata.resolveProject(
-          project.account.metadataRef,
-        );
-        next.push({
-          rollup: selectProjectRollup(project, rollups),
-          metadata: projectMetadata,
-          packagesWithActiveHeldRequest: rollups.filter((r) => r.isHeld).length,
-        });
-      }
+          return {
+            rollup: selectProjectRollup(project, rollups),
+            metadata: projectMetadata,
+            packagesWithActiveHeldRequest: rollups.filter((r) => r.isHeld)
+              .length,
+          };
+        }),
+      );
 
       if (!cancelled) {
         setLoaded(next);
@@ -561,12 +568,12 @@ const CreateProjectModal = ({
           </Field>
           <Field label="Overall Project Budget - GBP">
             <input
-              type="number"
-              min="0"
-              step="1000"
+              type="text"
+              inputMode="decimal"
               value={budgetText}
               onChange={(e) => onBudget(e.target.value)}
               placeholder="e.g. 1250000"
+              autoComplete="off"
               disabled={pending}
             />
           </Field>
